@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLD Cheat Sheet — Multi-Tenant AI Agentic SaaS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --bg2: #0f1117;
+    --bg3: #161820;
+    --surface: #1a1d27;
+    --surface2: #20243200;
+    --border: #2a2e42;
+    --border2: #363b55;
+    --accent: #6ee7b7;
+    --accent2: #38bdf8;
+    --accent3: #f472b6;
+    --accent4: #fb923c;
+    --accent5: #a78bfa;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --green: #4ade80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* SIDEBAR NAV */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 24px 0;
+  }
+
+  .sidebar-logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-logo .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-logo h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .nav-section {
+    padding: 6px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 7px 20px;
+    font-size: 13px;
+    color: var(--text2);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(110,231,183,0.05);
+  }
+
+  /* MAIN CONTENT */
+  .main {
+    margin-left: 240px;
+    padding: 0 48px 80px;
+    max-width: 1100px;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 60px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .hero::after {
+    content: 'LLD';
+    position: absolute;
+    right: -20px;
+    top: 30px;
+    font-family: 'Syne', sans-serif;
+    font-size: 160px;
+    font-weight: 800;
+    color: rgba(110,231,183,0.04);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hero .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span { color: var(--accent2); }
+
+  .hero p {
+    color: var(--text2);
+    font-size: 16px;
+    max-width: 600px;
+  }
+
+  .hero-pills {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border: 1px solid;
+  }
+
+  .pill-green { border-color: var(--accent); color: var(--accent); background: rgba(110,231,183,0.07); }
+  .pill-blue { border-color: var(--accent2); color: var(--accent2); background: rgba(56,189,248,0.07); }
+  .pill-pink { border-color: var(--accent3); color: var(--accent3); background: rgba(244,114,182,0.07); }
+  .pill-orange { border-color: var(--accent4); color: var(--accent4); background: rgba(251,146,60,0.07); }
+  .pill-purple { border-color: var(--accent5); color: var(--accent5); background: rgba(167,139,250,0.07); }
+
+  /* SECTIONS */
+  section { margin-bottom: 72px; scroll-margin-top: 24px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--border2); }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-line, var(--accent)), transparent);
+    opacity: 0.5;
+  }
+
+  .card.blue { --accent-line: var(--accent2); }
+  .card.pink { --accent-line: var(--accent3); }
+  .card.orange { --accent-line: var(--accent4); }
+  .card.purple { --accent-line: var(--accent5); }
+  .card.yellow { --accent-line: var(--yellow); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* CODE BLOCKS */
+  pre {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    margin: 16px 0;
+  }
+
+  .kw { color: #c792ea; }
+  .cls { color: #82aaff; }
+  .fn { color: #82b0ff; }
+  .str { color: #c3e88d; }
+  .cmt { color: #546e7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .prop { color: #89ddff; }
+  .type { color: #ffcb6b; }
+  .deco { color: var(--accent3); }
+  .op { color: #89ddff; }
+
+  /* PRINCIPLE BLOCKS */
+  .principle {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg3);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .principle-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .principle-content .title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .principle-content p {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* PATTERN BADGE */
+  .pattern-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin: 3px;
+    border: 1px solid;
+  }
+
+  /* DIAGRAM */
+  .diagram-box {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+  }
+
+  .d-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 12px 0;
+  }
+
+  .d-box {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.4;
+    min-width: 90px;
+  }
+
+  .d-arrow {
+    color: var(--text3);
+    font-size: 18px;
+    margin: 0 6px;
+  }
+
+  .d-green { border-color: var(--accent); color: var(--accent); background: rgba(110,231,183,0.07); }
+  .d-blue { border-color: var(--accent2); color: var(--accent2); background: rgba(56,189,248,0.07); }
+  .d-pink { border-color: var(--accent3); color: var(--accent3); background: rgba(244,114,182,0.07); }
+  .d-orange { border-color: var(--accent4); color: var(--accent4); background: rgba(251,146,60,0.07); }
+  .d-purple { border-color: var(--accent5); color: var(--accent5); background: rgba(167,139,250,0.07); }
+  .d-yellow { border-color: var(--yellow); color: var(--yellow); background: rgba(251,191,36,0.07); }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+  }
+
+  thead th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .td-name { color: var(--text); font-weight: 500; }
+  .td-mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent2); }
+
+  /* CALLOUT */
+  .callout {
+    display: flex;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+
+  .callout-info { background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); }
+  .callout-warn { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); }
+  .callout-tip { background: rgba(110,231,183,0.08); border: 1px solid rgba(110,231,183,0.2); }
+  .callout-danger { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 6px 0;
+    padding-left: 24px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--text2);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .checklist li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* STEP FLOW */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .step::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 44px;
+    bottom: -28px;
+    width: 1px;
+    background: var(--border);
+  }
+  .step:last-child::before { display: none; }
+  .step-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    flex-shrink: 0;
+    counter-increment: step;
+  }
+  .step-num::after { content: counter(step); }
+  .step-body { flex: 1; padding-top: 8px; }
+  .step-body h4 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .step-body p { font-size: 13px; color: var(--text2); }
+
+  /* ARCH DIAGRAM */
+  .arch-diagram {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px;
+    overflow-x: auto;
+  }
+
+  .arch-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    margin: 6px 0;
+    justify-content: center;
+  }
+
+  .arch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    align-self: center;
+    min-width: 16px;
+  }
+
+  .arch-node {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    flex: 1;
+    min-width: 90px;
+    border: 1px solid;
+    line-height: 1.4;
+  }
+
+  .arch-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+    position: relative;
+  }
+
+  .arch-divider span {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    background: #090b10;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .arch-arrow-down {
+    text-align: center;
+    color: var(--text3);
+    font-size: 20px;
+    line-height: 1;
+    margin: 2px 0;
+  }
+
+  /* PATTERN GRID */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .pattern-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+
+  .pattern-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+  }
+
+  .pattern-card .icon { font-size: 22px; margin-bottom: 8px; }
+  .pattern-card .name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .pattern-card .desc { font-size: 11.5px; color: var(--text3); line-height: 1.5; }
+  .pattern-card .use { font-size: 11px; color: var(--accent); font-family: 'JetBrains Mono', monospace; margin-top: 8px; }
+
+  /* SOLID */
+  .solid-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+  .solid-item {
+    display: grid;
+    grid-template-columns: 42px 180px 1fr;
+    gap: 16px;
+    align-items: start;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .solid-item:last-child { border-bottom: none; }
+  .solid-letter {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .solid-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding-top: 4px;
+  }
+  .solid-desc { font-size: 13px; color: var(--text2); padding-top: 4px; }
+
+  /* FOOTER */
+  .footer {
+    margin-left: 240px;
+    padding: 24px 48px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px; }
+    .footer { margin-left: 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .solid-item { grid-template-columns: 32px 1fr; }
+    .solid-desc { grid-column: 1/-1; }
+    .hero h1 { font-size: 32px; }
+    .hero::after { display: none; }
+    .arch-row { flex-wrap: wrap; }
+  }
+
+  .tag-inline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent2);
+  }
+
+  .highlight { color: var(--accent); font-weight: 600; }
+  .highlight-blue { color: var(--accent2); }
+  .highlight-pink { color: var(--accent3); }
+  .highlight-orange { color: var(--accent4); }
+  .highlight-purple { color: var(--accent5); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span class="tag">// cheat sheet</span>
+    <h2>LLD Fundamentals</h2>
+  </div>
+
+  <span class="nav-section">Foundations</span>
+  <a class="nav-link" href="#principles">Design Principles</a>
+  <a class="nav-link" href="#solid">SOLID Principles</a>
+  <a class="nav-link" href="#process">LLD Process</a>
+
+  <span class="nav-section">Core Patterns</span>
+  <a class="nav-link" href="#creational">Creational Patterns</a>
+  <a class="nav-link" href="#structural">Structural Patterns</a>
+  <a class="nav-link" href="#behavioral">Behavioral Patterns</a>
+
+  <span class="nav-section">Modeling</span>
+  <a class="nav-link" href="#class-design">Class Design</a>
+  <a class="nav-link" href="#relationships">Relationships</a>
+  <a class="nav-link" href="#uml">UML Essentials</a>
+
+  <span class="nav-section">Case Study</span>
+  <a class="nav-link" href="#case-intro">System Overview</a>
+  <a class="nav-link" href="#case-requirements">Requirements</a>
+  <a class="nav-link" href="#case-arch">Architecture</a>
+  <a class="nav-link" href="#case-patterns">Patterns Used</a>
+  <a class="nav-link" href="#case-code">Code Deep Dive</a>
+  <a class="nav-link" href="#case-tenancy">Multi-Tenancy</a>
+  <a class="nav-link" href="#case-agents">Agent Design</a>
+
+  <span class="nav-section">Reference</span>
+  <a class="nav-link" href="#antipatterns">Anti-Patterns</a>
+  <a class="nav-link" href="#checklist">Interview Checklist</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="eyebrow">// Low Level Design · System Design · Reference Guide</div>
+    <h1>LLD Cheat Sheet<br><span>+ Case Study</span></h1>
+    <p>A comprehensive reference for low-level design fundamentals, patterns, and principles — illustrated through a real-world multi-tenant AI agentic SaaS platform.</p>
+    <div class="hero-pills">
+      <span class="pill pill-green">SOLID</span>
+      <span class="pill pill-blue">Design Patterns</span>
+      <span class="pill pill-pink">UML Modeling</span>
+      <span class="pill pill-orange">Multi-Tenancy</span>
+      <span class="pill pill-purple">AI Agents</span>
+      <span class="pill pill-green">Code Examples</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 1: DESIGN PRINCIPLES
+  ══════════════════════════════════════════ -->
+  <section id="principles">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Core Design Principles</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(110,231,183,0.1);">🎯</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent)">Single Responsibility</div>
+          <p>A class should have one, and only one, reason to change. Each module owns a single concern.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(56,189,248,0.1);">🔒</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent2)">Open/Closed</div>
+          <p>Open for extension, closed for modification. Add new behavior without touching existing code.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(244,114,182,0.1);">🔄</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent3)">DRY (Don't Repeat Yourself)</div>
+          <p>Every piece of knowledge must have a single, unambiguous representation in the system.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(251,146,60,0.1);">🧩</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent4)">Separation of Concerns</div>
+          <p>Divide a program into distinct sections, each addressing a separate concern or responsibility.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(167,139,250,0.1);">📦</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent5)">Encapsulation</div>
+          <p>Bundle data with the methods that operate on it. Hide internal state, expose behavior via interfaces.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(251,191,36,0.1);">🔀</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--yellow)">Composition over Inheritance</div>
+          <p>Favor composing objects with desired behaviors over inheriting from base classes.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(110,231,183,0.1);">🚫</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent)">YAGNI</div>
+          <p>You Aren't Gonna Need It. Don't add functionality until it's actually needed.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-icon" style="background:rgba(56,189,248,0.1);">⬇️</div>
+        <div class="principle-content">
+          <div class="title" style="color:var(--accent2)">Dependency Inversion</div>
+          <p>Depend on abstractions, not concretions. High-level modules should not depend on low-level modules.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 2: SOLID
+  ══════════════════════════════════════════ -->
+  <section id="solid">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>SOLID Principles</h2>
+    </div>
+
+    <div class="card">
+      <div class="solid-grid">
+        <div class="solid-item">
+          <div class="solid-letter">S</div>
+          <div class="solid-name">Single Responsibility Principle</div>
+          <div class="solid-desc">A class has one job. <span class="tag-inline">UserService</span> handles users, not emails. Split: <span class="tag-inline">EmailService</span> sends emails. Bad: one "God class" does everything.</div>
+        </div>
+        <div class="solid-item">
+          <div class="solid-letter" style="color:var(--accent2)">O</div>
+          <div class="solid-name">Open/Closed Principle</div>
+          <div class="solid-desc">Extend behavior via new classes/interfaces, never by modifying working code. Use <span class="tag-inline">Strategy</span> or <span class="tag-inline">Template Method</span> patterns.</div>
+        </div>
+        <div class="solid-item">
+          <div class="solid-letter" style="color:var(--accent3)">L</div>
+          <div class="solid-name">Liskov Substitution Principle</div>
+          <div class="solid-desc">Subclasses must be substitutable for their base class without breaking the program. If <span class="tag-inline">Bird</span> has <span class="tag-inline">fly()</span>, don't make <span class="tag-inline">Penguin</span> extend it.</div>
+        </div>
+        <div class="solid-item">
+          <div class="solid-letter" style="color:var(--accent4)">I</div>
+          <div class="solid-name">Interface Segregation Principle</div>
+          <div class="solid-desc">Many specific interfaces &gt; one fat interface. Don't force classes to implement methods they don't need. Split <span class="tag-inline">IAgent</span> into <span class="tag-inline">IExecutable</span>, <span class="tag-inline">ISchedulable</span>, etc.</div>
+        </div>
+        <div class="solid-item">
+          <div class="solid-letter" style="color:var(--accent5)">D</div>
+          <div class="solid-name">Dependency Inversion Principle</div>
+          <div class="solid-desc">Program to interfaces, not implementations. Inject dependencies. <span class="tag-inline">AgentRunner(ILLMClient llm)</span> not <span class="tag-inline">AgentRunner(OpenAIClient llm)</span>.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 3: LLD PROCESS
+  ══════════════════════════════════════════ -->
+  <section id="process">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>LLD Design Process</h2>
+    </div>
+
+    <div class="callout callout-tip">
+      <span style="font-size:18px">💡</span>
+      <div>In interviews and real-world design, follow this structured approach. Rushing to code without analysis is the most common LLD mistake.</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Clarify Requirements</h4>
+          <p>Identify functional requirements (what it does) and non-functional (scale, performance, consistency). Ask: who are the actors? What are the primary use cases? What are the constraints?</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Identify Core Entities & Objects</h4>
+          <p>Extract nouns from requirements. These become your classes/interfaces. Group related data and behavior together. Assign clear responsibilities to each entity.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Define Relationships</h4>
+          <p>Map associations (uses-a), aggregations (has-a), compositions (owns-a), and inheritance (is-a). Use UML notation to visualize. Prefer composition over deep inheritance.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Design Interfaces & Contracts</h4>
+          <p>Define public APIs before implementation. Interfaces should be minimal, cohesive, and stable. Think about what each module publishes vs. hides.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Apply Design Patterns</h4>
+          <p>Identify recurring problems and apply established patterns. Don't force patterns — let the problem guide the solution. Common: Factory, Strategy, Observer, Repository.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h4>Validate Against SOLID & Edge Cases</h4>
+          <p>Walk through use cases. Check: What if this module changes? Can I extend without modifying? Are there circular dependencies? Handle null, empty, error states.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 4: CREATIONAL PATTERNS
+  ══════════════════════════════════════════ -->
+  <section id="creational">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Creational Patterns</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>🏭 Factory Method</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Define an interface for creating an object, but let subclasses decide which class to instantiate.</p>
+        <pre><span class="kw">interface</span> <span class="type">IAgent</span> { run(): <span class="type">void</span> }
+
+<span class="kw">class</span> <span class="cls">AgentFactory</span> {
+  <span class="kw">static</span> <span class="fn">create</span>(type: <span class="type">string</span>): <span class="type">IAgent</span> {
+    <span class="kw">switch</span>(type) {
+      <span class="kw">case</span> <span class="str">'research'</span>: <span class="kw">return new</span> <span class="cls">ResearchAgent</span>();
+      <span class="kw">case</span> <span class="str">'writer'</span>: <span class="kw">return new</span> <span class="cls">WriterAgent</span>();
+      <span class="kw">default</span>: <span class="kw">throw new</span> <span class="cls">Error</span>(<span class="str">'Unknown type'</span>);
+    }
+  }
+}</pre>
+        <span class="pattern-badge" style="border-color:var(--accent);color:var(--accent)">Use when: object type determined at runtime</span>
+      </div>
+
+      <div class="card blue">
+        <h3>🔱 Abstract Factory</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Create families of related objects without specifying their concrete classes.</p>
+        <pre><span class="kw">interface</span> <span class="type">ILLMFactory</span> {
+  <span class="fn">createChat</span>(): <span class="type">IChatModel</span>;
+  <span class="fn">createEmbed</span>(): <span class="type">IEmbedModel</span>;
+}
+<span class="kw">class</span> <span class="cls">OpenAIFactory</span> <span class="kw">implements</span> <span class="type">ILLMFactory</span> {
+  <span class="fn">createChat</span>() { <span class="kw">return new</span> <span class="cls">GPT4</span>(); }
+  <span class="fn">createEmbed</span>() { <span class="kw">return new</span> <span class="cls">Ada002</span>(); }
+}</pre>
+        <span class="pattern-badge" style="border-color:var(--accent2);color:var(--accent2)">Use when: product families need consistency</span>
+      </div>
+
+      <div class="card pink">
+        <h3>🔐 Singleton</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Ensure a class has only one instance and provide global access to it.</p>
+        <pre><span class="kw">class</span> <span class="cls">TenantRegistry</span> {
+  <span class="kw">private static</span> instance: <span class="cls">TenantRegistry</span>;
+  <span class="kw">private</span> <span class="fn">constructor</span>() {}
+  
+  <span class="kw">static</span> <span class="fn">getInstance</span>() {
+    <span class="kw">if</span> (!<span class="cls">TenantRegistry</span>.instance)
+      <span class="cls">TenantRegistry</span>.instance = <span class="kw">new</span> <span class="cls">TenantRegistry</span>();
+    <span class="kw">return</span> <span class="cls">TenantRegistry</span>.instance;
+  }
+}</pre>
+        <span class="pattern-badge" style="border-color:var(--accent3);color:var(--accent3)">Use when: exactly one shared resource needed</span>
+      </div>
+
+      <div class="card orange">
+        <h3>🏗️ Builder</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Construct complex objects step by step, separating construction from representation.</p>
+        <pre><span class="kw">class</span> <span class="cls">AgentPipelineBuilder</span> {
+  <span class="kw">private</span> pipeline = <span class="kw">new</span> <span class="cls">AgentPipeline</span>();
+  
+  <span class="fn">withLLM</span>(llm: <span class="type">ILLMClient</span>) {
+    <span class="kw">this</span>.pipeline.llm = llm; <span class="kw">return this</span>;
+  }
+  <span class="fn">withTools</span>(tools: <span class="type">ITool</span>[]) {
+    <span class="kw">this</span>.pipeline.tools = tools; <span class="kw">return this</span>;
+  }
+  <span class="fn">build</span>() { <span class="kw">return this</span>.pipeline; }
+}</pre>
+        <span class="pattern-badge" style="border-color:var(--accent4);color:var(--accent4)">Use when: complex objects with many optional parts</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 5: STRUCTURAL PATTERNS
+  ══════════════════════════════════════════ -->
+  <section id="structural">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Structural Patterns</h2>
+    </div>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="icon">🔌</div>
+        <div class="name">Adapter</div>
+        <div class="desc">Converts incompatible interface into one a client expects. Wrap external library APIs.</div>
+        <div class="use">OpenAI → ILLMClient</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🎭</div>
+        <div class="name">Facade</div>
+        <div class="desc">Simplified interface to a complex subsystem. One entry point to multiple services.</div>
+        <div class="use">AgentService facade</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🌉</div>
+        <div class="name">Bridge</div>
+        <div class="desc">Decouple abstraction from implementation so they can vary independently.</div>
+        <div class="use">LLM + Storage layers</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🎁</div>
+        <div class="name">Decorator</div>
+        <div class="desc">Add behavior to objects at runtime without altering their structure.</div>
+        <div class="use">Rate limit + logging wrap</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🌿</div>
+        <div class="name">Composite</div>
+        <div class="desc">Treat individual objects and compositions of objects uniformly.</div>
+        <div class="use">Agent task trees</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🪶</div>
+        <div class="name">Flyweight</div>
+        <div class="desc">Share state among many fine-grained objects to reduce memory usage.</div>
+        <div class="use">Shared prompt templates</div>
+      </div>
+      <div class="pattern-card">
+        <div class="icon">🛡️</div>
+        <div class="name">Proxy</div>
+        <div class="desc">Surrogate that controls access to another object. Lazy loading, auth, caching.</div>
+        <div class="use">Tenant-scoped DB proxy</div>
+      </div>
+    </div>
+
+    <pre style="margin-top:20px"><span class="cmt">// DECORATOR PATTERN — wrapping agent with rate limiting + logging</span>
+<span class="kw">interface</span> <span class="type">IAgentExecutor</span> {
+  <span class="fn">execute</span>(task: <span class="type">Task</span>): <span class="type">Promise</span>&lt;<span class="type">Result</span>&gt;;
+}
+
+<span class="kw">class</span> <span class="cls">RateLimitedAgent</span> <span class="kw">implements</span> <span class="type">IAgentExecutor</span> {
+  <span class="fn">constructor</span>(<span class="kw">private</span> inner: <span class="type">IAgentExecutor</span>, <span class="kw">private</span> limiter: <span class="type">IRateLimiter</span>) {}
+  
+  <span class="kw">async</span> <span class="fn">execute</span>(task: <span class="type">Task</span>) {
+    <span class="kw">await this</span>.limiter.<span class="fn">acquire</span>();       <span class="cmt">// check rate limit</span>
+    <span class="kw">return</span> <span class="kw">this</span>.inner.<span class="fn">execute</span>(task);  <span class="cmt">// delegate to real agent</span>
+  }
+}
+
+<span class="kw">class</span> <span class="cls">LoggedAgent</span> <span class="kw">implements</span> <span class="type">IAgentExecutor</span> {
+  <span class="fn">constructor</span>(<span class="kw">private</span> inner: <span class="type">IAgentExecutor</span>, <span class="kw">private</span> logger: <span class="type">ILogger</span>) {}
+  
+  <span class="kw">async</span> <span class="fn">execute</span>(task: <span class="type">Task</span>) {
+    <span class="kw">this</span>.logger.<span class="fn">info</span>(<span class="str">`Executing: <span class="op">${</span>task.id<span class="op">}</span>`</span>);
+    <span class="kw">const</span> result = <span class="kw">await this</span>.inner.<span class="fn">execute</span>(task);
+    <span class="kw">this</span>.logger.<span class="fn">info</span>(<span class="str">`Done: <span class="op">${</span>result.status<span class="op">}</span>`</span>);
+    <span class="kw">return</span> result;
+  }
+}
+<span class="cmt">// Usage: new LoggedAgent(new RateLimitedAgent(new BaseAgent(), limiter), logger)</span></pre>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 6: BEHAVIORAL PATTERNS
+  ══════════════════════════════════════════ -->
+  <section id="behavioral">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Behavioral Patterns</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>📋 Strategy</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Define a family of algorithms and make them interchangeable.</p>
+        <pre><span class="kw">interface</span> <span class="type">IRoutingStrategy</span> {
+  <span class="fn">route</span>(task: <span class="type">Task</span>): <span class="type">IAgent</span>;
+}
+<span class="kw">class</span> <span class="cls">CapabilityRouter</span> <span class="kw">implements</span> <span class="type">IRoutingStrategy</span> {
+  <span class="fn">route</span>(task) { <span class="cmt">/* match by skill */</span> }
+}
+<span class="kw">class</span> <span class="cls">LoadBalancedRouter</span> <span class="kw">implements</span> <span class="type">IRoutingStrategy</span> {
+  <span class="fn">route</span>(task) { <span class="cmt">/* pick least loaded */</span> }
+}</pre>
+      </div>
+
+      <div class="card blue">
+        <h3>👀 Observer</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Define a one-to-many dependency so objects are notified automatically of state changes.</p>
+        <pre><span class="kw">interface</span> <span class="type">IEventListener</span> {
+  <span class="fn">on</span>(event: <span class="type">AgentEvent</span>): <span class="type">void</span>;
+}
+<span class="kw">class</span> <span class="cls">AgentEventBus</span> {
+  listeners = <span class="kw">new</span> <span class="cls">Map</span>&lt;<span class="type">string</span>, <span class="type">IEventListener</span>[]&gt;();
+  <span class="fn">subscribe</span>(type: <span class="type">string</span>, l: <span class="type">IEventListener</span>) { ... }
+  <span class="fn">publish</span>(event: <span class="type">AgentEvent</span>) { ... }
+}</pre>
+      </div>
+
+      <div class="card pink">
+        <h3>⛓️ Chain of Responsibility</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Pass requests along a chain of handlers. Each decides to handle or pass on.</p>
+        <pre><span class="kw">abstract class</span> <span class="cls">Middleware</span> {
+  <span class="kw">protected</span> next?: <span class="cls">Middleware</span>;
+  <span class="fn">setNext</span>(m: <span class="cls">Middleware</span>) { <span class="kw">this</span>.next = m; }
+  <span class="kw">abstract</span> <span class="fn">handle</span>(req: <span class="type">Request</span>): <span class="type">void</span>;
+}
+<span class="cmt">// Auth → RateLimit → Tenant → Handler</span></pre>
+      </div>
+
+      <div class="card orange">
+        <h3>📝 Command</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Encapsulate a request as an object. Supports undo, queuing, logging.</p>
+        <pre><span class="kw">interface</span> <span class="type">ICommand</span> {
+  <span class="fn">execute</span>(): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
+  <span class="fn">undo</span>(): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
+}
+<span class="kw">class</span> <span class="cls">RunAgentCommand</span> <span class="kw">implements</span> <span class="type">ICommand</span> {
+  <span class="fn">constructor</span>(<span class="kw">private</span> agent: <span class="type">IAgent</span>, <span class="kw">private</span> task: <span class="type">Task</span>) {}
+  <span class="fn">execute</span>() { <span class="kw">return this</span>.agent.<span class="fn">run</span>(<span class="kw">this</span>.task); }
+  <span class="fn">undo</span>() { <span class="kw">return this</span>.agent.<span class="fn">cancel</span>(); }
+}</pre>
+      </div>
+
+      <div class="card purple">
+        <h3>🏛️ Template Method</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Define skeleton of an algorithm in a base class, let subclasses fill in specific steps.</p>
+        <pre><span class="kw">abstract class</span> <span class="cls">BaseAgent</span> {
+  <span class="kw">async</span> <span class="fn">run</span>(task: <span class="type">Task</span>) {
+    <span class="kw">const</span> ctx = <span class="kw">await this</span>.<span class="fn">plan</span>(task);
+    <span class="kw">const</span> out = <span class="kw">await this</span>.<span class="fn">act</span>(ctx);
+    <span class="kw">return this</span>.<span class="fn">reflect</span>(out);
+  }
+  <span class="kw">abstract</span> <span class="fn">plan</span>(t: <span class="type">Task</span>): <span class="type">Promise</span>&lt;<span class="type">Context</span>&gt;;
+  <span class="kw">abstract</span> <span class="fn">act</span>(c: <span class="type">Context</span>): <span class="type">Promise</span>&lt;<span class="type">Output</span>&gt;;
+}</pre>
+      </div>
+
+      <div class="card yellow">
+        <h3>📦 State</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Allow an object to alter its behavior when its internal state changes.</p>
+        <pre><span class="kw">interface</span> <span class="type">IAgentState</span> {
+  <span class="fn">handle</span>(agent: <span class="type">AgentContext</span>): <span class="type">void</span>;
+}
+<span class="cmt">// States: Idle → Planning → Executing</span>
+<span class="cmt">//        → Reflecting → Done | Failed</span>
+<span class="kw">class</span> <span class="cls">ExecutingState</span> <span class="kw">implements</span> <span class="type">IAgentState</span> {
+  <span class="fn">handle</span>(agent) {
+    agent.runTools();
+    agent.<span class="fn">setState</span>(<span class="kw">new</span> <span class="cls">ReflectingState</span>());
+  }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 7: CLASS DESIGN
+  ══════════════════════════════════════════ -->
+  <section id="class-design">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Class Design Fundamentals</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Access Modifiers</h3>
+        <table>
+          <thead><tr><th>Modifier</th><th>Visibility</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td class="td-mono">public</td><td class="td-name">Everywhere</td><td>Public API / interface</td></tr>
+            <tr><td class="td-mono">protected</td><td class="td-name">Class + subclasses</td><td>Hooks for extension</td></tr>
+            <tr><td class="td-mono">private</td><td class="td-name">Class only</td><td>Internal state, helpers</td></tr>
+            <tr><td class="td-mono">internal</td><td class="td-name">Same module</td><td>Module-level utilities</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card blue">
+        <h3>Class vs Interface vs Abstract</h3>
+        <table>
+          <thead><tr><th>Type</th><th>When to Use</th></tr></thead>
+          <tbody>
+            <tr><td class="td-name">Interface</td><td>Define a contract. Multiple impl. No state.</td></tr>
+            <tr><td class="td-name">Abstract Class</td><td>Share code among related classes. Has state + partial impl.</td></tr>
+            <tr><td class="td-name">Concrete Class</td><td>Full implementation. Instantiable.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <span>⚠️</span>
+      <div><strong>Rule of Thumb:</strong> If you find yourself copy-pasting code between classes, extract a base class or utility. If two classes share a contract but differ in implementation, use an interface. Prefer interfaces for dependencies (DIP).</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 8: RELATIONSHIPS
+  ══════════════════════════════════════════ -->
+  <section id="relationships">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Object Relationships</h2>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Relationship</th><th>Type</th><th>UML Symbol</th><th>Example</th><th>Lifecycle</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-name">Dependency</td>
+          <td>Uses-a</td>
+          <td class="td-mono">- - - ▷</td>
+          <td>Agent uses Logger</td>
+          <td>Independent</td>
+        </tr>
+        <tr>
+          <td class="td-name">Association</td>
+          <td>Has-a</td>
+          <td class="td-mono">——— ▷</td>
+          <td>Tenant has Users</td>
+          <td>Independent</td>
+        </tr>
+        <tr>
+          <td class="td-name">Aggregation</td>
+          <td>Has-a (weak)</td>
+          <td class="td-mono">◇——</td>
+          <td>Team has Agents</td>
+          <td>Child survives parent</td>
+        </tr>
+        <tr>
+          <td class="td-name">Composition</td>
+          <td>Owns-a (strong)</td>
+          <td class="td-mono">◆——</td>
+          <td>Agent owns TaskQueue</td>
+          <td>Child dies with parent</td>
+        </tr>
+        <tr>
+          <td class="td-name">Inheritance</td>
+          <td>Is-a</td>
+          <td class="td-mono">——→ △</td>
+          <td>ResearchAgent is BaseAgent</td>
+          <td>Shared hierarchy</td>
+        </tr>
+        <tr>
+          <td class="td-name">Realization</td>
+          <td>Implements</td>
+          <td class="td-mono">- - → △</td>
+          <td>OpenAIClient implements ILLMClient</td>
+          <td>Contract fulfillment</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 9: UML ESSENTIALS
+  ══════════════════════════════════════════ -->
+  <section id="uml">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>UML Essentials</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Class Diagram Notation</h3>
+        <pre><span class="cmt">┌─────────────────────────────┐
+│       &lt;&lt;interface&gt;&gt;         │
+│         IAgentExecutor      │
+├─────────────────────────────┤
+│ + execute(task): Result     │
+│ + cancel(): void            │
+└─────────────────────────────┘
+            ▲ implements
+            │
+┌─────────────────────────────┐
+│         BaseAgent           │
+├─────────────────────────────┤
+│ - id: string                │
+│ # config: AgentConfig       │
+├─────────────────────────────┤
+│ + run(task): Result         │
+│ # plan(): Context           │
+│ - loadTools(): void         │
+└─────────────────────────────┘</span></pre>
+        <p style="font-size:12px;color:var(--text3);margin-top:8px">+ public  # protected  - private  ~ package</p>
+      </div>
+
+      <div class="card blue">
+        <h3>Sequence Diagram Notation</h3>
+        <pre><span class="cmt">Client     API     AgentSvc   LLM
+  │          │          │        │
+  │─ POST ──▶│          │        │
+  │          │─ route ─▶│        │
+  │          │          │─ ask ─▶│
+  │          │          │◀ resp ─│
+  │          │          │        │
+  │◀─ 200 ───│◀─ result ┤        │</span></pre>
+        <p style="font-size:12px;color:var(--text3);margin-top:8px">Solid arrow = synchronous call. Dashed = return.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE STUDY HEADER
+  ══════════════════════════════════════════ -->
+  <div style="margin: 60px 0 40px; padding: 40px; background: linear-gradient(135deg, rgba(110,231,183,0.05) 0%, rgba(56,189,248,0.05) 50%, rgba(167,139,250,0.05) 100%); border: 1px solid var(--border2); border-radius: 16px; text-align: center;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:12px">// Case Study</div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;margin-bottom:12px">Multi-Tenant AI Agentic SaaS</h2>
+    <p style="color:var(--text2);max-width:560px;margin:0 auto">Designing <strong style="color:var(--text)">AgentOS</strong> — a platform where organizations deploy, orchestrate, and monitor custom AI agents with full tenant isolation, rate limiting, and extensible tool ecosystems.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       CASE: OVERVIEW
+  ══════════════════════════════════════════ -->
+  <section id="case-intro">
+    <div class="section-header">
+      <span class="section-num">CS·1</span>
+      <h2>System Overview: AgentOS</h2>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div style="font-size:28px;margin-bottom:8px">🏢</div>
+        <h3>Multi-Tenant</h3>
+        <p style="font-size:13px;color:var(--text2)">Each organization (tenant) gets isolated agents, data, usage quotas, and billing. Zero data bleed between tenants.</p>
+      </div>
+      <div class="card blue">
+        <div style="font-size:28px;margin-bottom:8px">🤖</div>
+        <h3>AI Agentic</h3>
+        <p style="font-size:13px;color:var(--text2)">Agents can plan, use tools, browse web, write code, call APIs, and reflect in multi-step ReAct loops.</p>
+      </div>
+      <div class="card pink">
+        <div style="font-size:28px;margin-bottom:8px">☁️</div>
+        <h3>SaaS Platform</h3>
+        <p style="font-size:13px;color:var(--text2)">Subscription-based. Self-serve onboarding. API-first. Marketplace for agent templates and tools.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: REQUIREMENTS
+  ══════════════════════════════════════════ -->
+  <section id="case-requirements">
+    <div class="section-header">
+      <span class="section-num">CS·2</span>
+      <h2>Requirements Analysis</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>✅ Functional Requirements</h3>
+        <ul class="checklist">
+          <li>Tenants can create, configure, and deploy AI agents</li>
+          <li>Agents execute tasks using pluggable tool ecosystem</li>
+          <li>Multi-step reasoning via ReAct (Plan → Act → Observe → Reflect)</li>
+          <li>Tenant-level rate limiting and token quota management</li>
+          <li>Agent execution history, logs, and audit trails per tenant</li>
+          <li>Multi-LLM support (OpenAI, Anthropic, local models)</li>
+          <li>Webhook callbacks and async execution</li>
+          <li>Team management — users, roles, permissions per tenant</li>
+          <li>Marketplace — publish/install agent templates and tools</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>⚙️ Non-Functional Requirements</h3>
+        <ul class="checklist">
+          <li>Strict data isolation between tenants (row-level security)</li>
+          <li>Extensible: add new agent types, tools, LLMs without code change</li>
+          <li>Horizontally scalable agent execution workers</li>
+          <li>Observability: structured logs, traces, metrics per tenant</li>
+          <li>Low-latency agent status updates (websocket / SSE)</li>
+          <li>Plugin system: 3rd-party tools without platform redeployment</li>
+          <li>Idempotent task execution with retry/backoff</li>
+          <li>Strong typing, validated at compile-time (TypeScript)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span>🔑</span>
+      <div><strong>Key Design Insight:</strong> The hardest constraint is <em>tenant isolation with extensibility</em>. Every new feature (tools, LLMs, agent types) must work across all tenants without exposing one tenant's data to another.</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: ARCHITECTURE
+  ══════════════════════════════════════════ -->
+  <section id="case-arch">
+    <div class="section-header">
+      <span class="section-num">CS·3</span>
+      <h2>System Architecture (LLD View)</h2>
+    </div>
+
+    <div class="arch-diagram">
+      <div style="text-align:center;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text2);margin-bottom:24px;letter-spacing:1px">AGENTOS — LAYERED ARCHITECTURE</div>
+
+      <div class="arch-row">
+        <span class="arch-label">CLIENTS</span>
+        <div class="arch-node d-blue">Web Dashboard</div>
+        <div class="arch-node d-blue">REST API Client</div>
+        <div class="arch-node d-blue">WebSocket Client</div>
+        <div class="arch-node d-blue">Webhook Consumer</div>
+      </div>
+
+      <div class="arch-arrow-down">↓</div>
+
+      <div class="arch-row">
+        <span class="arch-label">GATEWAY</span>
+        <div class="arch-node d-green" style="flex:3">API Gateway · Auth · Rate Limiter · Tenant Resolver</div>
+      </div>
+
+      <div class="arch-divider"><span>Application Layer</span></div>
+
+      <div class="arch-row">
+        <span class="arch-label">SERVICES</span>
+        <div class="arch-node d-purple">Tenant Service</div>
+        <div class="arch-node d-purple">Agent Service</div>
+        <div class="arch-node d-purple">Task Orchestrator</div>
+        <div class="arch-node d-purple">Tool Registry</div>
+        <div class="arch-node d-purple">Billing Service</div>
+      </div>
+
+      <div class="arch-arrow-down">↓</div>
+
+      <div class="arch-row">
+        <span class="arch-label">DOMAIN</span>
+        <div class="arch-node d-orange">AgentRunner</div>
+        <div class="arch-node d-orange">ReActLoop</div>
+        <div class="arch-node d-orange">ToolExecutor</div>
+        <div class="arch-node d-orange">MemoryStore</div>
+        <div class="arch-node d-orange">EventBus</div>
+      </div>
+
+      <div class="arch-divider"><span>Infrastructure Layer</span></div>
+
+      <div class="arch-row">
+        <span class="arch-label">INFRA</span>
+        <div class="arch-node d-green">LLM Adapter<br>(OpenAI/Anthropic)</div>
+        <div class="arch-node d-green">DB Repository<br>(Postgres + RLS)</div>
+        <div class="arch-node d-green">Vector Store<br>(Pinecone/pgvector)</div>
+        <div class="arch-node d-green">Queue<br>(Redis/BullMQ)</div>
+        <div class="arch-node d-green">Object Store<br>(S3)</div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip" style="margin-top:20px">
+      <span>🎯</span>
+      <div>Each layer depends only on the layer below it (via interfaces). Domain layer has zero knowledge of HTTP, databases, or queues — this is Clean/Hexagonal architecture applied at LLD level.</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: PATTERNS USED
+  ══════════════════════════════════════════ -->
+  <section id="case-patterns">
+    <div class="section-header">
+      <span class="section-num">CS·4</span>
+      <h2>Design Patterns Applied</h2>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Pattern</th><th>Where Applied</th><th>Why This Pattern?</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-name">Factory Method</td>
+          <td>AgentFactory, LLMClientFactory, ToolFactory</td>
+          <td>Agent/LLM type determined at runtime from tenant config</td>
+        </tr>
+        <tr>
+          <td class="td-name">Abstract Factory</td>
+          <td>TenantInfraFactory (creates tenant-scoped DB, cache, queue)</td>
+          <td>Each tenant gets a consistent set of infrastructure objects</td>
+        </tr>
+        <tr>
+          <td class="td-name">Strategy</td>
+          <td>RoutingStrategy, RetryStrategy, ChunkingStrategy</td>
+          <td>Swap routing/retry algorithms without touching agent code</td>
+        </tr>
+        <tr>
+          <td class="td-name">Observer / EventBus</td>
+          <td>AgentEventBus for status, token usage, tool calls</td>
+          <td>Decouple billing, logging, and webhook delivery from execution</td>
+        </tr>
+        <tr>
+          <td class="td-name">Decorator</td>
+          <td>Rate-limited agents, logged agents, traced agents</td>
+          <td>Add cross-cutting concerns without modifying agent logic</td>
+        </tr>
+        <tr>
+          <td class="td-name">Template Method</td>
+          <td>BaseAgent defines ReAct loop; subclasses override plan/act/reflect</td>
+          <td>Consistent lifecycle, customizable behavior per agent type</td>
+        </tr>
+        <tr>
+          <td class="td-name">Repository</td>
+          <td>AgentRepository, TenantRepository, TaskRepository</td>
+          <td>Decouple domain logic from database. Enable easy DB swap.</td>
+        </tr>
+        <tr>
+          <td class="td-name">Command</td>
+          <td>ExecuteAgentCommand, CancelAgentCommand</td>
+          <td>Queue commands, support undo, audit log every action</td>
+        </tr>
+        <tr>
+          <td class="td-name">Adapter</td>
+          <td>OpenAIAdapter, AnthropicAdapter implement ILLMClient</td>
+          <td>Normalize different LLM APIs to a single interface</td>
+        </tr>
+        <tr>
+          <td class="td-name">State</td>
+          <td>AgentStateMachine: Idle→Planning→Executing→Reflecting→Done</td>
+          <td>Formalize agent lifecycle, prevent invalid transitions</td>
+        </tr>
+        <tr>
+          <td class="td-name">Composite</td>
+          <td>Task trees (root task → subtasks → leaf tasks)</td>
+          <td>Agents can delegate to sub-agents uniformly</td>
+        </tr>
+        <tr>
+          <td class="td-name">Proxy</td>
+          <td>TenantScopedRepository — auto-injects tenantId</td>
+          <td>Transparent tenant isolation at data access layer</td>
+        </tr>
+        <tr>
+          <td class="td-name">Chain of Responsibility</td>
+          <td>Request middleware: Auth → TenantResolve → RateLimit → Route</td>
+          <td>Extensible request processing pipeline</td>
+        </tr>
+        <tr>
+          <td class="td-name">Builder</td>
+          <td>AgentPipelineBuilder, PromptBuilder</td>
+          <td>Complex agent configs with many optional components</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: CODE DEEP DIVE
+  ══════════════════════════════════════════ -->
+  <section id="case-code">
+    <div class="section-header">
+      <span class="section-num">CS·5</span>
+      <h2>Core Class Design — Code</h2>
+    </div>
+
+    <h3 style="margin-bottom:8px">Core Interfaces</h3>
+    <pre><span class="cmt">// ─── CORE DOMAIN INTERFACES ──────────────────────────────────────</span>
+
+<span class="kw">interface</span> <span class="type">ILLMClient</span> {
+  <span class="fn">complete</span>(messages: <span class="type">Message</span>[], opts: <span class="type">CompletionOpts</span>): <span class="type">Promise</span>&lt;<span class="type">LLMResponse</span>&gt;;
+  <span class="fn">stream</span>(messages: <span class="type">Message</span>[], opts: <span class="type">CompletionOpts</span>): <span class="type">AsyncIterable</span>&lt;<span class="type">string</span>&gt;;
+}
+
+<span class="kw">interface</span> <span class="type">ITool</span> {
+  <span class="kw">readonly</span> name: <span class="type">string</span>;
+  <span class="kw">readonly</span> description: <span class="type">string</span>;
+  <span class="kw">readonly</span> schema: <span class="type">JSONSchema</span>;
+  <span class="fn">execute</span>(args: <span class="type">unknown</span>, ctx: <span class="type">ExecutionContext</span>): <span class="type">Promise</span>&lt;<span class="type">ToolResult</span>&gt;;
+}
+
+<span class="kw">interface</span> <span class="type">IAgent</span> {
+  <span class="kw">readonly</span> id: <span class="type">string</span>;
+  <span class="kw">readonly</span> tenantId: <span class="type">string</span>;
+  <span class="fn">run</span>(task: <span class="type">Task</span>): <span class="type">Promise</span>&lt;<span class="type">AgentResult</span>&gt;;
+  <span class="fn">cancel</span>(taskId: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
+  <span class="fn">getStatus</span>(): <span class="type">AgentStatus</span>;
+}
+
+<span class="kw">interface</span> <span class="type">IAgentRepository</span> {
+  <span class="fn">findById</span>(id: <span class="type">string</span>, tenantId: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">AgentEntity</span> | null&gt;;
+  <span class="fn">save</span>(agent: <span class="type">AgentEntity</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
+  <span class="fn">findByTenant</span>(tenantId: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">AgentEntity</span>[]&gt;;
+}
+
+<span class="kw">interface</span> <span class="type">ITenantContext</span> {
+  <span class="kw">readonly</span> tenantId: <span class="type">string</span>;
+  <span class="kw">readonly</span> plan: <span class="str">'free'</span> | <span class="str">'pro'</span> | <span class="str">'enterprise'</span>;
+  <span class="kw">readonly</span> tokenQuota: <span class="type">number</span>;
+  <span class="fn">getRemainingQuota</span>(): <span class="type">Promise</span>&lt;<span class="type">number</span>&gt;;
+}</pre>
+
+    <h3 style="margin:24px 0 8px">BaseAgent — Template Method Pattern</h3>
+    <pre><span class="kw">abstract class</span> <span class="cls">BaseAgent</span> <span class="kw">implements</span> <span class="type">IAgent</span> {
+  <span class="kw">protected</span> state: <span class="type">IAgentState</span> = <span class="kw">new</span> <span class="cls">IdleState</span>();
+  <span class="kw">protected</span> memory: <span class="type">ConversationMemory</span> = [];
+  <span class="kw">protected</span> tools: <span class="type">Map</span>&lt;<span class="type">string</span>, <span class="type">ITool</span>&gt; = <span class="kw">new</span> <span class="cls">Map</span>();
+
+  <span class="fn">constructor</span>(
+    <span class="kw">readonly</span> id: <span class="type">string</span>,
+    <span class="kw">readonly</span> tenantId: <span class="type">string</span>,
+    <span class="kw">protected</span> llm: <span class="type">ILLMClient</span>,         <span class="cmt">// injected: DIP ✓</span>
+    <span class="kw">protected</span> eventBus: <span class="type">IEventBus</span>,     <span class="cmt">// injected: DIP ✓</span>
+    <span class="kw">protected</span> logger: <span class="type">ILogger</span>          <span class="cmt">// injected: DIP ✓</span>
+  ) {}
+
+  <span class="cmt">// TEMPLATE METHOD — skeleton algorithm</span>
+  <span class="kw">async</span> <span class="fn">run</span>(task: <span class="type">Task</span>): <span class="type">Promise</span>&lt;<span class="type">AgentResult</span>&gt; {
+    <span class="kw">this</span>.<span class="fn">setState</span>(<span class="kw">new</span> <span class="cls">PlanningState</span>());
+    <span class="kw">this</span>.eventBus.<span class="fn">publish</span>({ type: <span class="str">'agent.started'</span>, agentId: <span class="kw">this</span>.id, task });
+
+    <span class="kw">let</span> maxSteps = <span class="num">20</span>, step = <span class="num">0</span>;
+    <span class="kw">while</span> (step++ &lt; maxSteps) {
+      <span class="kw">const</span> plan = <span class="kw">await this</span>.<span class="fn">plan</span>();        <span class="cmt">// ABSTRACT — subclass fills</span>
+      <span class="kw">if</span> (plan.done) <span class="kw">break</span>;
+
+      <span class="kw">this</span>.<span class="fn">setState</span>(<span class="kw">new</span> <span class="cls">ExecutingState</span>());
+      <span class="kw">const</span> results = <span class="kw">await this</span>.<span class="fn">act</span>(plan);  <span class="cmt">// ABSTRACT — subclass fills</span>
+
+      <span class="kw">this</span>.<span class="fn">setState</span>(<span class="kw">new</span> <span class="cls">ReflectingState</span>());
+      <span class="kw">const</span> next = <span class="kw">await this</span>.<span class="fn">reflect</span>(results); <span class="cmt">// ABSTRACT — subclass fills</span>
+      <span class="kw">if</span> (next.done) <span class="kw">break</span>;
+    }
+
+    <span class="kw">this</span>.<span class="fn">setState</span>(<span class="kw">new</span> <span class="cls">DoneState</span>());
+    <span class="kw">this</span>.eventBus.<span class="fn">publish</span>({ type: <span class="str">'agent.completed'</span>, agentId: <span class="kw">this</span>.id });
+    <span class="kw">return this</span>.<span class="fn">buildResult</span>();
+  }
+
+  <span class="kw">protected abstract</span> <span class="fn">plan</span>(): <span class="type">Promise</span>&lt;<span class="type">PlanResult</span>&gt;;
+  <span class="kw">protected abstract</span> <span class="fn">act</span>(plan: <span class="type">PlanResult</span>): <span class="type">Promise</span>&lt;<span class="type">ActionResult[]</span>&gt;;
+  <span class="kw">protected abstract</span> <span class="fn">reflect</span>(results: <span class="type">ActionResult[]</span>): <span class="type">Promise</span>&lt;<span class="type">ReflectResult</span>&gt;;
+
+  <span class="kw">private</span> <span class="fn">setState</span>(s: <span class="type">IAgentState</span>) {
+    <span class="kw">this</span>.state = s;
+    <span class="kw">this</span>.logger.<span class="fn">info</span>(<span class="str">`[<span class="op">${</span><span class="kw">this</span>.id<span class="op">}</span>] State: <span class="op">${</span>s.name<span class="op">}</span>`</span>);
+  }
+}</pre>
+
+    <h3 style="margin:24px 0 8px">Tenant-Scoped Repository Proxy</h3>
+    <pre><span class="cmt">// PROXY PATTERN — auto-injects tenantId, prevents cross-tenant data access</span>
+<span class="kw">class</span> <span class="cls">TenantScopedAgentRepository</span> <span class="kw">implements</span> <span class="type">IAgentRepository</span> {
+  <span class="fn">constructor</span>(
+    <span class="kw">private</span> inner: <span class="type">IAgentRepository</span>,
+    <span class="kw">private</span> tenantId: <span class="type">string</span>
+  ) {}
+
+  <span class="fn">findById</span>(id: <span class="type">string</span>) {
+    <span class="cmt">// Always scope to current tenant — cannot be bypassed</span>
+    <span class="kw">return this</span>.inner.<span class="fn">findById</span>(id, <span class="kw">this</span>.tenantId);
+  }
+
+  <span class="fn">save</span>(agent: <span class="type">AgentEntity</span>) {
+    <span class="kw">if</span> (agent.tenantId !== <span class="kw">this</span>.tenantId)
+      <span class="kw">throw new</span> <span class="cls">SecurityError</span>(<span class="str">'Cross-tenant write rejected'</span>);
+    <span class="kw">return this</span>.inner.<span class="fn">save</span>(agent);
+  }
+
+  <span class="fn">findByTenant</span>() {
+    <span class="kw">return this</span>.inner.<span class="fn">findByTenant</span>(<span class="kw">this</span>.tenantId); <span class="cmt">// locked to this tenant</span>
+  }
+}</pre>
+
+    <h3 style="margin:24px 0 8px">LLM Adapter Pattern</h3>
+    <pre><span class="cmt">// ADAPTER — normalizes different LLM APIs to ILLMClient</span>
+<span class="kw">class</span> <span class="cls">OpenAIAdapter</span> <span class="kw">implements</span> <span class="type">ILLMClient</span> {
+  <span class="fn">constructor</span>(<span class="kw">private</span> client: <span class="type">OpenAI</span>, <span class="kw">private</span> model: <span class="type">string</span>) {}
+
+  <span class="kw">async</span> <span class="fn">complete</span>(messages: <span class="type">Message</span>[], opts: <span class="type">CompletionOpts</span>) {
+    <span class="kw">const</span> res = <span class="kw">await this</span>.client.chat.completions.<span class="fn">create</span>({
+      model: <span class="kw">this</span>.model,
+      messages: messages.<span class="fn">map</span>(<span class="fn">toOpenAIFormat</span>), <span class="cmt">// normalize</span>
+      temperature: opts.temperature ?? <span class="num">0.7</span>,
+    });
+    <span class="kw">return</span> <span class="fn">fromOpenAIFormat</span>(res);              <span class="cmt">// normalize out</span>
+  }
+
+  <span class="kw">async</span> *<span class="fn">stream</span>(messages: <span class="type">Message</span>[], opts: <span class="type">CompletionOpts</span>) {
+    <span class="kw">const</span> stream = <span class="kw">await this</span>.client.chat.completions.<span class="fn">create</span>({
+      <span class="prop">...opts</span>, messages: messages.<span class="fn">map</span>(<span class="fn">toOpenAIFormat</span>), stream: <span class="kw">true</span>
+    });
+    <span class="kw">for await</span> (<span class="kw">const</span> chunk <span class="kw">of</span> stream)
+      <span class="kw">yield</span> chunk.choices[<span class="num">0</span>]?.delta?.content ?? <span class="str">''</span>;
+  }
+}</pre>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: MULTI-TENANCY
+  ══════════════════════════════════════════ -->
+  <section id="case-tenancy">
+    <div class="section-header">
+      <span class="section-num">CS·6</span>
+      <h2>Multi-Tenancy Design</h2>
+    </div>
+
+    <h3 style="margin-bottom:12px">Isolation Strategies — Comparison</h3>
+    <table>
+      <thead>
+        <tr><th>Strategy</th><th>Isolation Level</th><th>Cost</th><th>Best For</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-name">Separate DB per tenant</td>
+          <td><span style="color:var(--green)">★★★ Highest</span></td>
+          <td style="color:var(--red)">High infra cost</td>
+          <td>Enterprise / regulated industries</td>
+        </tr>
+        <tr>
+          <td class="td-name">Separate schema per tenant</td>
+          <td><span style="color:var(--green)">★★☆ High</span></td>
+          <td style="color:var(--yellow)">Medium</td>
+          <td>Mid-market, compliance needs</td>
+        </tr>
+        <tr>
+          <td class="td-name" style="border-left:2px solid var(--accent)">Row-Level Security (RLS)</td>
+          <td><span style="color:var(--yellow)">★★☆ Good</span></td>
+          <td><span style="color:var(--green)">Low — shared tables</span></td>
+          <td><strong style="color:var(--accent)">← AgentOS uses this</strong> SMB/PLG SaaS</td>
+        </tr>
+        <tr>
+          <td class="td-name">Application-level filtering</td>
+          <td><span style="color:var(--red)">★☆☆ Weak</span></td>
+          <td><span style="color:var(--green)">Lowest</span></td>
+          <td>Avoid — bug-prone, security risk</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin:24px 0 8px">Tenant Context Threading</h3>
+    <pre><span class="cmt">// How tenantId flows through every request — clean DI approach</span>
+
+<span class="cmt">// 1. MIDDLEWARE extracts tenant from JWT</span>
+<span class="kw">class</span> <span class="cls">TenantResolverMiddleware</span> {
+  <span class="fn">handle</span>(req: <span class="type">Request</span>, res: <span class="type">Response</span>, next: <span class="type">NextFn</span>) {
+    <span class="kw">const</span> token = <span class="fn">verifyJWT</span>(req.headers.authorization);
+    req.tenantContext = {
+      tenantId: token.tenantId,
+      plan: token.plan,
+      tokenQuota: token.quota
+    };
+    <span class="fn">next</span>();
+  }
+}
+
+<span class="cmt">// 2. SERVICE receives context (never trusts body/params for tenantId)</span>
+<span class="kw">class</span> <span class="cls">AgentService</span> {
+  <span class="kw">async</span> <span class="fn">createAgent</span>(dto: <span class="type">CreateAgentDTO</span>, ctx: <span class="type">ITenantContext</span>) {
+    <span class="kw">const</span> repo = <span class="kw">this</span>.repoFactory.<span class="fn">forTenant</span>(ctx.tenantId); <span class="cmt">// scoped proxy</span>
+    <span class="kw">const</span> agent = AgentFactory.<span class="fn">create</span>(dto.type, ctx.tenantId, dto.config);
+    <span class="kw">await</span> repo.<span class="fn">save</span>(agent);
+    <span class="kw">return</span> agent;
+  }
+}
+
+<span class="cmt">// 3. POSTGRES RLS policy (belt + suspenders)</span>
+<span class="cmt">-- CREATE POLICY tenant_isolation ON agents</span>
+<span class="cmt">-- USING (tenant_id = current_setting('app.tenant_id')::uuid);</span></pre>
+
+    <h3 style="margin:24px 0 8px">Quota & Rate Limit Design</h3>
+    <pre><span class="kw">class</span> <span class="cls">TenantQuotaManager</span> {
+  <span class="kw">constructor</span>(<span class="kw">private</span> redis: <span class="type">IRedisClient</span>) {}
+
+  <span class="kw">async</span> <span class="fn">consumeTokens</span>(tenantId: <span class="type">string</span>, tokens: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="kw">const</span> key = <span class="str">`quota:<span class="op">${</span>tenantId<span class="op">}</span>:<span class="op">${</span><span class="fn">currentMonth</span>()<span class="op">}</span>`</span>;
+    <span class="kw">const</span> used = <span class="kw">await this</span>.redis.<span class="fn">incrBy</span>(key, tokens);
+    <span class="kw">const</span> limit = <span class="kw">await this</span>.<span class="fn">getLimit</span>(tenantId);
+
+    <span class="kw">if</span> (used > limit)
+      <span class="kw">throw new</span> <span class="cls">QuotaExceededError</span>(<span class="str">`Tenant <span class="op">${</span>tenantId<span class="op">}</span> exceeded token quota`</span>);
+  }
+
+  <span class="kw">async</span> <span class="fn">checkConcurrentAgents</span>(tenantId: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+    <span class="kw">const</span> active = <span class="kw">await this</span>.redis.<span class="fn">sCard</span>(<span class="str">`active:<span class="op">${</span>tenantId<span class="op">}</span>`</span>);
+    <span class="kw">const</span> maxConcurrent = <span class="kw">await this</span>.<span class="fn">getMaxConcurrent</span>(tenantId);
+    <span class="kw">if</span> (active >= maxConcurrent)
+      <span class="kw">throw new</span> <span class="cls">ConcurrencyError</span>(<span class="str">'Max concurrent agents reached'</span>);
+  }
+}</pre>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CASE: AGENT DESIGN
+  ══════════════════════════════════════════ -->
+  <section id="case-agents">
+    <div class="section-header">
+      <span class="section-num">CS·7</span>
+      <h2>AI Agent LLD — ReAct Loop</h2>
+    </div>
+
+    <div class="diagram-box">
+      <div style="text-align:center;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text2);margin-bottom:20px">ReAct Loop — Reason + Act Pattern</div>
+      <div class="d-flow" style="justify-content:center;gap:4px">
+        <div class="d-box d-blue" style="min-width:100px">📥 Task<br>Received</div>
+        <span class="d-arrow">→</span>
+        <div class="d-box d-purple" style="min-width:110px">🧠 Plan<br>(LLM Call)</div>
+        <span class="d-arrow">→</span>
+        <div class="d-box d-orange" style="min-width:100px">🔧 Tool<br>Selection</div>
+        <span class="d-arrow">→</span>
+        <div class="d-box d-pink" style="min-width:100px">⚡ Tool<br>Execute</div>
+        <span class="d-arrow">→</span>
+        <div class="d-box d-green" style="min-width:100px">🔍 Observe<br>Result</div>
+      </div>
+      <div style="text-align:center;color:var(--text3);font-size:13px;margin:10px 0">↻ Loop until task complete or max steps reached</div>
+      <div class="d-flow" style="justify-content:center">
+        <div class="d-box d-yellow" style="min-width:110px">💭 Reflect<br>& Update</div>
+        <span class="d-arrow">→</span>
+        <div class="d-box d-green" style="min-width:110px">✅ Done<br>Return Result</div>
+        <span style="color:var(--text3);margin:0 10px">or</span>
+        <div class="d-box d-pink" style="min-width:110px">❌ Failed<br>+ Error Info</div>
+      </div>
+    </div>
+
+    <h3 style="margin:24px 0 8px">ReActAgent — Concrete Implementation</h3>
+    <pre><span class="kw">class</span> <span class="cls">ReActAgent</span> <span class="kw">extends</span> <span class="cls">BaseAgent</span> {
+  <span class="kw">protected async</span> <span class="fn">plan</span>(): <span class="type">Promise</span>&lt;<span class="type">PlanResult</span>&gt; {
+    <span class="kw">const</span> systemPrompt = <span class="kw">this</span>.<span class="fn">buildSystemPrompt</span>(); <span class="cmt">// injects tools schema</span>
+    <span class="kw">const</span> response = <span class="kw">await this</span>.llm.<span class="fn">complete</span>([
+      { role: <span class="str">'system'</span>, content: systemPrompt },
+      ...<span class="kw">this</span>.memory,
+    ], { temperature: <span class="num">0.2</span>, tools: <span class="kw">this</span>.<span class="fn">getToolsSchema</span>() });
+
+    <span class="kw">return this</span>.<span class="fn">parsePlan</span>(response); <span class="cmt">// {toolName, args, done}</span>
+  }
+
+  <span class="kw">protected async</span> <span class="fn">act</span>(plan: <span class="type">PlanResult</span>): <span class="type">Promise</span>&lt;<span class="type">ActionResult[]</span>&gt; {
+    <span class="kw">if</span> (plan.done) <span class="kw">return</span> [];
+
+    <span class="kw">const</span> tool = <span class="kw">this</span>.tools.<span class="fn">get</span>(plan.toolName);
+    <span class="kw">if</span> (!tool) <span class="kw">throw new</span> <span class="cls">Error</span>(<span class="str">`Tool not found: <span class="op">${</span>plan.toolName<span class="op">}</span>`</span>);
+
+    <span class="kw">const</span> ctx: <span class="type">ExecutionContext</span> = { tenantId: <span class="kw">this</span>.tenantId, agentId: <span class="kw">this</span>.id };
+    <span class="kw">const</span> result = <span class="kw">await</span> tool.<span class="fn">execute</span>(plan.args, ctx);
+
+    <span class="kw">this</span>.eventBus.<span class="fn">publish</span>({ type: <span class="str">'tool.executed'</span>, tool: plan.toolName, result });
+    <span class="kw">return</span> [result];
+  }
+
+  <span class="kw">protected async</span> <span class="fn">reflect</span>(results: <span class="type">ActionResult[]</span>): <span class="type">Promise</span>&lt;<span class="type">ReflectResult</span>&gt; {
+    <span class="kw">this</span>.memory.<span class="fn">push</span>({
+      role: <span class="str">'tool'</span>,
+      content: <span class="cls">JSON</span>.<span class="fn">stringify</span>(results)
+    });
+    <span class="kw">const</span> isDone = results.<span class="fn">every</span>(r => r.status === <span class="str">'success'</span>) &&
+                   <span class="kw">this</span>.<span class="fn">taskSatisfied</span>();
+    <span class="kw">return</span> { done: isDone };
+  }
+
+  <span class="kw">private</span> <span class="fn">buildSystemPrompt</span>(): <span class="type">string</span> {
+    <span class="kw">return</span> <span class="str">`You are an AI agent. Available tools:\n</span>
+<span class="str"><span class="op">${</span>[...<span class="kw">this</span>.tools.values()].map(t => `- ${t.name}: ${t.description}`).join('\n')<span class="op">}</span></span>
+<span class="str">Think step by step. Use tools when needed. Stop when task is complete.`</span>;
+  }
+}</pre>
+
+    <h3 style="margin:24px 0 8px">Tool Registry — Plugin System</h3>
+    <pre><span class="cmt">// Extensible tool plugin system — add tools without changing agent code</span>
+<span class="kw">class</span> <span class="cls">ToolRegistry</span> {
+  <span class="kw">private</span> tools: <span class="type">Map</span>&lt;<span class="type">string</span>, <span class="type">ITool</span>&gt; = <span class="kw">new</span> <span class="cls">Map</span>();
+  <span class="kw">private</span> tenantOverrides: <span class="type">Map</span>&lt;<span class="type">string</span>, <span class="type">Set</span>&lt;<span class="type">string</span>&gt;&gt; = <span class="kw">new</span> <span class="cls">Map</span>();
+
+  <span class="fn">register</span>(tool: <span class="type">ITool</span>): <span class="type">void</span> {
+    <span class="kw">this</span>.tools.<span class="fn">set</span>(tool.name, tool);
+  }
+
+  <span class="fn">enableForTenant</span>(tenantId: <span class="type">string</span>, toolName: <span class="type">string</span>): <span class="type">void</span> {
+    <span class="kw">if</span> (!<span class="kw">this</span>.tenantOverrides.<span class="fn">has</span>(tenantId))
+      <span class="kw">this</span>.tenantOverrides.<span class="fn">set</span>(tenantId, <span class="kw">new</span> <span class="cls">Set</span>());
+    <span class="kw">this</span>.tenantOverrides.<span class="fn">get</span>(tenantId)!.<span class="fn">add</span>(toolName);
+  }
+
+  <span class="fn">getForTenant</span>(tenantId: <span class="type">string</span>): <span class="type">ITool</span>[] {
+    <span class="kw">const</span> enabled = <span class="kw">this</span>.tenantOverrides.<span class="fn">get</span>(tenantId) ?? <span class="kw">new</span> <span class="cls">Set</span>();
+    <span class="kw">return</span> [...<span class="kw">this</span>.tools.<span class="fn">values</span>()].<span class="fn">filter</span>(t => enabled.<span class="fn">has</span>(t.name));
+  }
+}
+
+<span class="cmt">// Built-in tools — each isolated, each independently testable</span>
+<span class="kw">class</span> <span class="cls">WebSearchTool</span> <span class="kw">implements</span> <span class="type">ITool</span> {
+  name = <span class="str">'web_search'</span>;
+  description = <span class="str">'Search the web for current information'</span>;
+  schema = { type: <span class="str">'object'</span>, properties: { query: { type: <span class="str">'string'</span> } } };
+  <span class="kw">async</span> <span class="fn">execute</span>(args: { query: <span class="type">string</span> }, ctx: <span class="type">ExecutionContext</span>) {
+    <span class="cmt">// tenant-aware: rate limit per tenant, log per tenant</span>
+    <span class="kw">return</span> { status: <span class="str">'success'</span>, data: <span class="kw">await</span> <span class="fn">searchWeb</span>(args.query) };
+  }
+}</pre>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       ANTI-PATTERNS
+  ══════════════════════════════════════════ -->
+  <section id="antipatterns">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Anti-Patterns to Avoid</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card" style="border-color:rgba(248,113,113,0.3)">
+        <h3 style="color:var(--red)">🔴 God Class</h3>
+        <p style="font-size:13px;color:var(--text2)">One class that knows too much and does too much. Signs: 1000+ lines, methods in every domain, every other class depends on it.</p>
+        <pre style="margin-top:8px"><span class="cmt">// ❌ Bad: AgentManager does everything</span>
+<span class="kw">class</span> <span class="cls">AgentManager</span> {
+  <span class="fn">createAgent</span>() {}    <span class="cmt">// creation</span>
+  <span class="fn">chargeUser</span>() {}     <span class="cmt">// billing!</span>
+  <span class="fn">sendEmail</span>() {}      <span class="cmt">// notifications!</span>
+  <span class="fn">runSQL</span>() {}         <span class="cmt">// DB access!</span>
+}</pre>
+      </div>
+
+      <div class="card" style="border-color:rgba(248,113,113,0.3)">
+        <h3 style="color:var(--red)">🔴 Shotgun Surgery</h3>
+        <p style="font-size:13px;color:var(--text2)">One change requires many small edits scattered across many classes. Sign of poor cohesion — related things are split up.</p>
+        <pre style="margin-top:8px"><span class="cmt">// ❌ Adding a new LLM requires</span>
+<span class="cmt">// editing: config.ts, factory.ts,</span>
+<span class="cmt">// router.ts, validator.ts, docs.md...</span>
+<span class="cmt">// ✅ Add one adapter class only</span></pre>
+      </div>
+
+      <div class="card" style="border-color:rgba(248,113,113,0.3)">
+        <h3 style="color:var(--red)">🔴 Leaky Abstraction</h3>
+        <p style="font-size:13px;color:var(--text2)">Internal details of a module bleed through its interface. Callers must know implementation details to use it correctly.</p>
+        <pre style="margin-top:8px"><span class="cmt">// ❌ Leaking SQL through interface</span>
+<span class="kw">interface</span> <span class="type">IUserRepo</span> {
+  <span class="fn">findBySQLWhere</span>(sql: <span class="type">string</span>): <span class="type">User[]</span>;
+  <span class="fn">runRawQuery</span>(q: <span class="type">string</span>): <span class="type">any</span>;
+}</pre>
+      </div>
+
+      <div class="card" style="border-color:rgba(248,113,113,0.3)">
+        <h3 style="color:var(--red)">🔴 Deep Inheritance</h3>
+        <p style="font-size:13px;color:var(--text2)">3+ levels of inheritance creates fragile hierarchies. Changes to base class ripple unpredictably. Hard to test in isolation.</p>
+        <pre style="margin-top:8px"><span class="cmt">// ❌ Fragile hierarchy</span>
+<span class="cls">Entity</span> → <span class="cls">BaseAgent</span> → <span class="cls">LLMAgent</span>
+  → <span class="cls">ReActAgent</span> → <span class="cls">ResearchAgent</span>
+  → <span class="cls">SpecializedResearcher</span>
+
+<span class="cmt">// ✅ Flat + composition instead</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       INTERVIEW CHECKLIST
+  ══════════════════════════════════════════ -->
+  <section id="checklist">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>LLD Interview Checklist</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-bottom:12px">📋 Before You Start</h3>
+        <ul class="checklist">
+          <li>Ask: What are the primary use cases / actors?</li>
+          <li>Ask: Scale constraints? Extensibility requirements?</li>
+          <li>Ask: What's the most important entity / object?</li>
+          <li>State assumptions explicitly before coding</li>
+          <li>Draw relationships before writing any code</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3 style="margin-bottom:12px">🏗️ During Design</h3>
+        <ul class="checklist">
+          <li>Define interfaces before concrete classes (DIP)</li>
+          <li>Name classes clearly: Repository, Service, Factory, Strategy</li>
+          <li>Justify every design pattern you use</li>
+          <li>Handle edge cases: null, empty, concurrent, error</li>
+          <li>Think about extensibility: "What if we add X later?"</li>
+        </ul>
+      </div>
+      <div class="card pink">
+        <h3 style="margin-bottom:12px">✅ Self-Review</h3>
+        <ul class="checklist">
+          <li>Does each class have a single, clear responsibility?</li>
+          <li>Are dependencies injectable (not hard-coded)?</li>
+          <li>Can I add a new feature without modifying existing classes?</li>
+          <li>Are interfaces minimal and stable?</li>
+          <li>Is there any duplicated logic I can extract?</li>
+        </ul>
+      </div>
+      <div class="card orange">
+        <h3 style="margin-bottom:12px">🗣️ Communication Tips</h3>
+        <ul class="checklist">
+          <li>Think aloud — interviewers want your reasoning, not just code</li>
+          <li>Name the pattern you're applying and why</li>
+          <li>Draw UML diagrams — even rough ones help clarity</li>
+          <li>Discuss trade-offs, not just your chosen approach</li>
+          <li>Ask for feedback: "Does this seem too complex?"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-tip" style="margin-top:20px">
+      <span>🏆</span>
+      <div><strong>Golden LLD Interview Formula:</strong> Clarify → Extract Entities → Define Interfaces → Map Relationships → Apply Patterns → Write Code → Validate. Never skip directly to code.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>LLD Cheat Sheet · AgentOS Case Study</span>
+  <span>SOLID · GOF Patterns · Multi-Tenancy · AI Agents</span>
+</div>
+
+<script>
+  // Active nav link on scroll
+  const links = document.querySelectorAll('.nav-link');
+  const sections = document.querySelectorAll('section, [id]');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        links.forEach(l => {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
