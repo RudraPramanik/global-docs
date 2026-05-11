@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastAPI + Pydantic v2 Cookbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e29;
+    --bg4: #20253200;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8b90a0;
+    --text3: #555b6e;
+    --accent: #00d4a1;
+    --accent2: #4f9eff;
+    --accent3: #ff7b54;
+    --accent4: #c084fc;
+    --accent5: #fbbf24;
+    --red: #f87171;
+    --green: #4ade80;
+    --teal: #2dd4bf;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ─── LAYOUT ─── */
+  .shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0,212,161,0.15), rgba(79,158,255,0.1));
+    border: 1px solid rgba(0,212,161,0.3);
+    border-radius: 10px;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .logo-badge span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .sidebar-logo h1 {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .sidebar-logo p {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 16px 24px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    font-size: 13.5px;
+    color: var(--text2);
+  }
+
+  .nav-item:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(0,212,161,0.06);
+  }
+
+  .nav-icon {
+    font-size: 13px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .nav-num {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    max-width: calc(100vw - 260px);
+  }
+
+  .top-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .breadcrumb span { color: var(--text2); }
+  .breadcrumb .sep { color: var(--text3); }
+
+  .search-hint {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .content {
+    padding: 48px;
+    max-width: 900px;
+  }
+
+  /* ─── PAGE HEADER ─── */
+  .page-header {
+    margin-bottom: 40px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .page-title {
+    font-family: var(--display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  .page-desc {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.7;
+    max-width: 680px;
+    border-left: 2px solid var(--border2);
+    padding-left: 16px;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    animation: fadeUp 0.35s ease both;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--border2);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .card-desc {
+    font-size: 13.5px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    line-height: 1.65;
+  }
+
+  /* ─── BADGES ─── */
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .badge-teal   { background: rgba(45,212,191,0.12); color: var(--teal); border: 1px solid rgba(45,212,191,0.25); }
+  .badge-blue   { background: rgba(79,158,255,0.12); color: var(--accent2); border: 1px solid rgba(79,158,255,0.25); }
+  .badge-amber  { background: rgba(251,191,36,0.12); color: var(--accent5); border: 1px solid rgba(251,191,36,0.25); }
+  .badge-red    { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+  .badge-purple { background: rgba(192,132,252,0.12); color: var(--accent4); border: 1px solid rgba(192,132,252,0.25); }
+  .badge-green  { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+  .badge-orange { background: rgba(255,123,84,0.12); color: var(--accent3); border: 1px solid rgba(255,123,84,0.25); }
+
+  /* ─── CODE BLOCKS ─── */
+  pre {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    margin: 10px 0;
+    position: relative;
+  }
+
+  pre::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
+    border-radius: 10px 10px 0 0;
+    opacity: 0.4;
+  }
+
+  .kw  { color: #c084fc; }
+  .st  { color: #4ade80; }
+  .cm  { color: #3d4a5c; font-style: italic; }
+  .dc  { color: #ff7b54; }
+  .tn  { color: #4f9eff; }
+  .nm  { color: #fbbf24; }
+  .fn  { color: #00d4a1; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--accent);
+  }
+
+  /* ─── CALLOUTS ─── */
+  .callout {
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 12px 0;
+    display: flex;
+    gap: 10px;
+  }
+
+  .callout-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+  .callout-info  { background: rgba(79,158,255,0.08); border: 1px solid rgba(79,158,255,0.2); color: #93c5fd; }
+  .callout-tip   { background: rgba(0,212,161,0.08); border: 1px solid rgba(0,212,161,0.2); color: #6ee7b7; }
+  .callout-warn  { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+  .callout-danger{ background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #fca5a5; }
+
+  /* ─── TWO COL ─── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+
+  /* ─── KV TABLE ─── */
+  .kv-table { width: 100%; }
+  .kv-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-key { font-family: var(--mono); color: var(--accent); min-width: 160px; font-size: 12px; }
+  .kv-val { color: var(--text2); }
+
+  /* ─── HTTP METHODS ─── */
+  .method-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .method span { font-family: var(--sans); font-size: 12px; color: var(--text2); font-weight: 400; }
+  .m-get    { background: rgba(74,222,128,0.12); color: var(--green); }
+  .m-post   { background: rgba(79,158,255,0.12); color: var(--accent2); }
+  .m-put    { background: rgba(251,191,36,0.12); color: var(--accent5); }
+  .m-patch  { background: rgba(192,132,252,0.12); color: var(--accent4); }
+  .m-delete { background: rgba(248,113,113,0.12); color: var(--red); }
+
+  /* ─── SECTION DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+    margin: 28px 0;
+  }
+
+  /* ─── HIDDEN SECTIONS ─── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ─── MOBILE TOGGLE ─── */
+  .menu-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 48px; height: 48px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 200;
+    box-shadow: 0 4px 20px rgba(0,212,161,0.4);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: transform 0.25s; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; max-width: 100vw; }
+    .content { padding: 24px 20px; }
+    .two-col { grid-template-columns: 1fr; }
+    .top-bar { padding: 12px 20px; }
+    .menu-toggle { display: flex; align-items: center; justify-content: center; }
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    z-index: 999;
+    transition: width 0.3s;
+  }
+
+  /* ─── HERO ─── */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .hero-stat {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .hero-stat-num {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .hero-stat-label {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  /* ─── V1 VS V2 TABLE ─── */
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+
+  .diff-table th {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-align: left;
+    padding: 8px 14px;
+    background: var(--bg3);
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .diff-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .diff-table tr:last-child td { border-bottom: none; }
+  .diff-table .old { color: var(--red); }
+  .diff-table .new { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="prog"></div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-dot"></div>
+        <span>COOKBOOK v2</span>
+      </div>
+      <h1>FastAPI +<br>Pydantic v2</h1>
+      <p>Core concepts & patterns</p>
+    </div>
+
+    <div class="nav-section-label">Getting Started</div>
+    <div class="nav-item active" onclick="show('setup')" data-sec="setup">
+      <span class="nav-icon">⚡</span> Quick Setup
+      <span class="nav-num">01</span>
+    </div>
+
+    <div class="nav-section-label">Pydantic v2</div>
+    <div class="nav-item" onclick="show('basics')" data-sec="basics">
+      <span class="nav-icon">🧩</span> BaseModel Basics
+      <span class="nav-num">02</span>
+    </div>
+    <div class="nav-item" onclick="show('fields')" data-sec="fields">
+      <span class="nav-icon">🔧</span> Fields & Validators
+      <span class="nav-num">03</span>
+    </div>
+    <div class="nav-item" onclick="show('nested')" data-sec="nested">
+      <span class="nav-icon">🪆</span> Nested & Serialization
+      <span class="nav-num">04</span>
+    </div>
+
+    <div class="nav-section-label">FastAPI</div>
+    <div class="nav-item" onclick="show('routes')" data-sec="routes">
+      <span class="nav-icon">🛣️</span> Routes & HTTP
+      <span class="nav-num">05</span>
+    </div>
+    <div class="nav-item" onclick="show('params')" data-sec="params">
+      <span class="nav-icon">📦</span> Path, Query & Body
+      <span class="nav-num">06</span>
+    </div>
+    <div class="nav-item" onclick="show('response')" data-sec="response">
+      <span class="nav-icon">📤</span> Response Models
+      <span class="nav-num">07</span>
+    </div>
+    <div class="nav-item" onclick="show('depends')" data-sec="depends">
+      <span class="nav-icon">🔗</span> Dependency Injection
+      <span class="nav-num">08</span>
+    </div>
+    <div class="nav-item" onclick="show('routers')" data-sec="routers">
+      <span class="nav-icon">📁</span> Routers & Middleware
+      <span class="nav-num">09</span>
+    </div>
+    <div class="nav-item" onclick="show('async')" data-sec="async">
+      <span class="nav-icon">⚙️</span> Async & Lifespan
+      <span class="nav-num">10</span>
+    </div>
+    <div class="nav-item" onclick="show('settings')" data-sec="settings">
+      <span class="nav-icon">⚙️</span> Settings & Config
+      <span class="nav-num">11</span>
+    </div>
+    <div class="nav-section-label">Patterns</div>
+    <div class="nav-item" onclick="show('patterns')" data-sec="patterns">
+      <span class="nav-icon">🎯</span> Real-World Patterns
+      <span class="nav-num">12</span>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="top-bar">
+      <div class="breadcrumb">
+        <span>Cookbook</span>
+        <span class="sep">/</span>
+        <span id="breadcrumb-current">Quick Setup</span>
+      </div>
+      <div class="search-hint">12 sections · FastAPI 0.111+ · Pydantic v2</div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════════════ 01 SETUP ═══════════════════ -->
+      <section class="section active" id="sec-setup">
+        <div class="page-header">
+          <div class="page-eyebrow">01 — Getting Started</div>
+          <h2 class="page-title">Quick Setup</h2>
+          <p class="page-desc">Get FastAPI + Pydantic v2 running in 2 minutes. Pydantic v2 ships by default with FastAPI ≥ 0.100 and is rewritten in Rust — 5–50× faster than v1.</p>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-stat"><div class="hero-stat-num">50×</div><div class="hero-stat-label">faster than Pydantic v1</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">0ms</div><div class="hero-stat-label">manual JSON parsing</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">auto</div><div class="hero-stat-label">Swagger + ReDoc docs</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">install</span><span class="card-title">Install dependencies</span></div>
+          <pre><span class="cm"># Minimal</span>
+pip install fastapi <span class="st">"uvicorn[standard]"</span> pydantic
+
+<span class="cm"># With extras (email validation, env files)</span>
+pip install fastapi <span class="st">"uvicorn[standard]"</span> pydantic[email] pydantic-settings
+
+<span class="cm"># Full stack (DB + migrations)</span>
+pip install fastapi <span class="st">"uvicorn[standard]"</span> sqlalchemy alembic psycopg2-binary</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">structure</span><span class="card-title">Recommended project layout</span></div>
+          <pre>my_app/
+├── main.py            <span class="cm"># FastAPI app entry point</span>
+├── models/
+│   └── schemas.py     <span class="cm"># Pydantic models (request/response shapes)</span>
+├── routers/
+│   ├── users.py       <span class="cm"># Route handlers by resource</span>
+│   └── products.py
+├── dependencies.py    <span class="cm"># Shared Depends() functions</span>
+├── config.py          <span class="cm"># BaseSettings — env vars & config</span>
+└── database.py        <span class="cm"># DB engine/session setup</span></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">hello world</span><span class="card-title">Minimal working app</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">FastAPI</span>
+
+app = <span class="tn">FastAPI</span>(
+    title=<span class="st">"My API"</span>,
+    description=<span class="st">"My awesome API"</span>,
+    version=<span class="st">"0.1.0"</span>,
+)
+
+<span class="dc">@app.get</span>(<span class="st">"/"</span>)
+<span class="kw">def</span> <span class="fn">root</span>():
+    <span class="kw">return</span> {<span class="st">"message"</span>: <span class="st">"Hello World"</span>}</pre>
+          <pre><span class="cm"># Run dev server (auto-reload on file save)</span>
+uvicorn main:app --reload
+
+<span class="cm"># Interactive docs auto-available at:</span>
+<span class="cm"># http://127.0.0.1:8000/docs    ← Swagger UI</span>
+<span class="cm"># http://127.0.0.1:8000/redoc   ← ReDoc</span>
+<span class="cm"># http://127.0.0.1:8000/openapi.json  ← Raw schema</span></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>FastAPI automatically generates interactive API documentation from your code. No extra work needed — just define your routes and Pydantic models.</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 02 BASICS ═══════════════════ -->
+      <section class="section" id="sec-basics">
+        <div class="page-header">
+          <div class="page-eyebrow">02 — Pydantic v2</div>
+          <h2 class="page-title">BaseModel Basics</h2>
+          <p class="page-desc">A Pydantic model is a Python class that defines the shape of your data. It validates, coerces, and serializes automatically. It's the backbone of all FastAPI input/output.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">model</span><span class="card-title">Defining your first model</span></div>
+          <div class="card-desc">Every field needs a type annotation. Pydantic coerces compatible types — e.g. the string <code>"42"</code> becomes <code>42</code> for an <code>int</code> field.</div>
+          <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="tn">Optional</span>
+<span class="kw">from</span> datetime <span class="kw">import</span> <span class="tn">datetime</span>
+
+<span class="kw">class</span> <span class="tn">User</span>(<span class="tn">BaseModel</span>):
+    id: <span class="tn">int</span>
+    name: <span class="tn">str</span>
+    email: <span class="tn">str</span>
+    age: <span class="tn">Optional</span>[<span class="tn">int</span>] = <span class="kw">None</span>     <span class="cm"># optional — defaults to None</span>
+    is_active: <span class="tn">bool</span> = <span class="kw">True</span>           <span class="cm"># optional — has a default</span>
+    created_at: <span class="tn">datetime</span> = <span class="tn">datetime</span>.utcnow()
+
+<span class="cm"># Create an instance — Pydantic validates on __init__</span>
+user = <span class="tn">User</span>(id=<span class="nm">1</span>, name=<span class="st">"Alice"</span>, email=<span class="st">"alice@example.com"</span>)
+
+user.model_dump()       <span class="cm"># → plain Python dict</span>
+user.model_dump_json()  <span class="cm"># → JSON string</span>
+user.model_json_schema()<span class="cm"># → JSON Schema dict</span></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-amber">v1 → v2</span><span class="card-title">API changes from Pydantic v1</span></div>
+          <table class="diff-table">
+            <tr><th>Pydantic v1 (old)</th><th>Pydantic v2 (new)</th></tr>
+            <tr><td class="old">.dict()</td><td class="new">.model_dump()</td></tr>
+            <tr><td class="old">.json()</td><td class="new">.model_dump_json()</td></tr>
+            <tr><td class="old">.parse_obj(data)</td><td class="new">Model.model_validate(data)</td></tr>
+            <tr><td class="old">.parse_raw(json_str)</td><td class="new">Model.model_validate_json(s)</td></tr>
+            <tr><td class="old">.schema()</td><td class="new">Model.model_json_schema()</td></tr>
+            <tr><td class="old">.copy(update=...)</td><td class="new">.model_copy(update=...)</td></tr>
+            <tr><td class="old">class Config:</td><td class="new">model_config = ConfigDict()</td></tr>
+            <tr><td class="old">@validator</td><td class="new">@field_validator</td></tr>
+            <tr><td class="old">@root_validator</td><td class="new">@model_validator</td></tr>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-purple">config</span><span class="card-title">Model configuration with ConfigDict</span></div>
+          <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>, <span class="tn">ConfigDict</span>
+
+<span class="kw">class</span> <span class="tn">StrictUser</span>(<span class="tn">BaseModel</span>):
+    model_config = <span class="tn">ConfigDict</span>(
+        str_strip_whitespace=<span class="kw">True</span>,  <span class="cm"># "  Alice  " → "Alice"</span>
+        validate_default=<span class="kw">True</span>,       <span class="cm"># validate fields with defaults too</span>
+        frozen=<span class="kw">True</span>,                 <span class="cm"># instances are immutable</span>
+        extra=<span class="st">"forbid"</span>,             <span class="cm"># reject keys not in model</span>
+        populate_by_name=<span class="kw">True</span>,       <span class="cm"># allow both alias and field name</span>
+    )
+    name: <span class="tn">str</span>
+    email: <span class="tn">str</span></pre>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 03 FIELDS ═══════════════════ -->
+      <section class="section" id="sec-fields">
+        <div class="page-header">
+          <div class="page-eyebrow">03 — Pydantic v2</div>
+          <h2 class="page-title">Fields & Validators</h2>
+          <p class="page-desc">Use <code>Field()</code> to add constraints, metadata, and defaults. Use validators to run custom logic before or after Pydantic parses the data.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">Field()</span><span class="card-title">Field constraints and metadata</span></div>
+          <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>, <span class="tn">Field</span>
+
+<span class="kw">class</span> <span class="tn">Product</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>  = <span class="tn">Field</span>(min_length=<span class="nm">2</span>, max_length=<span class="nm">100</span>)
+    price: <span class="tn">float</span> = <span class="tn">Field</span>(gt=<span class="nm">0</span>, description=<span class="st">"USD price, must be positive"</span>)
+    quantity: <span class="tn">int</span> = <span class="tn">Field</span>(default=<span class="nm">1</span>, ge=<span class="nm">0</span>, le=<span class="nm">9999</span>)
+    sku: <span class="tn">str</span>   = <span class="tn">Field</span>(pattern=<span class="st">r"^[A-Z]{2}-\d{4}$"</span>)
+    tags: list[<span class="tn">str</span>] = <span class="tn">Field</span>(default_factory=list, max_length=<span class="nm">10</span>)
+
+<span class="cm"># Constraint cheatsheet:
+# gt / lt      → greater / less than (exclusive)
+# ge / le      → greater / less than or equal
+# min_length   → min string / list length
+# max_length   → max string / list length
+# pattern      → regex pattern for strings
+# multiple_of  → value must be a multiple of N</span></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">Annotated</span><span class="card-title">Reusable constrained types (v2 best practice)</span></div>
+          <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="tn">Annotated</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">Field</span>
+
+<span class="cm"># Define once — use everywhere</span>
+<span class="tn">PositiveFloat</span> = <span class="tn">Annotated</span>[<span class="tn">float</span>, <span class="tn">Field</span>(gt=<span class="nm">0</span>)]
+<span class="tn">Username</span>      = <span class="tn">Annotated</span>[<span class="tn">str</span>,   <span class="tn">Field</span>(min_length=<span class="nm">3</span>, max_length=<span class="nm">30</span>, pattern=<span class="st">r"^\w+$"</span>)]
+<span class="tn">PaginationInt</span> = <span class="tn">Annotated</span>[<span class="tn">int</span>,   <span class="tn">Field</span>(ge=<span class="nm">0</span>, le=<span class="nm">1000</span>)]
+
+<span class="kw">class</span> <span class="tn">Order</span>(<span class="tn">BaseModel</span>):
+    username: <span class="tn">Username</span>
+    total:    <span class="tn">PositiveFloat</span>
+    skip:     <span class="tn">PaginationInt</span> = <span class="nm">0</span></pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-amber">@field_validator</span><span class="card-title">Field-level validation</span></div>
+            <pre><span class="kw">from</span> pydantic <span class="kw">import</span> field_validator
+
+<span class="kw">class</span> <span class="tn">User</span>(<span class="tn">BaseModel</span>):
+    email: <span class="tn">str</span>
+    name: <span class="tn">str</span>
+
+    <span class="dc">@field_validator</span>(<span class="st">"email"</span>)
+    <span class="dc">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">check_email</span>(cls, v):
+        <span class="kw">if</span> <span class="st">"@"</span> <span class="kw">not in</span> v:
+            <span class="kw">raise</span> <span class="tn">ValueError</span>(<span class="st">"bad email"</span>)
+        <span class="kw">return</span> v.lower() <span class="cm"># transform!</span>
+
+    <span class="dc">@field_validator</span>(<span class="st">"name"</span>, mode=<span class="st">"before"</span>)
+    <span class="dc">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">strip_name</span>(cls, v):
+        <span class="kw">return</span> v.strip().title()</pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-purple">@model_validator</span><span class="card-title">Cross-field validation</span></div>
+            <pre><span class="kw">from</span> pydantic <span class="kw">import</span> model_validator
+<span class="kw">from</span> datetime <span class="kw">import</span> date
+
+<span class="kw">class</span> <span class="tn">DateRange</span>(<span class="tn">BaseModel</span>):
+    start: date
+    end: date
+
+    <span class="cm"># mode="after" → typed Python objects</span>
+    <span class="dc">@model_validator</span>(mode=<span class="st">"after"</span>)
+    <span class="kw">def</span> <span class="fn">check_range</span>(self):
+        <span class="kw">if</span> self.end &lt; self.start:
+            <span class="kw">raise</span> <span class="tn">ValueError</span>(
+                <span class="st">"end must be after start"</span>)
+        <span class="kw">return</span> self
+
+    <span class="cm"># mode="before" → raw dict input</span>
+    <span class="dc">@model_validator</span>(mode=<span class="st">"before"</span>)
+    <span class="dc">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">check_keys</span>(cls, data):
+        <span class="kw">return</span> data</pre>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ️</span>
+          <div><strong>mode="before"</strong> receives raw input (strings, dicts). <strong>mode="after"</strong> receives fully-typed Python objects. Use "after" when comparing typed fields like dates or numbers.</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 04 NESTED ═══════════════════ -->
+      <section class="section" id="sec-nested">
+        <div class="page-header">
+          <div class="page-eyebrow">04 — Pydantic v2</div>
+          <h2 class="page-title">Nested Models & Serialization</h2>
+          <p class="page-desc">Models can contain other models. Use aliases to control JSON key names. Use computed fields for derived values. Control output with <code>model_dump()</code> options.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">nested</span><span class="card-title">Models inside models</span></div>
+          <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>
+
+<span class="kw">class</span> <span class="tn">Address</span>(<span class="tn">BaseModel</span>):
+    street: <span class="tn">str</span>
+    city: <span class="tn">str</span>
+    country: <span class="tn">str</span> = <span class="st">"BD"</span>
+
+<span class="kw">class</span> <span class="tn">UserWithAddress</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>
+    addresses: list[<span class="tn">Address</span>]   <span class="cm"># list of nested models</span>
+    primary: <span class="tn">Address</span>            <span class="cm"># single nested model</span>
+
+<span class="cm"># Pass nested data as plain dicts — Pydantic builds the models</span>
+user = <span class="tn">UserWithAddress</span>.model_validate({
+    <span class="st">"name"</span>: <span class="st">"Rahim"</span>,
+    <span class="st">"primary"</span>: {<span class="st">"street"</span>: <span class="st">"Mirpur 10"</span>, <span class="st">"city"</span>: <span class="st">"Dhaka"</span>},
+    <span class="st">"addresses"</span>: [{<span class="st">"street"</span>: <span class="st">"Gulshan 1"</span>, <span class="st">"city"</span>: <span class="st">"Dhaka"</span>}],
+})</pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-amber">alias</span><span class="card-title">JSON key aliases</span></div>
+            <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">Field</span>, <span class="tn">AliasChoices</span>
+
+<span class="kw">class</span> <span class="tn">Item</span>(<span class="tn">BaseModel</span>):
+    <span class="cm"># JSON key "item_name" → Python .name</span>
+    name: <span class="tn">str</span> = <span class="tn">Field</span>(alias=<span class="st">"item_name"</span>)
+
+    <span class="cm"># Accept multiple possible keys</span>
+    user_id: <span class="tn">int</span> = <span class="tn">Field</span>(
+        validation_alias=<span class="tn">AliasChoices</span>(
+            <span class="st">"user_id"</span>, <span class="st">"userId"</span>, <span class="st">"uid"</span>
+        )
+    )
+
+<span class="cm"># CamelCase alias generator</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">ConfigDict</span>
+<span class="kw">class</span> <span class="tn">CamelModel</span>(<span class="tn">BaseModel</span>):
+    model_config = <span class="tn">ConfigDict</span>(
+        alias_generator=<span class="kw">lambda</span> s: <span class="st">''.join</span>(
+            w.capitalize() <span class="kw">if</span> i <span class="kw">else</span> w
+            <span class="kw">for</span> i, w <span class="kw">in</span> enumerate(s.split(<span class="st">"_"</span>))),
+        populate_by_name=<span class="kw">True</span>,
+    )
+    first_name: <span class="tn">str</span>  <span class="cm"># accepts "firstName" in JSON</span></pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-purple">computed</span><span class="card-title">Computed fields</span></div>
+            <pre><span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>, computed_field
+
+<span class="kw">class</span> <span class="tn">Rectangle</span>(<span class="tn">BaseModel</span>):
+    width: <span class="tn">float</span>
+    height: <span class="tn">float</span>
+
+    <span class="dc">@computed_field</span>
+    <span class="dc">@property</span>
+    <span class="kw">def</span> <span class="fn">area</span>(self) -> <span class="tn">float</span>:
+        <span class="kw">return</span> self.width * self.height
+
+    <span class="dc">@computed_field</span>
+    <span class="dc">@property</span>
+    <span class="kw">def</span> <span class="fn">perimeter</span>(self) -> <span class="tn">float</span>:
+        <span class="kw">return</span> <span class="nm">2</span> * (self.width + self.height)
+
+r = <span class="tn">Rectangle</span>(width=<span class="nm">3</span>, height=<span class="nm">4</span>)
+r.model_dump()
+<span class="cm"># → {'width':3,'height':4,'area':12,'perimeter':14}</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">model_dump</span><span class="card-title">Controlling serialization output</span></div>
+          <pre><span class="cm"># Exclude specific fields</span>
+user.model_dump(exclude={<span class="st">"password"</span>, <span class="st">"secret_key"</span>})
+
+<span class="cm"># Include ONLY specific fields</span>
+user.model_dump(include={<span class="st">"id"</span>, <span class="st">"email"</span>})
+
+<span class="cm"># Use alias keys in output (camelCase etc.)</span>
+user.model_dump(by_alias=<span class="kw">True</span>)
+
+<span class="cm"># Skip None values</span>
+user.model_dump(exclude_none=<span class="kw">True</span>)
+
+<span class="cm"># Skip fields that are still at their default value</span>
+user.model_dump(exclude_defaults=<span class="kw">True</span>)
+
+<span class="cm"># Combine options</span>
+user.model_dump(exclude={<span class="st">"password"</span>}, exclude_none=<span class="kw">True</span>, by_alias=<span class="kw">True</span>)</pre>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 05 ROUTES ═══════════════════ -->
+      <section class="section" id="sec-routes">
+        <div class="page-header">
+          <div class="page-eyebrow">05 — FastAPI</div>
+          <h2 class="page-title">Routes & HTTP Methods</h2>
+          <p class="page-desc">Routes map an HTTP method + URL path to a Python function. FastAPI handles JSON parsing, type validation, and response serialization automatically.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">methods</span><span class="card-title">HTTP method decorators</span></div>
+          <div class="method-tags">
+            <div class="method m-get">GET <span>→ read / list data</span></div>
+            <div class="method m-post">POST <span>→ create new resource</span></div>
+            <div class="method m-put">PUT <span>→ full replacement</span></div>
+            <div class="method m-patch">PATCH <span>→ partial update</span></div>
+            <div class="method m-delete">DELETE <span>→ remove resource</span></div>
+          </div>
+          <pre><span class="dc">@app.get</span>(<span class="st">"/items"</span>)               <span class="cm"># list all</span>
+<span class="dc">@app.get</span>(<span class="st">"/items/{item_id}"</span>)     <span class="cm"># get one by id</span>
+<span class="dc">@app.post</span>(<span class="st">"/items"</span>)              <span class="cm"># create new</span>
+<span class="dc">@app.put</span>(<span class="st">"/items/{item_id}"</span>)     <span class="cm"># replace entirely</span>
+<span class="dc">@app.patch</span>(<span class="st">"/items/{item_id}"</span>)   <span class="cm"># partial update</span>
+<span class="dc">@app.delete</span>(<span class="st">"/items/{item_id}"</span>)  <span class="cm"># delete</span></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">CRUD</span><span class="card-title">Complete CRUD example</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">FastAPI</span>, <span class="tn">HTTPException</span>, status
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="tn">BaseModel</span>
+
+app = <span class="tn">FastAPI</span>()
+db: dict[int, dict] = {}
+
+<span class="kw">class</span> <span class="tn">ItemCreate</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>
+    price: <span class="tn">float</span>
+
+<span class="kw">class</span> <span class="tn">ItemResponse</span>(<span class="tn">BaseModel</span>):
+    id: <span class="tn">int</span>
+    name: <span class="tn">str</span>
+    price: <span class="tn">float</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/items/{item_id}"</span>, response_model=<span class="tn">ItemResponse</span>)
+<span class="kw">def</span> <span class="fn">get_item</span>(item_id: <span class="tn">int</span>):
+    <span class="kw">if</span> item_id <span class="kw">not in</span> db:
+        <span class="kw">raise</span> <span class="tn">HTTPException</span>(status_code=<span class="nm">404</span>, detail=<span class="st">"Not found"</span>)
+    <span class="kw">return</span> db[item_id]
+
+<span class="dc">@app.post</span>(<span class="st">"/items"</span>, response_model=<span class="tn">ItemResponse</span>,
+          status_code=status.<span class="tn">HTTP_201_CREATED</span>)
+<span class="kw">def</span> <span class="fn">create_item</span>(item: <span class="tn">ItemCreate</span>):
+    new_id = len(db) + <span class="nm">1</span>
+    db[new_id] = {<span class="st">"id"</span>: new_id, **item.model_dump()}
+    <span class="kw">return</span> db[new_id]
+
+<span class="dc">@app.put</span>(<span class="st">"/items/{item_id}"</span>, response_model=<span class="tn">ItemResponse</span>)
+<span class="kw">def</span> <span class="fn">update_item</span>(item_id: <span class="tn">int</span>, item: <span class="tn">ItemCreate</span>):
+    <span class="kw">if</span> item_id <span class="kw">not in</span> db:
+        <span class="kw">raise</span> <span class="tn">HTTPException</span>(status_code=<span class="nm">404</span>)
+    db[item_id] = {<span class="st">"id"</span>: item_id, **item.model_dump()}
+    <span class="kw">return</span> db[item_id]
+
+<span class="dc">@app.delete</span>(<span class="st">"/items/{item_id}"</span>, status_code=status.<span class="tn">HTTP_204_NO_CONTENT</span>)
+<span class="kw">def</span> <span class="fn">delete_item</span>(item_id: <span class="tn">int</span>):
+    db.pop(item_id, <span class="kw">None</span>)</pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>Always use <code>response_model=</code> on your routes. FastAPI filters the return value through it, so internal fields like passwords are automatically excluded from responses.</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 06 PARAMS ═══════════════════ -->
+      <section class="section" id="sec-params">
+        <div class="page-header">
+          <div class="page-eyebrow">06 — FastAPI</div>
+          <h2 class="page-title">Path, Query & Body Parameters</h2>
+          <p class="page-desc">FastAPI figures out parameter source automatically: path params come from the URL, query params from <code>?key=val</code>, and Pydantic models from the JSON body.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-orange">path</span><span class="card-title">Path parameters — from the URL</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Path</span>
+
+<span class="cm"># Basic — auto-validated as int</span>
+<span class="dc">@app.get</span>(<span class="st">"/items/{item_id}"</span>)
+<span class="kw">def</span> <span class="fn">get_item</span>(item_id: <span class="tn">int</span>): ...
+
+<span class="cm"># Constrained with Path()</span>
+<span class="dc">@app.get</span>(<span class="st">"/users/{user_id}"</span>)
+<span class="kw">def</span> <span class="fn">get_user</span>(user_id: <span class="tn">int</span> = <span class="tn">Path</span>(ge=<span class="nm">1</span>, description=<span class="st">"User ID"</span>)):
+    ...
+
+<span class="cm"># String path param with enum validation</span>
+<span class="kw">from</span> enum <span class="kw">import</span> Enum
+<span class="kw">class</span> <span class="tn">ModelName</span>(<span class="tn">str</span>, <span class="tn">Enum</span>):
+    gpt4 = <span class="st">"gpt4"</span>
+    claude = <span class="st">"claude"</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/models/{model}"</span>)
+<span class="kw">def</span> <span class="fn">get_model</span>(model: <span class="tn">ModelName</span>): ...</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">query</span><span class="card-title">Query parameters — from ?key=value</span></div>
+          <div class="card-desc">Any non-path, non-body parameter becomes a query param. Types are auto-coerced — <code>"false"</code> → <code>False</code> for bools.</div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Query</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/items"</span>)
+<span class="kw">def</span> <span class="fn">list_items</span>(
+    skip:   <span class="tn">int</span>       = <span class="nm">0</span>,          <span class="cm"># ?skip=0</span>
+    limit:  <span class="tn">int</span>       = <span class="nm">10</span>,         <span class="cm"># ?limit=10</span>
+    search: <span class="tn">str</span> | <span class="kw">None</span> = <span class="kw">None</span>,       <span class="cm"># ?search=apple (optional)</span>
+    active: <span class="tn">bool</span>      = <span class="kw">True</span>,        <span class="cm"># ?active=false</span>
+    tags:   list[<span class="tn">str</span>] = <span class="tn">Query</span>([]),  <span class="cm"># ?tags=a&tags=b</span>
+):
+    ...
+
+<span class="cm"># Constrained query param</span>
+<span class="dc">@app.get</span>(<span class="st">"/search"</span>)
+<span class="kw">def</span> <span class="fn">search</span>(q: <span class="tn">str</span> = <span class="tn">Query</span>(min_length=<span class="nm">3</span>, max_length=<span class="nm">50</span>, description=<span class="st">"Search query"</span>)):
+    ...</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-purple">body</span><span class="card-title">Request body — from JSON payload</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Body</span>
+
+<span class="kw">class</span> <span class="tn">CreateUser</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>
+    email: <span class="tn">str</span>
+    password: <span class="tn">str</span>
+
+<span class="cm"># Pydantic model → JSON body</span>
+<span class="dc">@app.post</span>(<span class="st">"/users"</span>)
+<span class="kw">def</span> <span class="fn">create_user</span>(user: <span class="tn">CreateUser</span>):
+    <span class="kw">return</span> {<span class="st">"id"</span>: <span class="nm">1</span>, <span class="st">"name"</span>: user.name}
+
+<span class="cm"># Mix all three types in one handler</span>
+<span class="dc">@app.put</span>(<span class="st">"/users/{user_id}"</span>)
+<span class="kw">def</span> <span class="fn">update_user</span>(
+    user_id: <span class="tn">int</span>,                 <span class="cm"># ← path param</span>
+    force:   <span class="tn">bool</span> = <span class="kw">False</span>,         <span class="cm"># ← query param</span>
+    user:    <span class="tn">CreateUser</span> = ...,     <span class="cm"># ← JSON body</span>
+):
+    ...</pre>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 07 RESPONSE ═══════════════════ -->
+      <section class="section" id="sec-response">
+        <div class="page-header">
+          <div class="page-eyebrow">07 — FastAPI</div>
+          <h2 class="page-title">Response Models & Status Codes</h2>
+          <p class="page-desc">Use <code>response_model</code> to define what gets returned. FastAPI validates and serializes it — sensitive fields like passwords are automatically stripped out.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">pattern</span><span class="card-title">Separate input / output schemas</span></div>
+          <pre><span class="cm"># What the client SENDS (no id, no timestamps)</span>
+<span class="kw">class</span> <span class="tn">UserCreate</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>;  email: <span class="tn">str</span>;  password: <span class="tn">str</span>
+
+<span class="cm"># What the API RETURNS (no password!)</span>
+<span class="kw">class</span> <span class="tn">UserResponse</span>(<span class="tn">BaseModel</span>):
+    id: <span class="tn">int</span>;  name: <span class="tn">str</span>;  email: <span class="tn">str</span>;  created_at: <span class="tn">datetime</span>
+
+<span class="cm"># response_model filters the return value through UserResponse</span>
+<span class="cm"># → password is NEVER leaked, even if you return the raw DB row</span>
+<span class="dc">@app.post</span>(<span class="st">"/users"</span>, response_model=<span class="tn">UserResponse</span>, status_code=<span class="nm">201</span>)
+<span class="kw">def</span> <span class="fn">create_user</span>(data: <span class="tn">UserCreate</span>):
+    user = save_to_db(data)  <span class="cm"># full row with password hash</span>
+    <span class="kw">return</span> user              <span class="cm"># password filtered by response_model</span></pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-blue">status</span><span class="card-title">Common HTTP status codes</span></div>
+            <div class="kv-table">
+              <div class="kv-row"><span class="kv-key">200 OK</span><span class="kv-val">default for GET</span></div>
+              <div class="kv-row"><span class="kv-key">201 Created</span><span class="kv-val">after POST creates resource</span></div>
+              <div class="kv-row"><span class="kv-key">204 No Content</span><span class="kv-val">DELETE success, no body</span></div>
+              <div class="kv-row"><span class="kv-key">400 Bad Request</span><span class="kv-val">invalid client input</span></div>
+              <div class="kv-row"><span class="kv-key">401 Unauthorized</span><span class="kv-val">not authenticated</span></div>
+              <div class="kv-row"><span class="kv-key">403 Forbidden</span><span class="kv-val">no permission</span></div>
+              <div class="kv-row"><span class="kv-key">404 Not Found</span><span class="kv-val">resource missing</span></div>
+              <div class="kv-row"><span class="kv-key">422 Unprocessable</span><span class="kv-val">validation error (auto)</span></div>
+              <div class="kv-row"><span class="kv-key">500 Server Error</span><span class="kv-val">unhandled exception</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-red">errors</span><span class="card-title">Raising HTTP errors</span></div>
+            <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">HTTPException</span>, status
+
+<span class="cm"># Raise a 404</span>
+<span class="kw">raise</span> <span class="tn">HTTPException</span>(
+    status_code=<span class="nm">404</span>,
+    detail=<span class="st">"User not found"</span>
+)
+
+<span class="cm"># Using status constants (readable)</span>
+<span class="kw">raise</span> <span class="tn">HTTPException</span>(
+    status_code=status.<span class="tn">HTTP_403_FORBIDDEN</span>,
+    detail=<span class="st">"Not authorized"</span>,
+    headers={<span class="st">"WWW-Authenticate"</span>: <span class="st">"Bearer"</span>},
+)
+
+<span class="cm"># Custom exception handler</span>
+<span class="dc">@app.exception_handler</span>(<span class="tn">ValueError</span>)
+<span class="kw">async def</span> <span class="fn">val_err</span>(req, exc):
+    <span class="kw">return</span> <span class="tn">JSONResponse</span>(
+        status_code=<span class="nm">400</span>,
+        content={<span class="st">"detail"</span>: str(exc)}
+    )</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 08 DEPENDS ═══════════════════ -->
+      <section class="section" id="sec-depends">
+        <div class="page-header">
+          <div class="page-eyebrow">08 — FastAPI</div>
+          <h2 class="page-title">Dependency Injection</h2>
+          <p class="page-desc">The <code>Depends()</code> system lets you share logic (DB sessions, auth, pagination) across routes cleanly. A dependency is just a function FastAPI calls before your handler.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">basics</span><span class="card-title">How Depends() works</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Depends</span>
+
+<span class="cm"># 1. Define a dependency — just a regular function</span>
+<span class="kw">def</span> <span class="fn">get_pagination</span>(skip: <span class="tn">int</span> = <span class="nm">0</span>, limit: <span class="tn">int</span> = <span class="nm">10</span>) -> dict:
+    <span class="kw">return</span> {<span class="st">"skip"</span>: skip, <span class="st">"limit"</span>: min(limit, <span class="nm">100</span>)}
+
+<span class="cm"># 2. Use it with Depends() — FastAPI calls it for you</span>
+<span class="dc">@app.get</span>(<span class="st">"/users"</span>)
+<span class="kw">def</span> <span class="fn">list_users</span>(page: dict = <span class="tn">Depends</span>(get_pagination)):
+    <span class="cm"># page = {"skip": 0, "limit": 10}</span>
+    <span class="kw">return</span> get_users(**page)
+
+<span class="cm"># Dependencies can depend on other dependencies (nesting)</span>
+<span class="kw">def</span> <span class="fn">get_current_active_user</span>(
+    user = <span class="tn">Depends</span>(get_current_user),   <span class="cm"># ← nested dep</span>
+    db   = <span class="tn">Depends</span>(get_db),
+):
+    <span class="kw">if not</span> user.is_active:
+        <span class="kw">raise</span> <span class="tn">HTTPException</span>(<span class="nm">400</span>, <span class="st">"Inactive user"</span>)
+    <span class="kw">return</span> user</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">auth</span><span class="card-title">Authentication dependency</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Depends</span>, <span class="tn">HTTPException</span>, <span class="tn">Header</span>
+
+<span class="kw">def</span> <span class="fn">get_current_user</span>(authorization: <span class="tn">str</span> = <span class="tn">Header</span>()):
+    token = authorization.removeprefix(<span class="st">"Bearer "</span>)
+    user = verify_token(token)
+    <span class="kw">if not</span> user:
+        <span class="kw">raise</span> <span class="tn">HTTPException</span>(status_code=<span class="nm">401</span>, detail=<span class="st">"Invalid token"</span>)
+    <span class="kw">return</span> user
+
+<span class="cm"># Reused across many routes — DRY code</span>
+<span class="dc">@app.get</span>(<span class="st">"/profile"</span>)
+<span class="kw">def</span> <span class="fn">profile</span>(user = <span class="tn">Depends</span>(get_current_user)):
+    <span class="kw">return</span> user
+
+<span class="dc">@app.delete</span>(<span class="st">"/account"</span>)
+<span class="kw">def</span> <span class="fn">delete</span>(user = <span class="tn">Depends</span>(get_current_user)):
+    delete_user(user.id)</pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-purple">yield</span><span class="card-title">DB session with cleanup</span></div>
+            <pre><span class="kw">def</span> <span class="fn">get_db</span>():
+    db = <span class="tn">SessionLocal</span>()
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> db     <span class="cm"># route runs here</span>
+    <span class="kw">finally</span>:
+        db.close()   <span class="cm"># always runs</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/users"</span>)
+<span class="kw">def</span> <span class="fn">list_users</span>(
+    db = <span class="tn">Depends</span>(get_db)
+):
+    <span class="kw">return</span> db.query(<span class="tn">User</span>).all()</pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-amber">router-level</span><span class="card-title">Apply dep to whole router</span></div>
+            <pre><span class="cm"># All routes in this router
+# require authentication</span>
+router = <span class="tn">APIRouter</span>(
+    prefix=<span class="st">"/admin"</span>,
+    dependencies=[
+        <span class="tn">Depends</span>(get_current_user),
+        <span class="tn">Depends</span>(require_admin),
+    ],
+)
+
+<span class="cm"># Or apply to entire app</span>
+app = <span class="tn">FastAPI</span>(
+    dependencies=[
+        <span class="tn">Depends</span>(rate_limiter)
+    ]
+)</pre>
+          </div>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">💡</span>
+          <div>Use <code>yield</code> in dependencies for setup/teardown patterns (DB sessions, file handles). Code before <code>yield</code> runs before the route; code in <code>finally</code> always runs after the response is sent.</div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 09 ROUTERS ═══════════════════ -->
+      <section class="section" id="sec-routers">
+        <div class="page-header">
+          <div class="page-eyebrow">09 — FastAPI</div>
+          <h2 class="page-title">Routers & Middleware</h2>
+          <p class="page-desc">Split your routes into separate files with <code>APIRouter</code>. Add cross-cutting concerns like CORS, logging, and timing with middleware.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">router</span><span class="card-title">Defining routes in a separate file</span></div>
+          <pre><span class="cm"># routers/users.py</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">APIRouter</span>, <span class="tn">Depends</span>
+
+router = <span class="tn">APIRouter</span>(
+    prefix=<span class="st">"/users"</span>,       <span class="cm"># all routes start with /users</span>
+    tags=[<span class="st">"users"</span>],         <span class="cm"># groups in Swagger docs</span>
+    dependencies=[<span class="tn">Depends</span>(get_current_user)],
+    responses={<span class="nm">404</span>: {<span class="st">"description"</span>: <span class="st">"Not found"</span>}},
+)
+
+<span class="dc">@router.get</span>(<span class="st">"/"</span>)             <span class="cm"># → GET /users/</span>
+<span class="kw">def</span> <span class="fn">list_users</span>(): ...
+
+<span class="dc">@router.get</span>(<span class="st">"/{user_id}"</span>)   <span class="cm"># → GET /users/{user_id}</span>
+<span class="kw">def</span> <span class="fn">get_user</span>(user_id: <span class="tn">int</span>): ...</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">include</span><span class="card-title">Mount routers in main.py</span></div>
+          <pre><span class="cm"># main.py</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">FastAPI</span>
+<span class="kw">from</span> .routers <span class="kw">import</span> users, products, orders
+
+app = <span class="tn">FastAPI</span>()
+
+app.include_router(users.router)
+app.include_router(products.router, prefix=<span class="st">"/products"</span>, tags=[<span class="st">"products"</span>])
+app.include_router(orders.router,   prefix=<span class="st">"/v2/orders"</span>)  <span class="cm"># versioned</span></pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-teal">cors</span><span class="card-title">CORS middleware</span></div>
+            <pre><span class="kw">from</span> fastapi.middleware.cors <span class="kw">import</span> <span class="tn">CORSMiddleware</span>
+
+app.add_middleware(
+    <span class="tn">CORSMiddleware</span>,
+    allow_origins=[
+        <span class="st">"https://myapp.com"</span>,
+        <span class="st">"http://localhost:3000"</span>,
+    ],
+    allow_credentials=<span class="kw">True</span>,
+    allow_methods=[<span class="st">"*"</span>],
+    allow_headers=[<span class="st">"*"</span>],
+)</pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-purple">custom</span><span class="card-title">Custom middleware</span></div>
+            <pre><span class="kw">import</span> time
+
+<span class="dc">@app.middleware</span>(<span class="st">"http"</span>)
+<span class="kw">async def</span> <span class="fn">add_timing</span>(request, call_next):
+    start = time.time()
+    response = <span class="kw">await</span> call_next(request)
+    elapsed = time.time() - start
+    response.headers[<span class="st">"X-Process-Time"</span>] = (
+        <span class="st">f"{elapsed:.4f}s"</span>
+    )
+    <span class="kw">return</span> response</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 10 ASYNC ═══════════════════ -->
+      <section class="section" id="sec-async">
+        <div class="page-header">
+          <div class="page-eyebrow">10 — FastAPI</div>
+          <h2 class="page-title">Async Routes & Lifespan</h2>
+          <p class="page-desc">FastAPI supports sync and async handlers. Use <code>async def</code> when doing I/O (DB, HTTP calls). Use <code>lifespan</code> for startup/shutdown logic.</p>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-green">sync</span><span class="card-title">Sync route handler</span></div>
+            <div class="card-desc">Runs in a thread pool. OK for blocking/sync libraries like standard SQLAlchemy.</div>
+            <pre><span class="dc">@app.get</span>(<span class="st">"/items"</span>)
+<span class="kw">def</span> <span class="fn">get_items</span>():
+    items = db.query(<span class="tn">Item</span>).all()
+    <span class="kw">return</span> items</pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-blue">async</span><span class="card-title">Async route handler</span></div>
+            <div class="card-desc">Use with asyncpg, Motor, httpx, or any awaitable I/O.</div>
+            <pre><span class="dc">@app.get</span>(<span class="st">"/items"</span>)
+<span class="kw">async def</span> <span class="fn">get_items</span>():
+    items = <span class="kw">await</span> db.fetch_all(
+        query
+    )
+    <span class="kw">return</span> items</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">lifespan</span><span class="card-title">Startup & shutdown with lifespan</span></div>
+          <div class="card-desc">The modern replacement for the deprecated <code>@app.on_event("startup")</code>. Wrap setup in a context manager.</div>
+          <pre><span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">FastAPI</span>
+
+<span class="dc">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: <span class="tn">FastAPI</span>):
+    <span class="cm"># ─── STARTUP ───────────────────────</span>
+    print(<span class="st">"Starting up..."</span>)
+    <span class="kw">await</span> connect_to_db()
+    load_ml_model()
+
+    <span class="kw">yield</span>  <span class="cm"># ← app accepts requests here</span>
+
+    <span class="cm"># ─── SHUTDOWN ──────────────────────</span>
+    print(<span class="st">"Shutting down..."</span>)
+    <span class="kw">await</span> disconnect_db()
+
+app = <span class="tn">FastAPI</span>(lifespan=lifespan)</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-amber">background</span><span class="card-title">BackgroundTasks — run after response</span></div>
+          <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">BackgroundTasks</span>
+
+<span class="kw">def</span> <span class="fn">send_welcome_email</span>(email: <span class="tn">str</span>):
+    <span class="cm"># Runs AFTER the HTTP response is already returned</span>
+    send_email(to=email, subject=<span class="st">"Welcome!"</span>)
+
+<span class="dc">@app.post</span>(<span class="st">"/users"</span>)
+<span class="kw">def</span> <span class="fn">create_user</span>(user: <span class="tn">UserCreate</span>, bg: <span class="tn">BackgroundTasks</span>):
+    new_user = save_user(user)
+    bg.add_task(send_welcome_email, new_user.email)
+    <span class="kw">return</span> new_user   <span class="cm"># returned immediately, email sent after</span></pre>
+          <div class="callout callout-warn">
+            <span class="callout-icon">⚠️</span>
+            <div>BackgroundTasks shares the same process. For heavy work (emails, image processing, queues), use Celery, ARQ, or Redis Queue instead.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 11 SETTINGS ═══════════════════ -->
+      <section class="section" id="sec-settings">
+        <div class="page-header">
+          <div class="page-eyebrow">11 — FastAPI</div>
+          <h2 class="page-title">Settings & Config</h2>
+          <p class="page-desc">Use Pydantic's <code>BaseSettings</code> to load configuration from environment variables or <code>.env</code> files — with full type validation and IDE autocomplete.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">BaseSettings</span><span class="card-title">Typed config from env vars</span></div>
+          <pre><span class="cm"># pip install pydantic-settings</span>
+<span class="kw">from</span> pydantic_settings <span class="kw">import</span> <span class="tn">BaseSettings</span>, <span class="tn">SettingsConfigDict</span>
+
+<span class="kw">class</span> <span class="tn">Settings</span>(<span class="tn">BaseSettings</span>):
+    model_config = <span class="tn">SettingsConfigDict</span>(
+        env_file=<span class="st">".env"</span>,
+        env_file_encoding=<span class="st">"utf-8"</span>,
+        case_sensitive=<span class="kw">False</span>,  <span class="cm"># DB_URL == db_url</span>
+    )
+
+    app_name:       <span class="tn">str</span>      = <span class="st">"My API"</span>
+    debug:          <span class="tn">bool</span>     = <span class="kw">False</span>
+    database_url:   <span class="tn">str</span>               <span class="cm"># required — no default</span>
+    secret_key:     <span class="tn">str</span>
+    allowed_hosts:  list[<span class="tn">str</span>] = [<span class="st">"*"</span>]
+    max_connections:<span class="tn">int</span>      = <span class="nm">10</span></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-green">lru_cache</span><span class="card-title">Load settings once, inject anywhere</span></div>
+          <pre><span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="dc">@lru_cache</span>
+<span class="kw">def</span> <span class="fn">get_settings</span>() -> <span class="tn">Settings</span>:
+    <span class="kw">return</span> <span class="tn">Settings</span>()  <span class="cm"># reads .env once, then cached forever</span>
+
+<span class="cm"># Inject into any route as a dependency</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Depends</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/info"</span>)
+<span class="kw">def</span> <span class="fn">app_info</span>(settings: <span class="tn">Settings</span> = <span class="tn">Depends</span>(get_settings)):
+    <span class="kw">return</span> {
+        <span class="st">"app"</span>: settings.app_name,
+        <span class="st">"debug"</span>: settings.debug,
+    }</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-amber">.env</span><span class="card-title">Example .env file</span></div>
+          <pre><span class="cm"># .env  (never commit this to git!)</span>
+<span class="st">APP_NAME</span>=Production API
+<span class="st">DEBUG</span>=false
+<span class="st">DATABASE_URL</span>=postgresql://user:pass@localhost:5432/mydb
+<span class="st">SECRET_KEY</span>=your-super-secret-key-here
+<span class="st">MAX_CONNECTIONS</span>=20</pre>
+          <div class="callout callout-danger">
+            <span class="callout-icon">🚨</span>
+            <div>Add <code>.env</code> to your <code>.gitignore</code>. Commit a <code>.env.example</code> with placeholder values for your team instead.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════ 12 PATTERNS ═══════════════════ -->
+      <section class="section" id="sec-patterns">
+        <div class="page-header">
+          <div class="page-eyebrow">12 — Real World</div>
+          <h2 class="page-title">Common Real-World Patterns</h2>
+          <p class="page-desc">Patterns you'll encounter in every production FastAPI app — partial updates, polymorphism, pagination, headers, and more.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-blue">PATCH</span><span class="card-title">Partial updates with optional fields</span></div>
+          <pre><span class="kw">class</span> <span class="tn">UserUpdate</span>(<span class="tn">BaseModel</span>):
+    <span class="cm"># All fields optional — only provided fields are updated</span>
+    name:  <span class="tn">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    email: <span class="tn">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+    age:   <span class="tn">int</span> | <span class="kw">None</span> = <span class="kw">None</span>
+
+<span class="dc">@app.patch</span>(<span class="st">"/users/{user_id}"</span>, response_model=<span class="tn">UserResponse</span>)
+<span class="kw">def</span> <span class="fn">patch_user</span>(user_id: <span class="tn">int</span>, updates: <span class="tn">UserUpdate</span>):
+    existing = get_user_or_404(user_id)
+    updated = existing.model_copy(
+        update=updates.model_dump(exclude_none=<span class="kw">True</span>)  <span class="cm"># only set fields</span>
+    )
+    <span class="kw">return</span> save(updated)</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-teal">union</span><span class="card-title">Discriminated unions — polymorphic models</span></div>
+          <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="tn">Annotated</span>, <span class="tn">Union</span>, <span class="tn">Literal</span>
+
+<span class="kw">class</span> <span class="tn">Cat</span>(<span class="tn">BaseModel</span>):
+    type: <span class="tn">Literal</span>[<span class="st">"cat"</span>]
+    indoor: <span class="tn">bool</span>
+
+<span class="kw">class</span> <span class="tn">Dog</span>(<span class="tn">BaseModel</span>):
+    type: <span class="tn">Literal</span>[<span class="st">"dog"</span>]
+    breed: <span class="tn">str</span>
+
+<span class="cm"># Pydantic uses "type" field to pick the right model — fast O(1) lookup</span>
+<span class="tn">Pet</span> = <span class="tn">Annotated</span>[<span class="tn">Union</span>[<span class="tn">Cat</span>, <span class="tn">Dog</span>], <span class="tn">Field</span>(discriminator=<span class="st">"type"</span>)]
+
+<span class="kw">class</span> <span class="tn">Owner</span>(<span class="tn">BaseModel</span>):
+    name: <span class="tn">str</span>
+    pet: <span class="tn">Pet</span>
+
+owner = <span class="tn">Owner</span>(name=<span class="st">"Ali"</span>, pet={<span class="st">"type"</span>: <span class="st">"dog"</span>, <span class="st">"breed"</span>: <span class="st">"Labrador"</span>})
+type(owner.pet)  <span class="cm"># → Dog</span></pre>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><span class="badge badge-amber">pagination</span><span class="card-title">Generic paginated response</span></div>
+            <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="tn">Generic</span>, <span class="tn">TypeVar</span>
+T = <span class="tn">TypeVar</span>(<span class="st">"T"</span>)
+
+<span class="kw">class</span> <span class="tn">Page</span>(<span class="tn">BaseModel</span>, <span class="tn">Generic</span>[T]):
+    items: list[T]
+    total: <span class="tn">int</span>
+    skip:  <span class="tn">int</span>
+    limit: <span class="tn">int</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/users"</span>,
+    response_model=<span class="tn">Page</span>[<span class="tn">UserResponse</span>])
+<span class="kw">def</span> <span class="fn">list_users</span>(
+    skip: <span class="tn">int</span>=<span class="nm">0</span>, limit: <span class="tn">int</span>=<span class="nm">10</span>
+):
+    <span class="kw">return</span> {
+        <span class="st">"items"</span>: users[skip:skip+limit],
+        <span class="st">"total"</span>: len(users),
+        <span class="st">"skip"</span>: skip,
+        <span class="st">"limit"</span>: limit,
+    }</pre>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="badge badge-purple">headers</span><span class="card-title">Reading headers & cookies</span></div>
+            <pre><span class="kw">from</span> fastapi <span class="kw">import</span> <span class="tn">Header</span>, <span class="tn">Cookie</span>
+
+<span class="dc">@app.get</span>(<span class="st">"/track"</span>)
+<span class="kw">def</span> <span class="fn">track</span>(
+    user_agent: <span class="tn">str</span> | <span class="kw">None</span> = <span class="tn">Header</span>(<span class="kw">None</span>),
+    x_request_id: <span class="tn">str</span> | <span class="kw">None</span> = <span class="tn">Header</span>(<span class="kw">None</span>),
+    session_id: <span class="tn">str</span> | <span class="kw">None</span> = <span class="tn">Cookie</span>(<span class="kw">None</span>),
+):
+    <span class="kw">return</span> {
+        <span class="st">"agent"</span>: user_agent,
+        <span class="st">"rid"</span>: x_request_id,
+    }
+<span class="cm"># Note: hyphen → underscore auto-conversion
+# "X-Request-Id" → x_request_id</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="badge badge-red">custom response</span><span class="card-title">Returning files, HTML, and streaming</span></div>
+          <pre><span class="kw">from</span> fastapi.responses <span class="kw">import</span> (
+    <span class="tn">FileResponse</span>, <span class="tn">HTMLResponse</span>, <span class="tn">StreamingResponse</span>, <span class="tn">RedirectResponse</span>
+)
+
+<span class="dc">@app.get</span>(<span class="st">"/download"</span>)
+<span class="kw">def</span> <span class="fn">download</span>():
+    <span class="kw">return</span> <span class="tn">FileResponse</span>(<span class="st">"report.pdf"</span>, media_type=<span class="st">"application/pdf"</span>)
+
+<span class="dc">@app.get</span>(<span class="st">"/html"</span>)
+<span class="kw">def</span> <span class="fn">html_page</span>():
+    <span class="kw">return</span> <span class="tn">HTMLResponse</span>(<span class="st">"&lt;h1&gt;Hello&lt;/h1&gt;"</span>)
+
+<span class="dc">@app.get</span>(<span class="st">"/stream"</span>)
+<span class="kw">async def</span> <span class="fn">stream_data</span>():
+    <span class="kw">async def</span> <span class="fn">generate</span>():
+        <span class="kw">for</span> chunk <span class="kw">in</span> large_data:
+            <span class="kw">yield</span> chunk
+    <span class="kw">return</span> <span class="tn">StreamingResponse</span>(generate(), media_type=<span class="st">"text/plain"</span>)</pre>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<button class="menu-toggle" id="menuBtn" onclick="toggleSidebar()">☰</button>
+
+<script>
+const navItems = document.querySelectorAll('.nav-item');
+const sections = document.querySelectorAll('.section');
+const breadcrumb = document.getElementById('breadcrumb-current');
+const navLabels = {};
+
+navItems.forEach(item => {
+  const sec = item.dataset.sec;
+  navLabels[sec] = item.querySelector('span:nth-child(2)').textContent.trim();
+});
+
+function show(id) {
+  sections.forEach(s => s.classList.remove('active'));
+  navItems.forEach(n => n.classList.remove('active'));
+  const section = document.getElementById('sec-' + id);
+  const navItem = document.querySelector(`[data-sec="${id}"]`);
+  if (section) { section.classList.add('active'); section.style.animation = 'none'; void section.offsetWidth; section.style.animation = ''; }
+  if (navItem) { navItem.classList.add('active'); breadcrumb.textContent = navLabels[id] || id; }
+  document.querySelector('.main').scrollTop = 0;
+  window.scrollTo(0, 0);
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// Progress bar on scroll
+window.addEventListener('scroll', () => {
+  const scrolled = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+  document.getElementById('prog').style.width = scrolled + '%';
+});
+</script>
+</body>
+</html>
