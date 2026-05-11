@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backend Dev Cookbook — REST · Auth · Redis · FastAPI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f12;
+  --surface:#13161b;
+  --surface2:#1a1e26;
+  --border:#252932;
+  --border2:#2e3440;
+  --text:#e8eaf0;
+  --muted:#6b7280;
+  --accent:#f0c040;
+  --accent2:#4ade80;
+  --accent3:#60a5fa;
+  --accent4:#f87171;
+  --accent5:#a78bfa;
+  --mono:'IBM Plex Mono',monospace;
+  --display:'Fraunces',serif;
+  --sans:'DM Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+}
+
+/* LAYOUT */
+.shell{display:flex;min-height:100vh}
+.sidebar{
+  width:240px;
+  flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:2rem 1.25rem;
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:2rem;
+}
+.main{flex:1;padding:2.5rem 2rem;max-width:860px}
+
+/* SIDEBAR */
+.logo{font-family:var(--display);font-size:20px;font-weight:500;color:var(--accent);letter-spacing:-.3px;line-height:1.2}
+.logo span{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:4px;font-family:var(--sans)}
+.nav-section{display:flex;flex-direction:column;gap:2px}
+.nav-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:6px;
+  font-size:13px;color:var(--muted);
+  cursor:pointer;transition:all .15s;
+  border:none;background:none;width:100%;text-align:left;
+  font-family:var(--sans);
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--surface2);color:var(--accent);border-left:2px solid var(--accent)}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-yellow{background:var(--accent)}
+.dot-green{background:var(--accent2)}
+.dot-blue{background:var(--accent3)}
+.dot-purple{background:var(--accent5)}
+
+/* SECTIONS */
+.section{display:none;animation:fadeIn .2s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* HEADERS */
+.page-header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
+.page-title{font-family:var(--display);font-size:28px;font-weight:500;color:var(--text);letter-spacing:-.5px}
+.page-sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.7}
+.section-h{font-family:var(--display);font-size:19px;font-weight:300;color:var(--text);margin:2rem 0 1rem;letter-spacing:-.3px}
+
+/* CARDS */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1.25rem 1.5rem;
+  margin-bottom:1rem;
+}
+.card-title{
+  font-size:13px;font-weight:500;
+  color:var(--text);
+  margin-bottom:1rem;
+  display:flex;align-items:center;gap:8px;
+  letter-spacing:.01em;
+}
+.card-title::before{content:'';display:block;width:3px;height:14px;background:var(--accent);border-radius:2px}
+
+/* CODE */
+.code-block{
+  font-family:var(--mono);font-size:12.5px;
+  background:#080a0e;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:1.1rem 1.25rem;
+  line-height:1.8;
+  overflow-x:auto;
+  white-space:pre;
+  color:#cdd3e0;
+}
+.kw{color:#c792ea}.str{color:#c3e88d}.fn{color:#82aaff}
+.cm{color:#4b5563}.dec{color:#f78c6c}.cls{color:#ffcb6b}
+.num{color:#f78c6c}.op{color:#89ddff}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;font-family:var(--mono)}
+.b-green{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.b-red{background:#2d0505;color:#f87171;border:1px solid #450a0a}
+.b-amber{background:#2d1800;color:#fbbf24;border:1px solid #451a03}
+.b-blue{background:#03154e;color:#60a5fa;border:1px solid #1e3a8a}
+.b-purple{background:#1e0545;color:#a78bfa;border:1px solid #3b0764}
+.b-gray{background:#1a1e26;color:#9ca3af;border:1px solid #252932}
+
+/* PILLS (tab switcher inside cards) */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.pill{
+  padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);
+  background:transparent;color:var(--muted);
+  transition:all .15s;font-family:var(--sans);
+}
+.pill:hover{border-color:var(--border2);color:var(--text)}
+.pill.active{background:var(--accent);color:#000;border-color:var(--accent)}
+
+/* URL demo */
+.url-demo{background:#080a0e;border:1px solid var(--border);border-radius:8px;padding:1rem 1.25rem}
+.url-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.method-tag{font-family:var(--mono);font-size:12px;font-weight:500;padding:3px 9px;border-radius:4px}
+.m-get{background:#1a2e1a;color:#4ade80;border:1px solid #14532d}
+.m-post{background:#1a1a2e;color:#60a5fa;border:1px solid #1e3a8a}
+.m-put{background:#2d1800;color:#fbbf24;border:1px solid #451a03}
+.m-patch{background:#1e0545;color:#a78bfa;border:1px solid #3b0764}
+.m-delete{background:#2d0505;color:#f87171;border:1px solid #450a0a}
+.url-path{font-family:var(--mono);font-size:13px;color:#e8eaf0}
+.url-desc{font-size:12.5px;color:var(--muted);line-height:1.7;white-space:pre-line}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);font-size:12px}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;line-height:1.5}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* JWT parts */
+.jwt-part{
+  border-radius:8px;padding:10px 14px;
+  cursor:pointer;transition:all .15s;margin-bottom:8px;
+  border:1px solid transparent;
+}
+.jwt-part:hover{transform:translateX(3px)}
+.jwt-header{background:#1a0f2e;border-color:#4c1d95}
+.jwt-payload{background:#052e16;border-color:#14532d}
+.jwt-sig{background:#2d1800;border-color:#451a03}
+.jwt-part.selected{box-shadow:0 0 0 1px var(--accent)}
+.jwt-label{font-size:11px;font-weight:500;margin-bottom:4px}
+.jl-h{color:#a78bfa}.jl-p{color:#4ade80}.jl-s{color:#fbbf24}
+.jwt-val{font-family:var(--mono);font-size:11px;word-break:break-all;line-height:1.6}
+.jv-h{color:#c4b5fd}.jv-p{color:#86efac}.jv-s{color:#fcd34d}
+.jwt-detail{
+  background:#080a0e;border:1px solid var(--border);border-radius:8px;
+  padding:1rem 1.25rem;margin-top:10px;
+  font-family:var(--mono);font-size:12px;
+  line-height:1.8;color:#cdd3e0;min-height:80px;
+  white-space:pre-wrap;word-break:break-word;
+}
+
+/* Auth flow diagram */
+.flow-step{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:12px 0;border-left:1px solid var(--border);margin-left:12px;
+}
+.flow-step:last-child{border-left:none}
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  flex-shrink:0;margin-left:-12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:500;font-family:var(--mono);
+}
+.sn-yellow{background:#2d1800;color:var(--accent);border:1px solid #92400e}
+.sn-green{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.sn-blue{background:#03154e;color:#60a5fa;border:1px solid #1e3a8a}
+.sn-red{background:#2d0505;color:#f87171;border:1px solid #450a0a}
+.step-body{flex:1;padding-bottom:4px}
+.step-title{font-size:13px;font-weight:500;color:var(--text)}
+.step-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.step-code{font-family:var(--mono);font-size:11px;color:#c792ea;background:#080a0e;padding:4px 8px;border-radius:4px;margin-top:5px;display:inline-block}
+
+/* Cache sim */
+.cache-stage{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  min-width:110px;
+}
+.cache-box{
+  padding:8px 12px;border-radius:8px;
+  font-size:11.5px;font-weight:500;
+  text-align:center;border:1px solid;
+  width:100%;transition:all .4s;
+  font-family:var(--mono);
+}
+.cache-arrow{color:var(--muted);font-size:14px;align-self:center;padding:0 4px;flex-shrink:0}
+.cache-label{font-size:10px;color:var(--muted);text-align:center;line-height:1.3}
+.cs-active{background:rgba(240,192,64,.12);border-color:var(--accent);color:var(--accent)}
+.cs-hit{background:rgba(74,222,128,.12);border-color:#4ade80;color:#4ade80}
+.cs-miss{background:rgba(248,113,113,.12);border-color:#f87171;color:#f87171}
+.cs-skip{background:#0d0f12;border-color:var(--border);color:var(--muted);opacity:.4}
+.cs-neutral{background:var(--surface2);border-color:var(--border);color:var(--muted)}
+
+/* Meters */
+.meter-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.meter-label{font-size:12px;color:var(--muted);width:72px;text-align:right;flex-shrink:0}
+.meter-track{flex:1;height:8px;background:#1a1e26;border-radius:4px;overflow:hidden}
+.meter-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.meter-val{font-family:var(--mono);font-size:12px;font-weight:500;width:36px;flex-shrink:0;color:var(--text)}
+
+/* Status codes */
+.status-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.status-item:last-child{border-bottom:none}
+.status-code{font-family:var(--mono);font-size:12px;font-weight:500;min-width:90px;flex-shrink:0}
+.status-desc{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* Redis keys */
+.redis-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.redis-row:last-child{border-bottom:none}
+.redis-key-text{font-family:var(--mono);font-size:12px;color:#60a5fa;font-weight:500}
+.redis-val-text{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+.ttl-chip{font-family:var(--mono);font-size:11px;background:#2d1800;color:#fbbf24;padding:2px 7px;border-radius:4px;border:1px solid #451a03;flex-shrink:0}
+
+/* Checklist */
+.check-row{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border)}
+.check-row:last-child{border-bottom:none}
+.ck{width:18px;height:18px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px}
+.ck-ok{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.ck-no{background:#2d0505;color:#f87171;border:1px solid #450a0a}
+.check-text{font-size:13px;color:var(--text);line-height:1.5}
+.check-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* Highlight box */
+.tip{
+  background:rgba(240,192,64,.07);
+  border-left:3px solid var(--accent);
+  padding:.75rem 1rem;border-radius:0 6px 6px 0;
+  font-size:13px;line-height:1.6;color:var(--text);
+  margin:10px 0;
+}
+.tip code{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+
+/* Input range */
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--accent);cursor:pointer;
+}
+
+/* Grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.metric-box{background:var(--surface2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--border)}
+.metric-val{font-family:var(--display);font-size:22px;font-weight:300;color:var(--text)}
+.metric-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* Stepper */
+.stepper-item{display:flex;gap:14px;padding:12px 0;border-left:1px solid var(--border);margin-left:12px}
+.stepper-item:last-child{border-left:none}
+.s-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;margin-left:-12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;font-family:var(--mono)}
+.s-blue{background:#03154e;color:#60a5fa;border:1px solid #1e3a8a}
+.s-amber{background:#2d1800;color:#fbbf24;border:1px solid #451a03}
+.s-purple{background:#1e0545;color:#a78bfa;border:1px solid #3b0764}
+.s-green{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.s-teal{background:#052d2d;color:#2dd4bf;border:1px solid #134e4a}
+.s-body{flex:1}
+.s-title{font-size:13px;font-weight:500;color:var(--text)}
+.s-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+/* Home screen */
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:1.5rem}
+.home-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:1.25rem;cursor:pointer;
+  transition:all .2s;
+}
+.home-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.hc-icon{font-size:22px;margin-bottom:10px}
+.hc-title{font-family:var(--display);font-size:16px;font-weight:500;color:var(--text);margin-bottom:6px}
+.hc-desc{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{display:none}
+  .main{padding:1.5rem 1rem}
+  .home-grid,.grid2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">Cookbook<span>Backend Dev Reference</span></div>
+
+  <div class="nav-section">
+    <div class="nav-label">Sections</div>
+    <button class="nav-item active" onclick="show('home')">
+      <span class="nav-dot" style="background:#6b7280"></span>Overview
+    </button>
+    <button class="nav-item" onclick="show('rest')">
+      <span class="nav-dot dot-yellow"></span>REST API design
+    </button>
+    <button class="nav-item" onclick="show('auth')">
+      <span class="nav-dot dot-green"></span>Auth & JWT
+    </button>
+    <button class="nav-item" onclick="show('redis')">
+      <span class="nav-dot dot-blue"></span>Redis & caching
+    </button>
+    <button class="nav-item" onclick="show('fastapi')">
+      <span class="nav-dot dot-purple"></span>FastAPI patterns
+    </button>
+  </div>
+
+  <div style="margin-top:auto;font-size:11.5px;color:var(--muted);line-height:1.6">
+    Interactive guide.<br>Click through examples,<br>adjust sliders, explore code.
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- HOME -->
+<div id="sec-home" class="section active">
+  <div class="page-header">
+    <div class="page-title">Backend Dev Cookbook</div>
+    <div class="page-sub">Everything a FastAPI developer must know — REST API design, authentication flows, Redis caching, and production patterns. Interactive examples throughout.</div>
+  </div>
+
+  <div class="home-grid">
+    <div class="home-card" onclick="show('rest')">
+      <div class="hc-icon">🔗</div>
+      <div class="hc-title">REST API design</div>
+      <div class="hc-desc">URL anatomy, HTTP verbs, status codes, response shapes, versioning, and pagination.</div>
+    </div>
+    <div class="home-card" onclick="show('auth')">
+      <div class="hc-icon">🔐</div>
+      <div class="hc-title">Auth & JWT</div>
+      <div class="hc-desc">JWT anatomy, OAuth2 flow, access/refresh tokens, FastAPI security patterns.</div>
+    </div>
+    <div class="home-card" onclick="show('redis')">
+      <div class="hc-icon">⚡</div>
+      <div class="hc-title">Redis & caching</div>
+      <div class="hc-desc">Cache-aside pattern, TTL strategy, key naming, data structures, rate limiting.</div>
+    </div>
+    <div class="home-card" onclick="show('fastapi')">
+      <div class="hc-icon">🚀</div>
+      <div class="hc-title">FastAPI patterns</div>
+      <div class="hc-desc">Project structure, lifespan, dependency injection, full request lifecycle.</div>
+    </div>
+  </div>
+
+  <div class="section-h">Core mental models</div>
+  <div class="card">
+    <div class="card-title">The full request lifecycle</div>
+    <div class="stepper-item"><div class="s-dot s-blue">1</div><div class="s-body"><div class="s-title">Client → Middleware</div><div class="s-desc">CORS headers, rate limit check (Redis INCR), request ID injection</div></div></div>
+    <div class="stepper-item"><div class="s-dot s-amber">2</div><div class="s-body"><div class="s-title">JWT validation</div><div class="s-desc">Decode Bearer token → verify signature → check exp → load user identity</div></div></div>
+    <div class="stepper-item"><div class="s-dot s-purple">3</div><div class="s-body"><div class="s-title">Redis cache check</div><div class="s-desc">Cache HIT → return in &lt;5ms. Cache MISS → continue to DB</div></div></div>
+    <div class="stepper-item"><div class="s-dot s-green">4</div><div class="s-body"><div class="s-title">DB query + business logic</div><div class="s-desc">Execute query → Pydantic validation → transform response shape</div></div></div>
+    <div class="stepper-item" style="border-left:none"><div class="s-dot s-teal">5</div><div class="s-body"><div class="s-title">Cache write + respond</div><div class="s-desc">Store in Redis with TTL → return consistent APIResponse shape</div></div></div>
+  </div>
+</div>
+
+<!-- REST API -->
+<div id="sec-rest" class="section">
+  <div class="page-header">
+    <div class="page-title">REST API design</div>
+    <div class="page-sub">Rules that make an API feel intuitive — URL structure, HTTP verbs, status codes, and response shapes.</div>
+  </div>
+
+  <!-- URL anatomy -->
+  <div class="card">
+    <div class="card-title">URL anatomy — interactive explorer</div>
+    <div class="pills" id="url-pills">
+      <button class="pill active" onclick="setUrl('list',this)">List</button>
+      <button class="pill" onclick="setUrl('item',this)">Single item</button>
+      <button class="pill" onclick="setUrl('nested',this)">Nested</button>
+      <button class="pill" onclick="setUrl('action',this)">Action endpoint</button>
+      <button class="pill" onclick="setUrl('filter',this)">Filter & search</button>
+    </div>
+    <div class="url-demo">
+      <div class="url-bar">
+        <span class="method-tag" id="url-method">GET</span>
+        <span class="url-path" id="url-path">/api/v1/posts</span>
+      </div>
+      <div class="url-desc" id="url-desc"></div>
+    </div>
+    <div class="tip" id="url-tip" style="margin-top:10px"></div>
+  </div>
+
+  <!-- HTTP verbs -->
+  <div class="card">
+    <div class="card-title">HTTP verb rules</div>
+    <table class="tbl">
+      <thead><tr><th>Verb</th><th>Purpose</th><th>Idempotent?</th><th>Has body?</th><th>FastAPI decorator</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-green">GET</span></td>
+          <td>Fetch resource(s)</td>
+          <td><span class="badge b-green">Yes</span></td>
+          <td>No</td>
+          <td><span class="badge b-gray">@app.get</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-blue">POST</span></td>
+          <td>Create new resource</td>
+          <td><span class="badge b-red">No</span></td>
+          <td>Yes</td>
+          <td><span class="badge b-gray">@app.post</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-amber">PUT</span></td>
+          <td>Replace full resource</td>
+          <td><span class="badge b-green">Yes</span></td>
+          <td>Yes</td>
+          <td><span class="badge b-gray">@app.put</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-purple">PATCH</span></td>
+          <td>Partial update</td>
+          <td><span class="badge b-amber">Sometimes</span></td>
+          <td>Yes</td>
+          <td><span class="badge b-gray">@app.patch</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-red">DELETE</span></td>
+          <td>Remove resource</td>
+          <td><span class="badge b-green">Yes</span></td>
+          <td>Rarely</td>
+          <td><span class="badge b-gray">@app.delete</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tip">Idempotent = calling it N times = same as calling it once. Use PUT/DELETE safely for retries without side effects.</div>
+  </div>
+
+  <!-- Status codes -->
+  <div class="card">
+    <div class="card-title">Status codes — must know</div>
+    <div class="pills">
+      <button class="pill active" onclick="setStatus('2xx',this)">2xx success</button>
+      <button class="pill" onclick="setStatus('4xx',this)">4xx client error</button>
+      <button class="pill" onclick="setStatus('5xx',this)">5xx server error</button>
+    </div>
+    <div id="status-list"></div>
+  </div>
+
+  <!-- Response shape -->
+  <div class="card">
+    <div class="card-title">Response shape — always consistent</div>
+    <div class="code-block"><span class="cm"># Universal response wrapper (FastAPI + Pydantic)</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> typing <span class="kw">import</span> Generic, TypeVar, Optional
+
+T = TypeVar(<span class="str">"T"</span>)
+
+<span class="kw">class</span> <span class="cls">APIResponse</span>(BaseModel, Generic[T]):
+    success: <span class="cls">bool</span>
+    data:    Optional[T] = <span class="kw">None</span>
+    error:   Optional[<span class="cls">str</span>] = <span class="kw">None</span>
+    meta:    Optional[<span class="cls">dict</span>] = <span class="kw">None</span>  <span class="cm"># pagination, timestamps</span>
+
+<span class="cm"># ✅ Success</span>
+<span class="cm"># { "success": true,  "data": {...}, "meta": {"page":1,"total":50} }</span>
+
+<span class="cm"># ❌ Error</span>
+<span class="cm"># { "success": false, "error": "Post not found" }</span>
+
+<span class="cm"># Usage in endpoint:</span>
+<span class="dec">@app.get</span>(<span class="str">"/posts/{id}"</span>, response_model=<span class="cls">APIResponse</span>[<span class="cls">PostSchema</span>])
+<span class="kw">async def</span> <span class="fn">get_post</span>(id: <span class="cls">int</span>):
+    post = <span class="kw">await</span> <span class="fn">fetch_post</span>(id)
+    <span class="kw">return</span> <span class="cls">APIResponse</span>(success=<span class="kw">True</span>, data=post)</div>
+  </div>
+
+  <!-- Rules -->
+  <div class="card">
+    <div class="card-title">Naming rules — do & don't</div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Use plural nouns: <code style="font-family:monospace;font-size:12px;color:#60a5fa">/posts</code>, <code style="font-family:monospace;font-size:12px;color:#60a5fa">/users</code>, <code style="font-family:monospace;font-size:12px;color:#60a5fa">/comments</code></div><div class="check-sub">Resources are collections. Even for a single item endpoint: GET /posts/{id}</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Version in the URL: <code style="font-family:monospace;font-size:12px;color:#60a5fa">/api/v1/posts</code></div><div class="check-sub">Most visible, recommended for public APIs. Allows non-breaking changes.</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Filters & pagination in query params: <code style="font-family:monospace;font-size:12px;color:#60a5fa">?page=2&tag=redis</code></div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Never use verbs in URLs: <code style="font-family:monospace;font-size:12px;color:#f87171">/api/getPosts</code>, <code style="font-family:monospace;font-size:12px;color:#f87171">/api/deleteUser</code></div><div class="check-sub">The HTTP verb IS the action. URL = the resource.</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Don't nest more than 2 levels: <code style="font-family:monospace;font-size:12px;color:#f87171">/users/1/posts/5/comments/2/likes</code></div><div class="check-sub">Instead: GET /comments/2/likes or GET /likes?comment_id=2</div></div></div>
+  </div>
+</div>
+
+<!-- AUTH & JWT -->
+<div id="sec-auth" class="section">
+  <div class="page-header">
+    <div class="page-title">Auth & JWT</div>
+    <div class="page-sub">JWT anatomy, OAuth2 password flow, access/refresh token strategy, and common mistakes to avoid.</div>
+  </div>
+
+  <!-- JWT anatomy -->
+  <div class="card">
+    <div class="card-title">JWT anatomy — click each part</div>
+    <div class="jwt-part jwt-header" onclick="showJwt('header',this)">
+      <div class="jwt-label jl-h">Header — algorithm + type</div>
+      <div class="jwt-val jv-h">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</div>
+    </div>
+    <div class="jwt-part jwt-payload" onclick="showJwt('payload',this)">
+      <div class="jwt-label jl-p">Payload — claims (base64, NOT encrypted)</div>
+      <div class="jwt-val jv-p">eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJleHAiOjE3MDA0NzA0MDB9</div>
+    </div>
+    <div class="jwt-part jwt-sig" onclick="showJwt('sig',this)">
+      <div class="jwt-label jl-s">Signature — HMAC-SHA256(header + payload + secret)</div>
+      <div class="jwt-val jv-s">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</div>
+    </div>
+    <div class="jwt-detail" id="jwt-detail">← Click a part above to decode it.</div>
+  </div>
+
+  <!-- Auth flow -->
+  <div class="card">
+    <div class="card-title">Auth flows — step by step</div>
+    <div class="pills">
+      <button class="pill active" onclick="setAuthFlow('login',this)">Login</button>
+      <button class="pill" onclick="setAuthFlow('request',this)">Authenticated request</button>
+      <button class="pill" onclick="setAuthFlow('refresh',this)">Token refresh</button>
+    </div>
+    <div id="auth-flow"></div>
+  </div>
+
+  <!-- FastAPI code -->
+  <div class="card">
+    <div class="card-title">FastAPI OAuth2 + JWT — full pattern</div>
+    <div class="code-block"><span class="kw">from</span> fastapi <span class="kw">import</span> Depends, HTTPException
+<span class="kw">from</span> fastapi.security <span class="kw">import</span> OAuth2PasswordBearer
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timedelta
+<span class="kw">import</span> jwt
+
+oauth2_scheme = <span class="fn">OAuth2PasswordBearer</span>(tokenUrl=<span class="str">"/auth/token"</span>)
+SECRET = <span class="str">"your-256-bit-secret"</span>
+ALGO   = <span class="str">"HS256"</span>
+
+<span class="kw">def</span> <span class="fn">create_access_token</span>(user_id: str) -> str:
+    payload = {
+        <span class="str">"sub"</span>: user_id,
+        <span class="str">"exp"</span>: datetime.<span class="fn">utcnow</span>() + timedelta(minutes=<span class="num">15</span>)
+    }
+    <span class="kw">return</span> jwt.<span class="fn">encode</span>(payload, SECRET, algorithm=ALGO)
+
+<span class="kw">async def</span> <span class="fn">get_current_user</span>(token: str = <span class="fn">Depends</span>(oauth2_scheme)):
+    <span class="kw">try</span>:
+        payload = jwt.<span class="fn">decode</span>(token, SECRET, algorithms=[ALGO])
+        user_id: str = payload.<span class="fn">get</span>(<span class="str">"sub"</span>)
+        <span class="kw">if not</span> user_id:
+            <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="str">"No sub claim"</span>)
+    <span class="kw">except</span> jwt.ExpiredSignatureError:
+        <span class="kw">raise</span> <span class="fn">HTTPException</span>(<span class="num">401</span>, <span class="str">"Token expired"</span>)
+    <span class="kw">except</span> jwt.InvalidTokenError:
+        <span class="kw">raise</span> <span class="fn">HTTPException</span>(<span class="num">401</span>, <span class="str">"Invalid token"</span>)
+    <span class="kw">return</span> <span class="kw">await</span> <span class="fn">db_get_user</span>(user_id)
+
+<span class="cm"># Protect any route:</span>
+<span class="dec">@app.get</span>(<span class="str">"/profile"</span>)
+<span class="kw">async def</span> <span class="fn">profile</span>(user = <span class="fn">Depends</span>(get_current_user)):
+    <span class="kw">return</span> APIResponse(success=<span class="kw">True</span>, data=user)</div>
+  </div>
+
+  <!-- Token strategy -->
+  <div class="card">
+    <div class="card-title">Access vs refresh token strategy</div>
+    <div class="grid2">
+      <div class="metric-box"><div class="metric-val">15 min</div><div class="metric-lbl">Access token TTL<br><span style="color:#4ade80;font-size:11px">short-lived, in-memory</span></div></div>
+      <div class="metric-box"><div class="metric-val">7 days</div><div class="metric-lbl">Refresh token TTL<br><span style="color:#60a5fa;font-size:11px">HttpOnly cookie</span></div></div>
+    </div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Store refresh token in <strong>HttpOnly cookie</strong> — XSS can't steal it</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Keep access token <strong>in memory only</strong> — never localStorage</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Store refresh token <strong>hash</strong> in Redis — enables instant revocation</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Never store sensitive data in JWT payload — it's <strong>base64 encoded, not encrypted</strong></div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Never use <code style="font-family:monospace;font-size:12px;color:#f87171">alg: none</code> — always specify algorithm explicitly in decode call</div></div></div>
+  </div>
+
+  <!-- Mistakes -->
+  <div class="card">
+    <div class="card-title">Common auth mistakes <span class="badge b-red" style="margin-left:4px">avoid</span></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Returning 200 with <code style="font-family:monospace;font-size:12px;color:#f87171">{"error":"unauthorized"}</code></div><div class="check-sub">Always 401 for missing/invalid auth, 403 for insufficient permissions</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Logging full JWT tokens</div><div class="check-sub">Tokens are credentials. Log user_id only, never the token string.</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Not validating token expiry on every request</div><div class="check-sub">Always decode and check exp. Don't cache decoded tokens.</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Same secret for access & refresh tokens</div><div class="check-sub">Use different secrets. Limits blast radius if one is compromised.</div></div></div>
+  </div>
+</div>
+
+<!-- REDIS -->
+<div id="sec-redis" class="section">
+  <div class="page-header">
+    <div class="page-title">Redis & caching</div>
+    <div class="page-sub">Cache-aside pattern, TTL strategy, key naming conventions, data structures, and rate limiting.</div>
+  </div>
+
+  <!-- Cache sim -->
+  <div class="card">
+    <div class="card-title">Cache hit / miss simulator</div>
+    <div class="pills">
+      <button class="pill active" onclick="simCache('hit',this)">Cache hit</button>
+      <button class="pill" onclick="simCache('miss',this)">Cache miss</button>
+      <button class="pill" onclick="simCache('expire',this)">TTL expired</button>
+    </div>
+    <div id="cache-flow" style="display:flex;align-items:flex-start;gap:6px;overflow-x:auto;padding:8px 0"></div>
+    <div id="cache-result" style="margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6"></div>
+  </div>
+
+  <!-- Code -->
+  <div class="card">
+    <div class="card-title">Cache-aside pattern — FastAPI + redis-py</div>
+    <div class="code-block"><span class="kw">import</span> redis.asyncio <span class="kw">as</span> redis
+<span class="kw">import</span> json
+
+r = redis.<span class="fn">from_url</span>(<span class="str">"redis://localhost:6379"</span>, decode_responses=<span class="kw">True</span>)
+
+<span class="kw">async def</span> <span class="fn">get_post</span>(post_id: int):
+    cache_key = <span class="str">f"post:<span class="dec">{post_id}</span>"</span>
+
+    <span class="cm"># 1️⃣  Try cache first</span>
+    cached = <span class="kw">await</span> r.<span class="fn">get</span>(cache_key)
+    <span class="kw">if</span> cached:
+        <span class="kw">return</span> json.<span class="fn">loads</span>(cached)          <span class="cm"># ⚡ Cache HIT — ~1ms</span>
+
+    <span class="cm"># 2️⃣  Miss — hit the database</span>
+    post = <span class="kw">await</span> db.<span class="fn">fetch_post</span>(post_id)   <span class="cm"># ~100ms</span>
+    <span class="kw">if not</span> post:
+        <span class="kw">raise</span> <span class="fn">HTTPException</span>(<span class="num">404</span>, <span class="str">"Post not found"</span>)
+
+    <span class="cm"># 3️⃣  Populate cache with TTL</span>
+    <span class="kw">await</span> r.<span class="fn">setex</span>(cache_key, <span class="num">3600</span>, json.<span class="fn">dumps</span>(post))
+    <span class="kw">return</span> post
+
+<span class="cm"># Always invalidate on mutation!</span>
+<span class="kw">async def</span> <span class="fn">update_post</span>(post_id: int, data: <span class="cls">PostUpdate</span>):
+    <span class="kw">await</span> db.<span class="fn">update_post</span>(post_id, data)
+    <span class="kw">await</span> r.<span class="fn">delete</span>(<span class="str">f"post:<span class="dec">{post_id}</span>"</span>)  <span class="cm"># ← crucial!</span></div>
+  </div>
+
+  <!-- TTL slider -->
+  <div class="card">
+    <div class="card-title">TTL strategy — tune the trade-off</div>
+    <div style="display:flex;gap:10px;align-items:center;margin:10px 0 8px">
+      <span style="font-size:12px;color:var(--muted)">TTL</span>
+      <input type="range" min="0" max="4" step="1" value="2" id="ttl-slider" oninput="updateTTL(this.value)" style="flex:1">
+      <span id="ttl-val" style="font-family:var(--mono);font-size:13px;font-weight:500;min-width:70px;color:var(--accent)">1 hour</span>
+    </div>
+    <div style="margin:14px 0">
+      <div class="meter-row"><div class="meter-label">Freshness</div><div class="meter-track"><div class="meter-fill" id="m-fresh" style="background:#4ade80"></div></div><div class="meter-val" id="mv-fresh"></div></div>
+      <div class="meter-row"><div class="meter-label">Hit rate</div><div class="meter-track"><div class="meter-fill" id="m-hit" style="background:#60a5fa"></div></div><div class="meter-val" id="mv-hit"></div></div>
+      <div class="meter-row"><div class="meter-label">DB load</div><div class="meter-track"><div class="meter-fill" id="m-db" style="background:#f87171"></div></div><div class="meter-val" id="mv-db"></div></div>
+    </div>
+    <div class="tip" id="ttl-advice"></div>
+  </div>
+
+  <!-- Key naming -->
+  <div class="card">
+    <div class="card-title">Key naming convention</div>
+    <div class="redis-row"><div><div class="redis-key-text">user:123:profile</div><div class="redis-val-text">Hash — full user profile object</div></div><span class="ttl-chip">TTL 1h</span></div>
+    <div class="redis-row"><div><div class="redis-key-text">post:456:comments</div><div class="redis-val-text">String — serialized comment list JSON</div></div><span class="ttl-chip">TTL 5m</span></div>
+    <div class="redis-row"><div><div class="redis-key-text">session:tok_abc123</div><div class="redis-val-text">String — refresh token SHA-256 hash</div></div><span class="ttl-chip">TTL 7d</span></div>
+    <div class="redis-row"><div><div class="redis-key-text">rate:user:123:1714752000</div><div class="redis-val-text">String — request counter (sliding window)</div></div><span class="ttl-chip">TTL 60s</span></div>
+    <div class="redis-row"><div><div class="redis-key-text">lock:order:789</div><div class="redis-val-text">String — distributed lock (SET NX)</div></div><span class="ttl-chip">TTL 30s</span></div>
+    <div class="tip" style="margin-top:12px">Pattern: <code>resource:id:attribute</code> — always namespaced. Never bare keys like <code>"user"</code> or <code>"cache"</code>.</div>
+  </div>
+
+  <!-- Data structures -->
+  <div class="card">
+    <div class="card-title">Data structures — when to use what</div>
+    <table class="tbl">
+      <thead><tr><th>Type</th><th>Use case</th><th>Key commands</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-green">String</span></td><td>Simple cache values, counters, session tokens</td><td><code style="font-family:monospace;font-size:11px;color:#60a5fa">setex / get / incr / decr</code></td></tr>
+        <tr><td><span class="badge b-blue">Hash</span></td><td>User profiles — get/set individual fields</td><td><code style="font-family:monospace;font-size:11px;color:#60a5fa">hset / hget / hgetall / hmset</code></td></tr>
+        <tr><td><span class="badge b-amber">List</span></td><td>Message queue, recent activity feed</td><td><code style="font-family:monospace;font-size:11px;color:#60a5fa">lpush / rpop / lrange / llen</code></td></tr>
+        <tr><td><span class="badge b-red">Set</span></td><td>Unique tags, active sessions, permissions</td><td><code style="font-family:monospace;font-size:11px;color:#60a5fa">sadd / smembers / sismember</code></td></tr>
+        <tr><td><span class="badge b-purple">Sorted Set</span></td><td>Leaderboards, priority queues, rate windows</td><td><code style="font-family:monospace;font-size:11px;color:#60a5fa">zadd / zrange / zrangebyscore</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Rate limiting -->
+  <div class="card">
+    <div class="card-title">Rate limiting — fixed window with Redis</div>
+    <div class="code-block"><span class="kw">import</span> time
+<span class="kw">from</span> fastapi <span class="kw">import</span> Request, HTTPException
+
+<span class="kw">async def</span> <span class="fn">rate_limit</span>(
+    user_id: str,
+    max_requests: int = <span class="num">100</span>,
+    window_seconds: int = <span class="num">60</span>
+):
+    window  = int(time.<span class="fn">time</span>() // window_seconds)
+    key     = <span class="str">f"rate:<span class="dec">{user_id}</span>:<span class="dec">{window}</span>"</span>
+    current = <span class="kw">await</span> r.<span class="fn">incr</span>(key)
+
+    <span class="kw">if</span> current == <span class="num">1</span>:
+        <span class="kw">await</span> r.<span class="fn">expire</span>(key, window_seconds)  <span class="cm"># set TTL on first hit</span>
+
+    <span class="kw">if</span> current > max_requests:
+        <span class="kw">raise</span> <span class="fn">HTTPException</span>(
+            status_code=<span class="num">429</span>,
+            detail=<span class="str">"Too many requests"</span>,
+            headers={<span class="str">"Retry-After"</span>: str(window_seconds)}
+        )
+
+<span class="cm"># Use as a FastAPI dependency:</span>
+<span class="dec">@app.get</span>(<span class="str">"/feed"</span>)
+<span class="kw">async def</span> <span class="fn">get_feed</span>(user = <span class="fn">Depends</span>(get_current_user)):
+    <span class="kw">await</span> <span class="fn">rate_limit</span>(user.id, max_requests=<span class="num">60</span>)
+    ...</div>
+  </div>
+</div>
+
+<!-- FASTAPI PATTERNS -->
+<div id="sec-fastapi" class="section">
+  <div class="page-header">
+    <div class="page-title">FastAPI patterns</div>
+    <div class="page-sub">Project structure, dependency injection, lifespan management, and production checklist.</div>
+  </div>
+
+  <!-- Project structure -->
+  <div class="card">
+    <div class="card-title">Project structure</div>
+    <div class="code-block">app/
+├── main.py              <span class="cm"># FastAPI instance + lifespan</span>
+├── core/
+│   ├── config.py        <span class="cm"># Settings via pydantic BaseSettings</span>
+│   ├── security.py      <span class="cm"># JWT encode / decode helpers</span>
+│   └── redis.py         <span class="cm"># Redis client factory</span>
+├── api/
+│   ├── deps.py          <span class="cm"># Shared dependencies (get_db, get_redis…)</span>
+│   └── v1/
+│       ├── auth.py      <span class="cm"># POST /auth/token, /auth/refresh</span>
+│       ├── users.py     <span class="cm"># /users CRUD</span>
+│       └── posts.py     <span class="cm"># /posts CRUD</span>
+├── models/
+│   ├── user.py          <span class="cm"># SQLAlchemy / Beanie ODM models</span>
+│   └── post.py
+└── schemas/
+    ├── user.py          <span class="cm"># Pydantic request & response schemas</span>
+    └── post.py</div>
+  </div>
+
+  <!-- Lifespan -->
+  <div class="card">
+    <div class="card-title">Lifespan — startup & shutdown (modern pattern)</div>
+    <div class="code-block"><span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+<span class="kw">import</span> redis.asyncio <span class="kw">as</span> aioredis
+
+<span class="dec">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: <span class="cls">FastAPI</span>):
+    <span class="cm"># ── startup ──────────────────────────────────</span>
+    app.state.redis = <span class="kw">await</span> aioredis.<span class="fn">from_url</span>(
+        settings.REDIS_URL,
+        max_connections=<span class="num">20</span>,
+        decode_responses=<span class="kw">True</span>
+    )
+    <span class="kw">await</span> database.<span class="fn">connect</span>()
+
+    <span class="kw">yield</span>  <span class="cm"># ← app is running here</span>
+
+    <span class="cm"># ── shutdown ─────────────────────────────────</span>
+    <span class="kw">await</span> app.state.redis.<span class="fn">close</span>()
+    <span class="kw">await</span> database.<span class="fn">disconnect</span>()
+
+app = <span class="fn">FastAPI</span>(lifespan=lifespan, title=<span class="str">"My API"</span>)
+
+<span class="cm"># Access Redis anywhere via dependency:</span>
+<span class="kw">def</span> <span class="fn">get_redis</span>(request: <span class="cls">Request</span>):
+    <span class="kw">return</span> request.app.state.redis</div>
+  </div>
+
+  <!-- Deps -->
+  <div class="card">
+    <div class="card-title">Dependency injection — composable deps</div>
+    <div class="code-block"><span class="cm"># api/deps.py</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> Depends, Request
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> Session
+
+<span class="cm"># Database session</span>
+<span class="kw">async def</span> <span class="fn">get_db</span>():
+    db = <span class="fn">SessionLocal</span>()
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> db
+    <span class="kw">finally</span>:
+        db.<span class="fn">close</span>()
+
+<span class="cm"># Redis client</span>
+<span class="kw">async def</span> <span class="fn">get_redis</span>(req: <span class="cls">Request</span>):
+    <span class="kw">return</span> req.app.state.redis
+
+<span class="cm"># Compose all three in one endpoint:</span>
+<span class="dec">@router.get</span>(<span class="str">"/posts/{id}"</span>)
+<span class="kw">async def</span> <span class="fn">get_post</span>(
+    id:    int,
+    db     = <span class="fn">Depends</span>(get_db),
+    redis  = <span class="fn">Depends</span>(get_redis),
+    user   = <span class="fn">Depends</span>(get_current_user),   <span class="cm"># auth</span>
+):
+    <span class="kw">await</span> <span class="fn">rate_limit</span>(user.id)              <span class="cm"># Redis rate check</span>
+    <span class="kw">return</span> <span class="kw">await</span> <span class="fn">get_post_with_cache</span>(id, redis, db)</div>
+  </div>
+
+  <!-- Settings -->
+  <div class="card">
+    <div class="card-title">Config management — pydantic BaseSettings</div>
+    <div class="code-block"><span class="kw">from</span> pydantic_settings <span class="kw">import</span> BaseSettings
+
+<span class="kw">class</span> <span class="cls">Settings</span>(BaseSettings):
+    DATABASE_URL: str
+    REDIS_URL:    str = <span class="str">"redis://localhost:6379"</span>
+    JWT_SECRET:   str
+    JWT_ALGO:     str = <span class="str">"HS256"</span>
+    ACCESS_TTL:   int = <span class="num">15</span>    <span class="cm"># minutes</span>
+    REFRESH_TTL:  int = <span class="num">10080</span> <span class="cm"># 7 days in minutes</span>
+    DEBUG:        bool = <span class="kw">False</span>
+
+    <span class="kw">class</span> <span class="cls">Config</span>:
+        env_file = <span class="str">".env"</span>
+
+settings = <span class="fn">Settings</span>()  <span class="cm"># reads from .env or environment</span>
+
+<span class="cm"># .env file:</span>
+<span class="cm"># DATABASE_URL=postgresql+asyncpg://user:pass@db/mydb</span>
+<span class="cm"># JWT_SECRET=your-256-bit-random-string</span>
+<span class="cm"># REDIS_URL=redis://redis:6379</span></div>
+  </div>
+
+  <!-- Checklist -->
+  <div class="card">
+    <div class="card-title">Production checklist <span class="badge b-green" style="margin-left:4px">before deploy</span></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">All secrets in env vars via <strong>pydantic BaseSettings</strong> — never hardcoded</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Redis connection pool with <code style="font-family:monospace;font-size:12px;color:#4ade80">max_connections</code> — not new connection per request</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">HTTPS only — <code style="font-family:monospace;font-size:12px;color:#4ade80">secure=True</code> + <code style="font-family:monospace;font-size:12px;color:#4ade80">httponly=True</code> on all cookies</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Rate limiting on <code style="font-family:monospace;font-size:12px;color:#4ade80">/auth/token</code> — prevent brute force (5 req/min)</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Structured logging — include <code style="font-family:monospace;font-size:12px;color:#4ade80">request_id, user_id, duration_ms, status</code></div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Health check: <code style="font-family:monospace;font-size:12px;color:#4ade80">GET /health</code> pings DB + Redis, returns latency</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Graceful shutdown via lifespan — closes all connections cleanly</div></div></div>
+    <div class="check-row"><div class="ck ck-ok">✓</div><div><div class="check-text">Cache invalidation on every write/delete — stale cache = subtle bugs</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Don't expose stack traces in 500 responses — log internally, return generic message</div></div></div>
+    <div class="check-row"><div class="ck ck-no">✗</div><div><div class="check-text">Don't ignore <code style="font-family:monospace;font-size:12px;color:#f87171">422 Unprocessable Entity</code> — add request logging middleware to catch it</div></div></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// Navigation
+function show(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── REST: URL explorer ──
+const urlData = {
+  list: {
+    method: 'GET', cls: 'm-get',
+    path: '/api/v1/posts',
+    desc: 'Returns a paginated list of posts.\n→ Use plural nouns for collections\n→ Add query params for pagination: ?page=1&per_page=20\n→ Response: 200 { data: [...], meta: { total, page, per_page } }',
+    tip: 'Rule: resources are always plural nouns. /post is wrong, /posts is right.'
+  },
+  item: {
+    method: 'GET', cls: 'm-get',
+    path: '/api/v1/posts/{id}',
+    desc: 'Returns one post by ID.\n→ 200 if found, 404 if not found — never 200 with null\n→ Use UUIDs or slugs instead of sequential IDs for public APIs\n→ Never expose your internal database row IDs',
+    tip: 'Never return 200 with null data for a missing resource. 404 communicates intent clearly.'
+  },
+  nested: {
+    method: 'GET', cls: 'm-get',
+    path: '/api/v1/users/{user_id}/posts',
+    desc: 'Returns all posts by a specific user.\n→ Nesting max 2 levels deep\n→ Deeper: use query params instead: /posts?user_id=123\n→ Both /users/{id}/posts and /posts?user_id={id} are valid',
+    tip: 'Stop at 2 nesting levels. /users/1/posts/5/comments/2/likes is a smell — flatten it.'
+  },
+  action: {
+    method: 'POST', cls: 'm-post',
+    path: '/api/v1/posts/{id}/publish',
+    desc: 'Trigger an action that isn\'t pure CRUD.\n→ Sub-resource noun describes the action result\n→ Alternative: PATCH /posts/{id} with body { "status": "published" }\n→ Returns 200 with updated resource or 204 No Content',
+    tip: 'Sub-resource actions are acceptable REST. "publish" names the outcome, not the verb.'
+  },
+  filter: {
+    method: 'GET', cls: 'm-get',
+    path: '/api/v1/posts?tag=redis&sort=latest&limit=10',
+    desc: 'Filter, sort, paginate — always in query params.\n→ Search:   ?q=keyword\n→ Filter:   ?tag=redis&author=alice&status=published\n→ Sort:     ?sort=created_at&order=desc\n→ Paginate: ?cursor=xyz&limit=20',
+    tip: 'Query params are for narrowing collections. URL path is for identifying resources.'
+  }
+};
+
+function setUrl(key, btn) {
+  const d = urlData[key];
+  document.getElementById('url-method').className = 'method-tag ' + d.cls;
+  document.getElementById('url-method').textContent = d.method;
+  document.getElementById('url-path').textContent = d.path;
+  document.getElementById('url-desc').textContent = d.desc;
+  document.getElementById('url-tip').textContent = d.tip;
+  document.querySelectorAll('#url-pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+setUrl('list', document.querySelector('#url-pills .pill'));
+
+// ── REST: Status codes ──
+const statusData = {
+  '2xx': [
+    { code: '200 OK', color: '#4ade80', desc: 'Successful GET, PUT, PATCH. Return data in body.' },
+    { code: '201 Created', color: '#4ade80', desc: 'Successful POST — resource created. Return the new resource.' },
+    { code: '204 No Content', color: '#4ade80', desc: 'Successful DELETE or action with no response body.' },
+  ],
+  '4xx': [
+    { code: '400 Bad Request', color: '#f87171', desc: 'Malformed request body / invalid JSON.' },
+    { code: '401 Unauthorized', color: '#f87171', desc: 'Missing or invalid auth token. Re-login required.' },
+    { code: '403 Forbidden', color: '#f87171', desc: 'Authenticated but not allowed. Different from 401.' },
+    { code: '404 Not Found', color: '#f87171', desc: 'Resource does not exist.' },
+    { code: '409 Conflict', color: '#f87171', desc: 'Duplicate resource (e.g. email already taken).' },
+    { code: '422 Unprocessable', color: '#f87171', desc: 'FastAPI/Pydantic validation error. Check request schema.' },
+    { code: '429 Too Many Requests', color: '#f87171', desc: 'Rate limit hit. Always include Retry-After header.' },
+  ],
+  '5xx': [
+    { code: '500 Internal Server Error', color: '#fbbf24', desc: 'Unexpected crash. Never expose stack trace. Log internally.' },
+    { code: '502 Bad Gateway', color: '#fbbf24', desc: 'Upstream service (DB, Redis, external API) failed.' },
+    { code: '503 Service Unavailable', color: '#fbbf24', desc: 'Overloaded or in maintenance. Return Retry-After.' },
+  ]
+};
+
+function setStatus(key, btn) {
+  const list = document.getElementById('status-list');
+  list.innerHTML = statusData[key].map(s => `
+    <div class="status-item">
+      <div class="status-code" style="color:${s.color}">${s.code}</div>
+      <div class="status-desc">${s.desc}</div>
+    </div>`).join('');
+  document.querySelectorAll('#sec-rest .pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+setStatus('2xx', document.querySelector('#sec-rest .pills .pill'));
+
+// ── AUTH: JWT ──
+const jwtParts = {
+  header: `{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+Algorithm: HS256 (HMAC-SHA256) — symmetric, same secret signs & verifies.
+Never use "alg: none" — allows forged tokens.
+For asymmetric: RS256 (RSA) or ES256 (ECDSA).`,
+  payload: `{
+  "sub":   "user_123",           ← subject (user id)
+  "email": "alice@example.com",  ← custom claim
+  "role":  "admin",              ← custom claim
+  "iat":   1700466800,           ← issued at (unix)
+  "exp":   1700470400            ← expires at (unix)
+}
+
+⚠ Payload is base64url encoded — NOT encrypted.
+Anyone can decode it. Never put passwords or secrets here.`,
+  sig: `HMAC-SHA256(
+  base64url(header) + "." + base64url(payload),
+  your_256_bit_secret
+)
+
+This signature ensures nobody tampered with header or payload.
+Verification: server re-computes signature, compares with token.
+If secret leaks → all tokens can be forged → rotate immediately.`
+};
+
+function showJwt(part, el) {
+  document.querySelectorAll('.jwt-part').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('jwt-detail').textContent = jwtParts[part];
+}
+
+// ── AUTH: flows ──
+const authFlows = {
+  login: [
+    { color: 's-blue', label: '1', title: 'POST /auth/token', desc: 'Client sends username + password (form-data for OAuth2)', code: 'Content-Type: application/x-www-form-urlencoded' },
+    { color: 's-amber', label: '2', title: 'Verify credentials', desc: 'Hash password with bcrypt, compare with DB hash', code: 'bcrypt.verify(password, user.hashed_password)' },
+    { color: 's-green', label: '3', title: 'Generate tokens', desc: 'Create short-lived access token + long-lived refresh token', code: 'access = create_token(user.id, ttl=15min)' },
+    { color: 's-blue', label: '4', title: 'Return tokens', desc: 'Access token in body, refresh token in HttpOnly cookie', code: 'Set-Cookie: refresh_token=...; HttpOnly; Secure' },
+  ],
+  request: [
+    { color: 's-blue', label: '1', title: 'Request with Bearer token', desc: 'Client sends access token in Authorization header', code: 'Authorization: Bearer eyJhbGci...' },
+    { color: 's-amber', label: '2', title: 'OAuth2PasswordBearer extracts token', desc: 'FastAPI dependency reads and validates the Bearer token', code: 'Depends(oauth2_scheme)' },
+    { color: 's-purple', label: '3', title: 'Decode + verify JWT', desc: 'Check signature, algorithm, and exp claim', code: 'jwt.decode(token, SECRET, algorithms=["HS256"])' },
+    { color: 's-green', label: '4', title: 'Load user, process request', desc: 'Fetch user from DB or Redis cache, run business logic', code: 'user = await get_user(payload["sub"])' },
+  ],
+  refresh: [
+    { color: 's-blue', label: '1', title: 'POST /auth/refresh', desc: 'Client sends request — refresh token comes from HttpOnly cookie automatically', code: 'Cookie: refresh_token=...' },
+    { color: 's-amber', label: '2', title: 'Verify refresh token', desc: 'Check token exists in Redis (not revoked) + verify JWT', code: 'await redis.get(f"session:{token_hash}")' },
+    { color: 's-green', label: '3', title: 'Issue new access token', desc: 'Generate fresh 15-minute access token, optionally rotate refresh token', code: 'new_access = create_token(user_id, ttl=15min)' },
+    { color: 's-blue', label: '4', title: 'Return new access token', desc: 'Client stores in memory and uses for subsequent requests', code: '{ "access_token": "eyJ...", "token_type": "bearer" }' },
+  ]
+};
+
+function setAuthFlow(key, btn) {
+  const steps = authFlows[key];
+  document.getElementById('auth-flow').innerHTML = steps.map(s => `
+    <div class="flow-step">
+      <div class="step-num ${s.color}">${s.label}</div>
+      <div class="step-body">
+        <div class="step-title">${s.title}</div>
+        <div class="step-desc">${s.desc}</div>
+        <div class="step-code">${s.code}</div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('#sec-auth .pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+setAuthFlow('login', document.querySelector('#sec-auth .pills .pill'));
+
+// ── REDIS: cache sim ──
+function simCache(type, btn) {
+  const flow = document.getElementById('cache-flow');
+  const result = document.getElementById('cache-result');
+
+  const stages = {
+    hit: [
+      { label: 'Client', cls: 'cs-active', note: 'GET /posts/42' },
+      { label: '→', arrow: true },
+      { label: 'Redis', cls: 'cs-hit', note: 'HIT ⚡ ~1ms' },
+      { label: '→', arrow: true },
+      { label: 'Client', cls: 'cs-hit', note: '200 OK' },
+      { label: ' ', arrow: true },
+      { label: 'DB', cls: 'cs-skip', note: 'skipped' },
+    ],
+    miss: [
+      { label: 'Client', cls: 'cs-active', note: 'GET /posts/42' },
+      { label: '→', arrow: true },
+      { label: 'Redis', cls: 'cs-miss', note: 'MISS ✗' },
+      { label: '→', arrow: true },
+      { label: 'DB', cls: 'cs-active', note: 'query ~100ms' },
+      { label: '→', arrow: true },
+      { label: 'Redis', cls: 'cs-neutral', note: 'write + TTL' },
+    ],
+    expire: [
+      { label: 'Client', cls: 'cs-active', note: 'GET /posts/42' },
+      { label: '→', arrow: true },
+      { label: 'Redis', cls: 'cs-miss', note: 'EXPIRED ✗' },
+      { label: '→', arrow: true },
+      { label: 'DB', cls: 'cs-active', note: 'query ~100ms' },
+      { label: '→', arrow: true },
+      { label: 'Redis', cls: 'cs-neutral', note: 'refresh TTL' },
+    ]
+  };
+
+  const results = {
+    hit: '⚡ Cache HIT — Redis returns data in ~1ms. Database is never touched. This is the ideal path: fast, cheap, no DB load.',
+    miss: '🐌 Cache MISS — Redis has no key. Query the DB (~100ms), then write result to Redis with a TTL. Next request will be a HIT.',
+    expire: '⏰ TTL Expired — Key existed but expired. Treated exactly like a MISS. DB is queried and cache is repopulated with fresh data and a new TTL.'
+  };
+
+  flow.innerHTML = stages[type].map(s => {
+    if (s.arrow) return `<div class="cache-arrow">→</div>`;
+    return `<div class="cache-stage">
+      <div class="cache-box ${s.cls}">${s.label}</div>
+      <div class="cache-label">${s.note}</div>
+    </div>`;
+  }).join('');
+
+  result.textContent = results[type];
+
+  document.querySelectorAll('#sec-redis .pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+}
+simCache('hit', document.querySelector('#sec-redis .pills .pill'));
+
+// ── REDIS: TTL slider ──
+const ttlLevels = [
+  { label: '5 sec',  fresh: 98, hit: 15, db: 95, advice: 'Extremely fresh data — near real-time. Almost no caching benefit. High DB load. Use for rapidly changing counters or live scores only.' },
+  { label: '1 min',  fresh: 85, hit: 45, db: 70, advice: 'Good for frequently changing data like comments, live feeds. Reduces DB load while staying mostly fresh.' },
+  { label: '1 hour', fresh: 50, hit: 80, db: 30, advice: 'Sweet spot for most content: posts, profiles, product pages. Excellent hit rate, minor staleness acceptable.' },
+  { label: '1 day',  fresh: 20, hit: 95, db: 8,  advice: 'For rarely changing data: reference lists, settings, static content. Very high hit rate but risk of stale data on updates.' },
+  { label: '7 days', fresh: 5,  hit: 99, db: 2,  advice: 'Aggressive caching for near-static data. Must have solid cache invalidation on writes, or users see stale data for days.' },
+];
+
+function updateTTL(v) {
+  const d = ttlLevels[+v];
+  document.getElementById('ttl-val').textContent = d.label;
+  document.getElementById('m-fresh').style.width = d.fresh + '%';
+  document.getElementById('m-hit').style.width = d.hit + '%';
+  document.getElementById('m-db').style.width = d.db + '%';
+  document.getElementById('mv-fresh').textContent = d.fresh + '%';
+  document.getElementById('mv-hit').textContent = d.hit + '%';
+  document.getElementById('mv-db').textContent = d.db + '%';
+  document.getElementById('ttl-advice').textContent = d.advice;
+}
+updateTTL(2);
+</script>
+</body>
+</html>
