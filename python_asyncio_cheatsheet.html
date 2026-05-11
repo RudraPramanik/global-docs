@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python & asyncio Cheat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Fraunces:ital,wght@0,300;0,600;0,700;1,300;1,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1e2530;
+    --border: #30363d;
+    --border2: #3d444d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --text-dim: #484f58;
+    --accent-blue: #79c0ff;
+    --accent-teal: #3fb950;
+    --accent-orange: #ffa657;
+    --accent-pink: #ff7b72;
+    --accent-purple: #d2a8ff;
+    --accent-yellow: #e3b341;
+    --accent-cyan: #76e3ea;
+    --keyword: #ff7b72;
+    --builtin: #79c0ff;
+    --string: #a5d6ff;
+    --comment: #6e7681;
+    --func: #d2a8ff;
+    --number: #ffa657;
+    --decorator: #ffa657;
+    --type: #3fb950;
+    --param: #f0883e;
+    --op: #e6edf3;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .page-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(121,192,255,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .page-header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 40%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(63,185,80,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-teal);
+    background: rgba(63,185,80,0.1);
+    border: 1px solid rgba(63,185,80,0.25);
+    border-radius: 4px;
+    padding: 3px 10px;
+    margin-bottom: 1rem;
+  }
+
+  .page-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+
+  .page-title span { color: var(--accent-blue); font-style: italic; }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 580px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .toc-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 1.5rem;
+  }
+
+  .toc-pill {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 9px;
+    text-decoration: none;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .toc-pill:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+
+  .layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 3rem 4rem;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+  }
+
+  .section-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem 0 0.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-blue   { background: var(--accent-blue); box-shadow: 0 0 8px rgba(121,192,255,0.4); }
+  .dot-teal   { background: var(--accent-teal); box-shadow: 0 0 8px rgba(63,185,80,0.4); }
+  .dot-orange { background: var(--accent-orange); box-shadow: 0 0 8px rgba(255,166,87,0.4); }
+  .dot-pink   { background: var(--accent-pink); box-shadow: 0 0 8px rgba(255,123,114,0.4); }
+  .dot-purple { background: var(--accent-purple); box-shadow: 0 0 8px rgba(210,168,255,0.4); }
+  .dot-yellow { background: var(--accent-yellow); box-shadow: 0 0 8px rgba(227,179,65,0.4); }
+  .dot-cyan   { background: var(--accent-cyan); box-shadow: 0 0 8px rgba(118,227,234,0.4); }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .section-num {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-left: auto;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+  .col-8  { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+
+  @media (max-width: 1100px) {
+    .col-4  { grid-column: span 6; }
+    .col-8  { grid-column: span 6; }
+    .layout { padding: 1.5rem 1.5rem 3rem; }
+  }
+
+  @media (max-width: 700px) {
+    .col-4, .col-6, .col-8 { grid-column: span 12; }
+    .layout { padding: 1rem 1rem 2rem; }
+    .page-header { padding: 1.5rem; }
+  }
+
+  .card-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .label-blue   { color: var(--accent-blue);   background: rgba(121,192,255,0.05); }
+  .label-teal   { color: var(--accent-teal);   background: rgba(63,185,80,0.05); }
+  .label-orange { color: var(--accent-orange); background: rgba(255,166,87,0.05); }
+  .label-pink   { color: var(--accent-pink);   background: rgba(255,123,114,0.05); }
+  .label-purple { color: var(--accent-purple); background: rgba(210,168,255,0.05); }
+  .label-yellow { color: var(--accent-yellow); background: rgba(227,179,65,0.05); }
+  .label-cyan   { color: var(--accent-cyan);   background: rgba(118,227,234,0.05); }
+  .label-neutral{ color: var(--text-muted);    background: var(--surface2); }
+
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.65;
+    background: transparent;
+  }
+
+  pre + pre { border-top: 1px solid var(--border); }
+
+  .note {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+    background: var(--surface2);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+  }
+
+  .note strong { font-style: normal; color: var(--accent-yellow); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* Syntax highlighting */
+  .kw  { color: var(--keyword); }
+  .bi  { color: var(--builtin); }
+  .st  { color: var(--string); }
+  .cm  { color: var(--comment); font-style: italic; }
+  .fn  { color: var(--func); }
+  .nu  { color: var(--number); }
+  .dc  { color: var(--decorator); }
+  .ty  { color: var(--type); }
+  .pa  { color: var(--param); }
+  .op  { color: var(--op); }
+
+  /* Quick-ref table */
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ref-table td { padding: 5px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table td:first-child { color: var(--text-muted); white-space: nowrap; width: 38%; }
+  .ref-table td:last-child  { color: var(--text); }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tag-warn  { background: rgba(227,179,65,0.15);  color: var(--accent-yellow); }
+  .tag-good  { background: rgba(63,185,80,0.15);   color: var(--accent-teal); }
+  .tag-new   { background: rgba(118,227,234,0.12); color: var(--accent-cyan); }
+  .tag-async { background: rgba(121,192,255,0.12); color: var(--accent-blue); }
+
+  /* divider row */
+  .divider-row { grid-column: 1/-1; height: 0; }
+
+  /* inline code in notes */
+  code { font-family: 'JetBrains Mono', monospace; font-style: normal; font-size: 11.5px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="header-badge">⌨ Reference · Python 3.11+</div>
+  <h1 class="page-title">Python &amp; <span>asyncio</span><br>Fundamentals</h1>
+  <p class="page-subtitle">Core language features, async/await mechanics, concurrency patterns, and production idioms — all in one place.</p>
+  <div class="toc-bar">
+    <span class="toc-pill">Data Types</span>
+    <span class="toc-pill">Control Flow</span>
+    <span class="toc-pill">Functions</span>
+    <span class="toc-pill">OOP</span>
+    <span class="toc-pill">Comprehensions</span>
+    <span class="toc-pill">Error Handling</span>
+    <span class="toc-pill">Iterators &amp; Generators</span>
+    <span class="toc-pill">Context Managers</span>
+    <span class="toc-pill">Decorators</span>
+    <span class="toc-pill">async/await basics</span>
+    <span class="toc-pill">Event Loop</span>
+    <span class="toc-pill">Tasks &amp; Gather</span>
+    <span class="toc-pill">Queues &amp; Sync</span>
+    <span class="toc-pill">Patterns</span>
+  </div>
+</div>
+
+<div class="layout">
+
+<!-- ════════════════════════════════ SECTION 1 ════════════════════════════════ -->
+<div class="section-header" id="s-types">
+  <div class="section-dot dot-blue"></div>
+  <h2 class="section-title">Python Core — Data Types &amp; Variables</h2>
+  <span class="section-num">01</span>
+</div>
+
+<!-- Primitives -->
+<div class="card col-4">
+  <div class="card-label label-blue">Primitives</div>
+  <pre>
+<span class="cm"># int, float, complex, bool, None</span>
+x: <span class="ty">int</span>   = <span class="nu">42</span>
+y: <span class="ty">float</span> = <span class="nu">3.14</span>
+z: <span class="ty">complex</span> = <span class="nu">1+2j</span>
+b: <span class="ty">bool</span>  = <span class="kw">True</span>
+n  = <span class="kw">None</span>
+
+<span class="cm"># Big integers — no overflow</span>
+big = <span class="nu">2</span> ** <span class="nu">1000</span>
+
+<span class="cm"># Walrus operator (3.8+)</span>
+<span class="kw">if</span> (n := <span class="bi">len</span>(data)) > <span class="nu">10</span>:
+    <span class="bi">print</span>(n)
+
+<span class="cm"># Numeric literals</span>
+million = <span class="nu">1_000_000</span>
+pi_hex  = <span class="nu">0xDEAD_BEEF</span>
+binary  = <span class="nu">0b1101_0010</span></pre>
+</div>
+
+<!-- Strings -->
+<div class="card col-4">
+  <div class="card-label label-blue">Strings</div>
+  <pre>
+<span class="cm"># f-strings (fastest, preferred)</span>
+name = <span class="st">"world"</span>
+s = <span class="st">f"hello <span class="bi">{name</span>.upper()}"</span>
+
+<span class="cm"># Multiline</span>
+text = <span class="st">"""line one
+line two"""</span>
+
+<span class="cm"># Raw (no escape processing)</span>
+path = <span class="st">r"C:\Users\dan"</span>
+
+<span class="cm"># Useful methods</span>
+<span class="st">" hello "</span>.<span class="fn">strip</span>()         <span class="cm"># "hello"</span>
+<span class="st">"a,b,c"</span>.<span class="fn">split</span>(<span class="st">","</span>)       <span class="cm"># ["a","b","c"]</span>
+<span class="st">","</span>.<span class="fn">join</span>([<span class="st">"a"</span>,<span class="st">"b"</span>])      <span class="cm"># "a,b"</span>
+<span class="st">"abc"</span>.<span class="fn">replace</span>(<span class="st">"a"</span>,<span class="st">"z"</span>)  <span class="cm"># "zbc"</span>
+<span class="st">"abc"</span>.<span class="fn">startswith</span>(<span class="st">"a"</span>)   <span class="cm"># True</span>
+
+<span class="cm"># f-string formatting</span>
+<span class="st">f"<span class="bi">{3.14159:.2f</span>}"</span>    <span class="cm"># "3.14"</span>
+<span class="st">f"<span class="bi">{42:010d</span>}"</span>        <span class="cm"># "0000000042"</span></pre>
+</div>
+
+<!-- Collections -->
+<div class="card col-4">
+  <div class="card-label label-blue">Collections</div>
+  <pre>
+<span class="cm"># list — ordered, mutable</span>
+lst = [<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>]
+lst.<span class="fn">append</span>(<span class="nu">4</span>)
+lst.<span class="fn">extend</span>([<span class="nu">5</span>,<span class="nu">6</span>])
+lst.<span class="fn">pop</span>()             <span class="cm"># removes last</span>
+lst[<span class="nu">1</span>:<span class="nu">3</span>]             <span class="cm"># slice [2,3]</span>
+
+<span class="cm"># tuple — ordered, immutable</span>
+t = (<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>)
+a, b, *rest = t
+
+<span class="cm"># set — unordered, unique</span>
+s = {<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>}
+s.<span class="fn">add</span>(<span class="nu">4</span>)
+s1 & s2   <span class="cm"># intersection</span>
+s1 | s2   <span class="cm"># union</span>
+
+<span class="cm"># dict — key→value</span>
+d = {<span class="st">"a"</span>: <span class="nu">1</span>, <span class="st">"b"</span>: <span class="nu">2</span>}
+d.<span class="fn">get</span>(<span class="st">"c"</span>, <span class="nu">0</span>)        <span class="cm"># default=0</span>
+d.<span class="fn">setdefault</span>(<span class="st">"x"</span>,[])</pre>
+</div>
+
+<!-- Control Flow -->
+<div class="section-header" id="s-control">
+  <div class="section-dot dot-teal"></div>
+  <h2 class="section-title">Control Flow</h2>
+  <span class="section-num">02</span>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">if / match</div>
+  <pre>
+<span class="cm"># Standard if/elif/else</span>
+<span class="kw">if</span> x > <span class="nu">0</span>:
+    <span class="fn">positive</span>()
+<span class="kw">elif</span> x == <span class="nu">0</span>:
+    <span class="fn">zero</span>()
+<span class="kw">else</span>:
+    <span class="fn">negative</span>()
+
+<span class="cm"># Ternary</span>
+label = <span class="st">"pos"</span> <span class="kw">if</span> x > <span class="nu">0</span> <span class="kw">else</span> <span class="st">"neg"</span>
+
+<span class="cm"># match/case (3.10+) — structural</span>
+<span class="kw">match</span> command:
+    <span class="kw">case</span> {<span class="st">"action"</span>: <span class="st">"quit"</span>}:
+        <span class="fn">quit</span>()
+    <span class="kw">case</span> {<span class="st">"action"</span>: act, <span class="st">"obj"</span>: obj}:
+        <span class="fn">do</span>(act, obj)
+    <span class="kw">case</span> _ :
+        <span class="fn">unknown</span>()</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">Loops</div>
+  <pre>
+<span class="cm"># for — iterate anything iterable</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nu">10</span>):
+    <span class="bi">print</span>(i)
+
+<span class="cm"># enumerate — index + value</span>
+<span class="kw">for</span> i, v <span class="kw">in</span> <span class="bi">enumerate</span>(lst):
+    <span class="bi">print</span>(i, v)
+
+<span class="cm"># zip — parallel iteration</span>
+<span class="kw">for</span> a, b <span class="kw">in</span> <span class="bi">zip</span>(xs, ys):
+    <span class="bi">print</span>(a + b)
+
+<span class="cm"># while</span>
+<span class="kw">while</span> condition:
+    <span class="kw">if</span> done: <span class="kw">break</span>
+    <span class="kw">if</span> skip: <span class="kw">continue</span>
+<span class="kw">else</span>:  <span class="cm"># runs if no break</span>
+    <span class="fn">cleanup</span>()</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">Comprehensions</div>
+  <pre>
+<span class="cm"># List comprehension</span>
+squares = [x**<span class="nu">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="bi">range</span>(<span class="nu">10</span>)]
+
+<span class="cm"># With filter</span>
+evens = [x <span class="kw">for</span> x <span class="kw">in</span> lst <span class="kw">if</span> x % <span class="nu">2</span> == <span class="nu">0</span>]
+
+<span class="cm"># Dict comprehension</span>
+inv = {v: k <span class="kw">for</span> k, v <span class="kw">in</span> d.<span class="fn">items</span>()}
+
+<span class="cm"># Set comprehension</span>
+unique = {x.<span class="fn">lower</span>() <span class="kw">for</span> x <span class="kw">in</span> words}
+
+<span class="cm"># Generator expression (lazy)</span>
+total = <span class="bi">sum</span>(x**<span class="nu">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="bi">range</span>(<span class="nu">1000</span>))
+
+<span class="cm"># Nested</span>
+flat = [i <span class="kw">for</span> row <span class="kw">in</span> matrix
+           <span class="kw">for</span> i <span class="kw">in</span> row]</pre>
+</div>
+
+<!-- Functions -->
+<div class="section-header" id="s-funcs">
+  <div class="section-dot dot-orange"></div>
+  <h2 class="section-title">Functions</h2>
+  <span class="section-num">03</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-orange">Definition &amp; Arguments</div>
+  <pre>
+<span class="cm"># Full signature</span>
+<span class="kw">def</span> <span class="fn">greet</span>(
+    name: <span class="ty">str</span>,                 <span class="cm"># positional</span>
+    greeting: <span class="ty">str</span> = <span class="st">"Hello"</span>,  <span class="cm"># default</span>
+    *args: <span class="ty">str</span>,                 <span class="cm"># variadic positional</span>
+    title: <span class="ty">str</span> = <span class="st">""</span>,           <span class="cm"># keyword-only</span>
+    **kwargs: <span class="ty">str</span>,              <span class="cm"># variadic keyword</span>
+) -> <span class="ty">str</span>:
+    <span class="kw">return</span> <span class="st">f"<span class="bi">{greeting}</span>, <span class="bi">{title} {name}</span>"</span>
+
+<span class="cm"># Positional-only (/) and keyword-only (*)</span>
+<span class="kw">def</span> <span class="fn">f</span>(pos_only, /, normal, *, kw_only): ...
+
+<span class="cm"># Lambda (single expression)</span>
+double = <span class="kw">lambda</span> x: x * <span class="nu">2</span>
+key_fn = <span class="kw">lambda</span> item: item[<span class="nu">1</span>]
+<span class="fn">sorted</span>(pairs, key=key_fn)
+
+<span class="cm"># Unpacking at call site</span>
+args   = [<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>]
+kwargs = {<span class="st">"sep"</span>: <span class="st">","</span>}
+<span class="fn">func</span>(*args, **kwargs)</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-orange">Type Hints &amp; Advanced</div>
+  <pre>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">Union, Optional, Callable</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">TypeVar, Generic, Literal</span>
+
+T = <span class="ty">TypeVar</span>(<span class="st">"T"</span>)
+
+<span class="cm"># Union types (3.10+ syntax)</span>
+<span class="kw">def</span> <span class="fn">parse</span>(val: <span class="ty">str | int | None</span>) -> <span class="ty">str</span>: ...
+
+<span class="cm"># Callable type hint</span>
+<span class="kw">def</span> <span class="fn">apply</span>(fn: <span class="ty">Callable</span>[[<span class="ty">int</span>], <span class="ty">str</span>], x: <span class="ty">int</span>) -> <span class="ty">str</span>:
+    <span class="kw">return</span> <span class="fn">fn</span>(x)
+
+<span class="cm"># Generic function</span>
+<span class="kw">def</span> <span class="fn">first</span>(lst: <span class="ty">list</span>[T]) -> T:
+    <span class="kw">return</span> lst[<span class="nu">0</span>]
+
+<span class="cm"># Overloaded (for type checkers)</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">overload</span>
+<span class="dc">@overload</span>
+<span class="kw">def</span> <span class="fn">process</span>(x: <span class="ty">int</span>) -> <span class="ty">int</span>: ...
+<span class="dc">@overload</span>
+<span class="kw">def</span> <span class="fn">process</span>(x: <span class="ty">str</span>) -> <span class="ty">str</span>: ...
+<span class="kw">def</span> <span class="fn">process</span>(x): <span class="kw">return</span> x</pre>
+</div>
+
+<!-- Error Handling -->
+<div class="section-header" id="s-errors">
+  <div class="section-dot dot-pink"></div>
+  <h2 class="section-title">Error Handling &amp; Context Managers</h2>
+  <span class="section-num">04</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-pink">Exception Handling</div>
+  <pre>
+<span class="kw">try</span>:
+    result = <span class="fn">risky</span>()
+<span class="kw">except</span> (<span class="ty">ValueError</span>, <span class="ty">TypeError</span>) <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f"type error: <span class="bi">{e}</span>"</span>)
+<span class="kw">except</span> <span class="ty">Exception</span> <span class="kw">as</span> e:
+    <span class="fn">log</span>(e)
+    <span class="kw">raise</span>            <span class="cm"># re-raise</span>
+<span class="kw">else</span>:                <span class="cm"># runs if no exception</span>
+    <span class="fn">use</span>(result)
+<span class="kw">finally</span>:             <span class="cm"># always runs</span>
+    <span class="fn">cleanup</span>()
+
+<span class="cm"># Custom exceptions</span>
+<span class="kw">class</span> <span class="ty">AppError</span>(<span class="ty">Exception</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, msg: <span class="ty">str</span>, code: <span class="ty">int</span>):
+        <span class="bi">super</span>().<span class="fn">__init__</span>(msg)
+        <span class="kw">self</span>.code = code
+
+<span class="cm"># Exception chaining</span>
+<span class="kw">try</span>:
+    <span class="fn">load</span>()
+<span class="kw">except</span> <span class="ty">OSError</span> <span class="kw">as</span> e:
+    <span class="kw">raise</span> <span class="ty">AppError</span>(<span class="st">"load failed"</span>, <span class="nu">500</span>) <span class="kw">from</span> e</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-pink">Context Managers</div>
+  <pre>
+<span class="cm"># Built-in with</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">"file.txt"</span>) <span class="kw">as</span> f:
+    data = f.<span class="fn">read</span>()
+
+<span class="cm"># Multiple at once</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">"a"</span>) <span class="kw">as</span> a, <span class="bi">open</span>(<span class="st">"b"</span>) <span class="kw">as</span> b:
+    ...
+
+<span class="cm"># Class-based __enter__ / __exit__</span>
+<span class="kw">class</span> <span class="ty">Timer</span>:
+    <span class="kw">def</span> <span class="fn">__enter__</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.start = <span class="fn">time</span>()
+        <span class="kw">return</span> <span class="kw">self</span>
+    <span class="kw">def</span> <span class="fn">__exit__</span>(<span class="kw">self</span>, *_):
+        <span class="kw">self</span>.elapsed = <span class="fn">time</span>() - <span class="kw">self</span>.start
+
+<span class="cm"># @contextmanager — generator style</span>
+<span class="kw">from</span> contextlib <span class="kw">import</span> contextmanager
+
+<span class="dc">@contextmanager</span>
+<span class="kw">def</span> <span class="fn">managed_resource</span>():
+    res = <span class="fn">acquire</span>()
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> res      <span class="cm"># runs with block</span>
+    <span class="kw">finally</span>:
+        res.<span class="fn">release</span>()</pre>
+</div>
+
+<!-- OOP -->
+<div class="section-header" id="s-oop">
+  <div class="section-dot dot-purple"></div>
+  <h2 class="section-title">OOP &amp; Dataclasses</h2>
+  <span class="section-num">05</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-purple">Classes</div>
+  <pre>
+<span class="kw">class</span> <span class="ty">Animal</span>:
+    kingdom = <span class="st">"Animalia"</span>  <span class="cm"># class variable</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, name: <span class="ty">str</span>):
+        <span class="kw">self</span>.name = name  <span class="cm"># instance var</span>
+
+    <span class="kw">def</span> <span class="fn">speak</span>(<span class="kw">self</span>) -> <span class="ty">str</span>:
+        <span class="kw">raise</span> <span class="ty">NotImplementedError</span>
+
+    <span class="dc">@property</span>
+    <span class="kw">def</span> <span class="fn">label</span>(<span class="kw">self</span>) -> <span class="ty">str</span>:
+        <span class="kw">return</span> <span class="kw">self</span>.name.<span class="fn">upper</span>()
+
+    <span class="dc">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">create</span>(<span class="ty">cls</span>, name): <span class="kw">return</span> <span class="ty">cls</span>(name)
+
+    <span class="dc">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">is_valid</span>(name): <span class="kw">return</span> <span class="bi">bool</span>(name)
+
+    <span class="kw">def</span> <span class="fn">__repr__</span>(<span class="kw">self</span>): <span class="kw">return</span> <span class="st">f"Animal(<span class="bi">{self.name!r</span>})"</span>
+    <span class="kw">def</span> <span class="fn">__eq__</span>(<span class="kw">self</span>, o):  <span class="kw">return</span> <span class="kw">self</span>.name == o.name
+
+<span class="kw">class</span> <span class="ty">Dog</span>(<span class="ty">Animal</span>):
+    <span class="kw">def</span> <span class="fn">speak</span>(<span class="kw">self</span>): <span class="kw">return</span> <span class="st">"Woof"</span>
+    <span class="kw">def</span> <span class="fn">speak</span>(<span class="kw">self</span>):  <span class="cm"># super call</span>
+        <span class="kw">return</span> <span class="bi">super</span>().<span class="fn">speak</span>() + <span class="st">"!"</span></pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-purple">Dataclasses &amp; Protocol</div>
+  <pre>
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="ty">Point</span>:
+    x: <span class="ty">float</span>
+    y: <span class="ty">float</span>
+    label: <span class="ty">str</span> = <span class="st">""</span>
+    tags: <span class="ty">list</span> = <span class="fn">field</span>(default_factory=<span class="bi">list</span>)
+
+<span class="dc">@dataclass</span>(frozen=<span class="kw">True</span>, order=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="ty">ImmutablePt</span>:
+    x: <span class="ty">float</span>; y: <span class="ty">float</span>
+
+<span class="cm"># Protocol — structural subtyping</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">Protocol</span>
+
+<span class="kw">class</span> <span class="ty">Drawable</span>(<span class="ty">Protocol</span>):
+    <span class="kw">def</span> <span class="fn">draw</span>(<span class="kw">self</span>) -> <span class="kw">None</span>: ...
+
+<span class="cm"># Abstract base classes</span>
+<span class="kw">from</span> abc <span class="kw">import</span> ABC, abstractmethod
+
+<span class="kw">class</span> <span class="ty">Shape</span>(ABC):
+    <span class="dc">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">area</span>(<span class="kw">self</span>) -> <span class="ty">float</span>: ...
+
+    <span class="dc">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">perimeter</span>(<span class="kw">self</span>) -> <span class="ty">float</span>: ...</pre>
+</div>
+
+<!-- Generators & Iterators -->
+<div class="section-header" id="s-gen">
+  <div class="section-dot dot-yellow"></div>
+  <h2 class="section-title">Iterators, Generators &amp; Decorators</h2>
+  <span class="section-num">06</span>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-yellow">Generators</div>
+  <pre>
+<span class="cm"># Generator function</span>
+<span class="kw">def</span> <span class="fn">count_up</span>(n: <span class="ty">int</span>):
+    i = <span class="nu">0</span>
+    <span class="kw">while</span> i < n:
+        <span class="kw">yield</span> i
+        i += <span class="nu">1</span>
+
+<span class="cm"># yield from — delegate</span>
+<span class="kw">def</span> <span class="fn">chain</span>(*iters):
+    <span class="kw">for</span> it <span class="kw">in</span> iters:
+        <span class="kw">yield from</span> it
+
+<span class="cm"># Send values in</span>
+<span class="kw">def</span> <span class="fn">accumulator</span>():
+    total = <span class="nu">0</span>
+    <span class="kw">while</span> <span class="kw">True</span>:
+        val = <span class="kw">yield</span> total
+        <span class="kw">if</span> val <span class="kw">is None</span>: <span class="kw">break</span>
+        total += val
+
+gen = <span class="fn">accumulator</span>()
+<span class="bi">next</span>(gen)         <span class="cm"># prime it</span>
+gen.<span class="fn">send</span>(<span class="nu">10</span>)      <span class="cm"># → 10</span>
+gen.<span class="fn">send</span>(<span class="nu">5</span>)       <span class="cm"># → 15</span></pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-yellow">Iterator Protocol</div>
+  <pre>
+<span class="kw">class</span> <span class="ty">Range</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, n):
+        <span class="kw">self</span>.n = n
+        <span class="kw">self</span>.i = <span class="nu">0</span>
+
+    <span class="kw">def</span> <span class="fn">__iter__</span>(<span class="kw">self</span>):
+        <span class="kw">return</span> <span class="kw">self</span>
+
+    <span class="kw">def</span> <span class="fn">__next__</span>(<span class="kw">self</span>):
+        <span class="kw">if</span> <span class="kw">self</span>.i >= <span class="kw">self</span>.n:
+            <span class="kw">raise</span> <span class="ty">StopIteration</span>
+        val = <span class="kw">self</span>.i
+        <span class="kw">self</span>.i += <span class="nu">1</span>
+        <span class="kw">return</span> val
+
+<span class="cm"># itertools essentials</span>
+<span class="kw">import</span> itertools <span class="kw">as</span> it
+it.<span class="fn">chain</span>(a, b)        <span class="cm"># concat</span>
+it.<span class="fn">islice</span>(gen, <span class="nu">10</span>)   <span class="cm"># first 10</span>
+it.<span class="fn">groupby</span>(lst, key)  <span class="cm"># group</span>
+it.<span class="fn">product</span>(a, b)      <span class="cm"># cartesian</span>
+it.<span class="fn">accumulate</span>(lst)    <span class="cm"># running sum</span></pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-yellow">Decorators</div>
+  <pre>
+<span class="kw">from</span> functools <span class="kw">import</span> wraps
+
+<span class="cm"># Basic decorator</span>
+<span class="kw">def</span> <span class="fn">log</span>(func):
+    <span class="dc">@wraps</span>(func)
+    <span class="kw">def</span> <span class="fn">wrapper</span>(*a, **kw):
+        <span class="bi">print</span>(<span class="st">f"→ <span class="bi">{func.__name__}</span>"</span>)
+        result = <span class="fn">func</span>(*a, **kw)
+        <span class="bi">print</span>(<span class="st">f"← <span class="bi">{result}</span>"</span>)
+        <span class="kw">return</span> result
+    <span class="kw">return</span> wrapper
+
+<span class="cm"># Decorator factory (with args)</span>
+<span class="kw">def</span> <span class="fn">retry</span>(times=<span class="nu">3</span>):
+    <span class="kw">def</span> <span class="fn">decorator</span>(func):
+        <span class="dc">@wraps</span>(func)
+        <span class="kw">def</span> <span class="fn">wrapper</span>(*a, **kw):
+            <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(times):
+                <span class="kw">try</span>: <span class="kw">return</span> <span class="fn">func</span>(*a, **kw)
+                <span class="kw">except</span>: <span class="kw">pass</span>
+        <span class="kw">return</span> wrapper
+    <span class="kw">return</span> decorator
+
+<span class="dc">@retry</span>(times=<span class="nu">5</span>)
+<span class="kw">def</span> <span class="fn">flaky</span>(): ...</pre>
+</div>
+
+<!-- ════════════════════════════════ SECTION 7 — ASYNCIO ════════════════════════════════ -->
+<div class="section-header" id="s-async">
+  <div class="section-dot dot-blue"></div>
+  <h2 class="section-title">asyncio — Core Concepts &amp; Basics</h2>
+  <span class="section-num">07</span>
+</div>
+
+<div class="card col-12">
+  <div class="card-label label-blue">The Mental Model <span class="tag tag-async">async</span></div>
+  <pre>
+<span class="cm"># asyncio = single-threaded cooperative multitasking via an event loop</span>
+<span class="cm"># "await" suspends the current coroutine and hands control back to the loop</span>
+<span class="cm"># Only ONE coroutine runs at a time, but the loop switches between them at await points</span>
+<span class="cm">#</span>
+<span class="cm">#  CPU-bound work  → multiprocessing.ProcessPoolExecutor  (bypasses GIL)</span>
+<span class="cm">#  I/O-bound work  → asyncio  (no threads needed; scales to thousands of connections)</span>
+<span class="cm">#  Thread I/O      → asyncio.run_in_executor (integrate blocking libs)
+</span></pre>
+  <div class="note"><strong>Key rule:</strong> never call blocking code (time.sleep, requests.get, open for large files) inside a coroutine — it blocks the entire event loop. Use <code>asyncio.sleep</code>, <code>aiohttp</code>, <code>aiofiles</code> instead.</div>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-blue">Coroutines &amp; async/await</div>
+  <pre>
+<span class="kw">import</span> asyncio
+
+<span class="cm"># Coroutine function → calling it returns a coroutine object</span>
+<span class="kw">async def</span> <span class="fn">fetch</span>(url: <span class="ty">str</span>) -> <span class="ty">str</span>:
+    <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="nu">1</span>)   <span class="cm"># yields control</span>
+    <span class="kw">return</span> <span class="st">f"data from <span class="bi">{url}</span>"</span>
+
+<span class="cm"># Entry point — asyncio.run() creates + runs + closes event loop</span>
+<span class="kw">async def</span> <span class="fn">main</span>():
+    result = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="st">"https://example.com"</span>)
+    <span class="bi">print</span>(result)
+
+asyncio.<span class="fn">run</span>(<span class="fn">main</span>())        <span class="cm"># Python 3.7+</span>
+
+<span class="cm"># async with — async context managers</span>
+<span class="kw">async with</span> aiofiles.<span class="fn">open</span>(<span class="st">"f.txt"</span>) <span class="kw">as</span> f:
+    content = <span class="kw">await</span> f.<span class="fn">read</span>()
+
+<span class="cm"># async for — async iterables</span>
+<span class="kw">async for</span> line <span class="kw">in</span> stream:
+    <span class="fn">process</span>(line)</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-blue">Tasks — concurrent execution</div>
+  <pre>
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="cm"># Create task → schedules coroutine immediately</span>
+    task = asyncio.<span class="fn">create_task</span>(<span class="fn">fetch</span>(<span class="st">"url"</span>))
+
+    <span class="cm"># Do other work while task runs concurrently</span>
+    <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="nu">0</span>)  <span class="cm"># yield to event loop</span>
+
+    result = <span class="kw">await</span> task      <span class="cm"># get result</span>
+
+    <span class="cm"># Cancel a task</span>
+    task.<span class="fn">cancel</span>()
+    <span class="kw">try</span>:
+        <span class="kw">await</span> task
+    <span class="kw">except</span> asyncio.<span class="ty">CancelledError</span>:
+        <span class="bi">print</span>(<span class="st">"cancelled"</span>)
+
+    <span class="cm"># TaskGroup (3.11+) — preferred over gather</span>
+    <span class="kw">async with</span> asyncio.<span class="ty">TaskGroup</span>() <span class="kw">as</span> tg:
+        t1 = tg.<span class="fn">create_task</span>(<span class="fn">work1</span>())
+        t2 = tg.<span class="fn">create_task</span>(<span class="fn">work2</span>())
+    <span class="cm"># all tasks done here; exceptions propagate</span></pre>
+</div>
+
+<!-- gather, wait, timeout -->
+<div class="section-header" id="s-gather">
+  <div class="section-dot dot-cyan"></div>
+  <h2 class="section-title">gather, wait, timeout &amp; Shields</h2>
+  <span class="section-num">08</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-cyan">asyncio.gather &amp; wait</div>
+  <pre>
+<span class="cm"># gather — run concurrently, collect results</span>
+results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+    <span class="fn">fetch</span>(<span class="st">"url1"</span>),
+    <span class="fn">fetch</span>(<span class="st">"url2"</span>),
+    <span class="fn">fetch</span>(<span class="st">"url3"</span>),
+)
+<span class="cm"># results = [r1, r2, r3]  (order preserved)</span>
+
+<span class="cm"># Don't cancel others if one fails</span>
+results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+    *coros, return_exceptions=<span class="kw">True</span>
+)
+<span class="cm"># exceptions in results, not raised</span>
+
+<span class="cm"># wait — fine-grained control</span>
+tasks = {asyncio.<span class="fn">create_task</span>(<span class="fn">c</span>()) <span class="kw">for</span> c <span class="kw">in</span> coros}
+done, pending = <span class="kw">await</span> asyncio.<span class="fn">wait</span>(
+    tasks,
+    return_when=asyncio.FIRST_COMPLETED,
+)
+<span class="kw">for</span> t <span class="kw">in</span> pending: t.<span class="fn">cancel</span>()
+
+<span class="cm"># as_completed — process in arrival order</span>
+<span class="kw">for</span> coro <span class="kw">in</span> asyncio.<span class="fn">as_completed</span>(coros):
+    result = <span class="kw">await</span> coro
+    <span class="fn">handle</span>(result)</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-cyan">Timeouts &amp; Shield</div>
+  <pre>
+<span class="cm"># timeout (3.11+) — context manager style</span>
+<span class="kw">try</span>:
+    <span class="kw">async with</span> asyncio.<span class="fn">timeout</span>(<span class="nu">5.0</span>):
+        result = <span class="kw">await</span> <span class="fn">long_operation</span>()
+<span class="kw">except</span> <span class="ty">TimeoutError</span>:
+    <span class="bi">print</span>(<span class="st">"timed out"</span>)
+
+<span class="cm"># wait_for (older style)</span>
+<span class="kw">try</span>:
+    result = <span class="kw">await</span> asyncio.<span class="fn">wait_for</span>(
+        <span class="fn">long_operation</span>(), timeout=<span class="nu">5.0</span>
+    )
+<span class="kw">except</span> asyncio.<span class="ty">TimeoutError</span>:
+    <span class="bi">print</span>(<span class="st">"timed out"</span>)
+
+<span class="cm"># shield — protect from external cancellation</span>
+<span class="kw">async def</span> <span class="fn">safe_cleanup</span>():
+    <span class="kw">try</span>:
+        <span class="kw">await</span> asyncio.<span class="fn">shield</span>(<span class="fn">do_cleanup</span>())
+    <span class="kw">except</span> asyncio.<span class="ty">CancelledError</span>:
+        <span class="cm"># cleanup continues, but we catch cancel</span>
+        <span class="kw">pass</span>
+
+<span class="cm"># Reschedule task deadline (3.11+)</span>
+<span class="kw">async with</span> asyncio.<span class="fn">timeout</span>(<span class="nu">10</span>) <span class="kw">as</span> cm:
+    cm.<span class="fn">reschedule</span>(<span class="fn">loop</span>().<span class="fn">time</span>() + <span class="nu">5</span>)</pre>
+</div>
+
+<!-- Queues & Sync primitives -->
+<div class="section-header" id="s-sync">
+  <div class="section-dot dot-teal"></div>
+  <h2 class="section-title">Queues, Locks &amp; Synchronization</h2>
+  <span class="section-num">09</span>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">asyncio.Queue</div>
+  <pre>
+<span class="cm"># Producer / consumer pattern</span>
+<span class="kw">async def</span> <span class="fn">producer</span>(q: asyncio.<span class="ty">Queue</span>):
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nu">10</span>):
+        <span class="kw">await</span> q.<span class="fn">put</span>(i)
+    <span class="kw">await</span> q.<span class="fn">put</span>(<span class="kw">None</span>)  <span class="cm"># sentinel</span>
+
+<span class="kw">async def</span> <span class="fn">consumer</span>(q: asyncio.<span class="ty">Queue</span>):
+    <span class="kw">while</span> <span class="kw">True</span>:
+        item = <span class="kw">await</span> q.<span class="fn">get</span>()
+        <span class="kw">if</span> item <span class="kw">is None</span>: <span class="kw">break</span>
+        <span class="fn">process</span>(item)
+        q.<span class="fn">task_done</span>()
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    q: asyncio.Queue = asyncio.<span class="ty">Queue</span>(maxsize=<span class="nu">5</span>)
+    <span class="kw">async with</span> asyncio.<span class="ty">TaskGroup</span>() <span class="kw">as</span> tg:
+        tg.<span class="fn">create_task</span>(<span class="fn">producer</span>(q))
+        tg.<span class="fn">create_task</span>(<span class="fn">consumer</span>(q))
+
+<span class="cm"># Wait for all items processed</span>
+<span class="kw">await</span> q.<span class="fn">join</span>()</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">Lock, Event, Semaphore</div>
+  <pre>
+<span class="cm"># Lock — mutual exclusion</span>
+lock = asyncio.<span class="ty">Lock</span>()
+<span class="kw">async with</span> lock:
+    <span class="cm"># only one coroutine here at a time</span>
+    shared_state += <span class="nu">1</span>
+
+<span class="cm"># Event — one-shot signal</span>
+event = asyncio.<span class="ty">Event</span>()
+
+<span class="kw">async def</span> <span class="fn">waiter</span>():
+    <span class="kw">await</span> event.<span class="fn">wait</span>()
+    <span class="bi">print</span>(<span class="st">"got signal"</span>)
+
+<span class="kw">async def</span> <span class="fn">setter</span>():
+    <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="nu">1</span>)
+    event.<span class="fn">set</span>()  <span class="cm"># unblocks all waiters</span>
+
+<span class="cm"># Semaphore — limit concurrency</span>
+sem = asyncio.<span class="ty">Semaphore</span>(<span class="nu">10</span>)
+
+<span class="kw">async def</span> <span class="fn">limited_fetch</span>(url):
+    <span class="kw">async with</span> sem:
+        <span class="kw">return</span> <span class="kw">await</span> <span class="fn">fetch</span>(url)
+
+<span class="cm"># Condition</span>
+cond = asyncio.<span class="ty">Condition</span>()
+<span class="kw">async with</span> cond:
+    <span class="kw">await</span> cond.<span class="fn">wait_for</span>(<span class="kw">lambda</span>: ready)
+    cond.<span class="fn">notify_all</span>()</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-teal">Thread &amp; Process Integration</div>
+  <pre>
+<span class="kw">import</span> asyncio
+<span class="kw">from</span> concurrent.futures <span class="kw">import</span> (
+    ThreadPoolExecutor,
+    ProcessPoolExecutor,
+)
+
+<span class="cm"># Run blocking I/O in thread</span>
+loop = asyncio.<span class="fn">get_running_loop</span>()
+
+<span class="kw">with</span> ThreadPoolExecutor() <span class="kw">as</span> pool:
+    result = <span class="kw">await</span> loop.<span class="fn">run_in_executor</span>(
+        pool, <span class="fn">blocking_io_function</span>, arg
+    )
+
+<span class="cm"># Run CPU-bound in process</span>
+<span class="kw">with</span> ProcessPoolExecutor() <span class="kw">as</span> pool:
+    result = <span class="kw">await</span> loop.<span class="fn">run_in_executor</span>(
+        pool, <span class="fn">cpu_heavy</span>, data
+    )
+
+<span class="cm"># asyncio.to_thread (3.9+) — shortcut</span>
+result = <span class="kw">await</span> asyncio.<span class="fn">to_thread</span>(
+    <span class="fn">blocking_func</span>, arg1, arg2
+)</pre>
+</div>
+
+<!-- Async Generators & Streams -->
+<div class="section-header" id="s-agen">
+  <div class="section-dot dot-orange"></div>
+  <h2 class="section-title">Async Generators, Streams &amp; Protocols</h2>
+  <span class="section-num">10</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-orange">Async Generators &amp; Context Managers</div>
+  <pre>
+<span class="cm"># Async generator function</span>
+<span class="kw">async def</span> <span class="fn">ticker</span>(delay: <span class="ty">float</span>, count: <span class="ty">int</span>):
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(count):
+        <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(delay)
+        <span class="kw">yield</span> i
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async for</span> tick <span class="kw">in</span> <span class="fn">ticker</span>(<span class="nu">0.5</span>, <span class="nu">5</span>):
+        <span class="bi">print</span>(tick)
+
+<span class="cm"># Async context manager via decorator</span>
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+
+<span class="dc">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">db_connection</span>(dsn: <span class="ty">str</span>):
+    conn = <span class="kw">await</span> <span class="fn">connect</span>(dsn)
+    <span class="kw">try</span>:
+        <span class="kw">yield</span> conn
+    <span class="kw">finally</span>:
+        <span class="kw">await</span> conn.<span class="fn">close</span>()
+
+<span class="kw">async with</span> <span class="fn">db_connection</span>(<span class="st">"postgres://..."</span>) <span class="kw">as</span> db:
+    rows = <span class="kw">await</span> db.<span class="fn">fetch</span>(<span class="st">"SELECT ..."</span>)
+
+<span class="cm"># Class-based async context manager</span>
+<span class="kw">class</span> <span class="ty">AsyncConn</span>:
+    <span class="kw">async def</span> <span class="fn">__aenter__</span>(<span class="kw">self</span>): ...
+    <span class="kw">async def</span> <span class="fn">__aexit__</span>(<span class="kw">self</span>, *_): ...</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-orange">asyncio Streams</div>
+  <pre>
+<span class="cm"># Server — high-level TCP</span>
+<span class="kw">async def</span> <span class="fn">handle</span>(
+    reader: asyncio.<span class="ty">StreamReader</span>,
+    writer: asyncio.<span class="ty">StreamWriter</span>
+):
+    data = <span class="kw">await</span> reader.<span class="fn">read</span>(<span class="nu">100</span>)
+    writer.<span class="fn">write</span>(data)
+    <span class="kw">await</span> writer.<span class="fn">drain</span>()
+    writer.<span class="fn">close</span>()
+
+server = <span class="kw">await</span> asyncio.<span class="fn">start_server</span>(
+    handle, <span class="st">"127.0.0.1"</span>, <span class="nu">8888</span>
+)
+<span class="kw">async with</span> server:
+    <span class="kw">await</span> server.<span class="fn">serve_forever</span>()
+
+<span class="cm"># Client</span>
+reader, writer = <span class="kw">await</span> asyncio.<span class="fn">open_connection</span>(
+    <span class="st">"127.0.0.1"</span>, <span class="nu">8888</span>
+)
+writer.<span class="fn">write</span>(<span class="st">b"hello"</span>)
+<span class="kw">await</span> writer.<span class="fn">drain</span>()
+data = <span class="kw">await</span> reader.<span class="fn">readline</span>()
+writer.<span class="fn">close</span>()
+<span class="kw">await</span> writer.<span class="fn">wait_closed</span>()</pre>
+</div>
+
+<!-- Patterns -->
+<div class="section-header" id="s-patterns">
+  <div class="section-dot dot-pink"></div>
+  <h2 class="section-title">Concurrency Patterns &amp; Best Practices</h2>
+  <span class="section-num">11</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-pink">Rate-limited fan-out</div>
+  <pre>
+<span class="cm"># Fetch many URLs, max 20 concurrent</span>
+<span class="kw">async def</span> <span class="fn">fetch_all</span>(urls: <span class="ty">list</span>[<span class="ty">str</span>]) -> <span class="ty">list</span>:
+    sem = asyncio.<span class="ty">Semaphore</span>(<span class="nu">20</span>)
+
+    <span class="kw">async def</span> <span class="fn">bounded</span>(url):
+        <span class="kw">async with</span> sem:
+            <span class="kw">return</span> <span class="kw">await</span> <span class="fn">fetch</span>(url)
+
+    <span class="kw">return</span> <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+        *[<span class="fn">bounded</span>(u) <span class="kw">for</span> u <span class="kw">in</span> urls],
+        return_exceptions=<span class="kw">True</span>,
+    )
+
+<span class="cm"># Chunked gather (avoid huge gather lists)</span>
+<span class="kw">async def</span> <span class="fn">chunked</span>(coros, size=<span class="nu">50</span>):
+    results = []
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nu">0</span>, <span class="bi">len</span>(coros), size):
+        chunk = coros[i:i + size]
+        results += <span class="kw">await</span> asyncio.<span class="fn">gather</span>(*chunk)
+    <span class="kw">return</span> results</pre>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-pink">Retry with Backoff</div>
+  <pre>
+<span class="kw">import</span> asyncio, math
+
+<span class="kw">async def</span> <span class="fn">retry</span>(
+    coro_fn,
+    *args,
+    retries=<span class="nu">3</span>,
+    base_delay=<span class="nu">1.0</span>,
+    jitter=<span class="nu">0.3</span>,
+):
+    <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(retries):
+        <span class="kw">try</span>:
+            <span class="kw">return</span> <span class="kw">await</span> <span class="fn">coro_fn</span>(*args)
+        <span class="kw">except</span> (<span class="ty">OSError</span>, <span class="ty">TimeoutError</span>) <span class="kw">as</span> e:
+            <span class="kw">if</span> attempt == retries - <span class="nu">1</span>:
+                <span class="kw">raise</span>
+            delay = base_delay * (<span class="nu">2</span> ** attempt)
+            <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(delay + jitter)
+
+<span class="cm"># Usage</span>
+result = <span class="kw">await</span> <span class="fn">retry</span>(<span class="fn">fetch</span>, <span class="st">"https://..."</span>)</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">Background Task Lifecycle</div>
+  <pre>
+<span class="kw">class</span> <span class="ty">BackgroundWorker</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>._task = <span class="kw">None</span>
+
+    <span class="kw">async def</span> <span class="fn">start</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>._task = asyncio.<span class="fn">create_task</span>(
+            <span class="kw">self</span>.<span class="fn">_run</span>()
+        )
+
+    <span class="kw">async def</span> <span class="fn">stop</span>(<span class="kw">self</span>):
+        <span class="kw">if</span> <span class="kw">self</span>._task:
+            <span class="kw">self</span>._task.<span class="fn">cancel</span>()
+            <span class="kw">try</span>:
+                <span class="kw">await</span> <span class="kw">self</span>._task
+            <span class="kw">except</span> asyncio.<span class="ty">CancelledError</span>:
+                <span class="kw">pass</span>
+
+    <span class="kw">async def</span> <span class="fn">_run</span>(<span class="kw">self</span>):
+        <span class="kw">try</span>:
+            <span class="kw">while</span> <span class="kw">True</span>:
+                <span class="kw">await</span> <span class="fn">do_work</span>()
+                <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="nu">1</span>)
+        <span class="kw">except</span> asyncio.<span class="ty">CancelledError</span>:
+            <span class="kw">await</span> <span class="fn">cleanup</span>()
+            <span class="kw">raise</span>  <span class="cm"># always re-raise!</span></pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">Exception Groups (3.11+)</div>
+  <pre>
+<span class="cm"># TaskGroup raises ExceptionGroup</span>
+<span class="kw">try</span>:
+    <span class="kw">async with</span> asyncio.<span class="ty">TaskGroup</span>() <span class="kw">as</span> tg:
+        tg.<span class="fn">create_task</span>(<span class="fn">might_fail1</span>())
+        tg.<span class="fn">create_task</span>(<span class="fn">might_fail2</span>())
+<span class="kw">except</span>* <span class="ty">ValueError</span> <span class="kw">as</span> eg:
+    <span class="kw">for</span> e <span class="kw">in</span> eg.<span class="fn">exceptions</span>:
+        <span class="bi">print</span>(<span class="st">f"ValueError: <span class="bi">{e}</span>"</span>)
+<span class="kw">except</span>* <span class="ty">OSError</span> <span class="kw">as</span> eg:
+    <span class="bi">print</span>(<span class="st">f"<span class="bi">{len</span>(eg.exceptions)} OSErrors"</span>)
+
+<span class="cm"># Manually raise ExceptionGroup</span>
+<span class="kw">raise</span> <span class="ty">ExceptionGroup</span>(
+    <span class="st">"multiple failures"</span>,
+    [<span class="ty">ValueError</span>(<span class="st">"a"</span>), <span class="ty">TypeError</span>(<span class="st">"b"</span>)],
+)</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">Async Callbacks &amp; Futures</div>
+  <pre>
+<span class="kw">async def</span> <span class="fn">main</span>():
+    loop = asyncio.<span class="fn">get_running_loop</span>()
+
+    <span class="cm"># Low-level Future</span>
+    fut = loop.<span class="fn">create_future</span>()
+    loop.<span class="fn">call_later</span>(<span class="nu">1.0</span>, fut.<span class="fn">set_result</span>, <span class="nu">42</span>)
+    result = <span class="kw">await</span> fut  <span class="cm"># blocks until set</span>
+
+    <span class="cm"># Schedule callback (non-coroutine)</span>
+    loop.<span class="fn">call_soon</span>(my_callback, arg)
+    loop.<span class="fn">call_later</span>(<span class="nu">2.0</span>, my_callback, arg)
+
+    <span class="cm"># Thread-safe from another thread</span>
+    <span class="kw">def</span> <span class="fn">from_thread</span>():
+        asyncio.<span class="fn">run_coroutine_threadsafe</span>(
+            <span class="fn">some_coro</span>(), loop
+        ).<span class="fn">result</span>()</pre>
+</div>
+
+<!-- Quick Reference -->
+<div class="section-header" id="s-ref">
+  <div class="section-dot dot-yellow"></div>
+  <h2 class="section-title">Quick Reference — asyncio API Cheat Table</h2>
+  <span class="section-num">12</span>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-yellow">Core Coroutines &amp; Tasks</div>
+  <table class="ref-table">
+    <tr><td><code>asyncio.run(coro)</code></td><td>Create loop, run coro, close loop</td></tr>
+    <tr><td><code>await coro</code></td><td>Suspend current, schedule coro</td></tr>
+    <tr><td><code>asyncio.create_task(coro)</code></td><td>Schedule coro as Task (concurrent)</td></tr>
+    <tr><td><code>asyncio.sleep(n)</code></td><td>Yield to loop for n seconds</td></tr>
+    <tr><td><code>asyncio.sleep(0)</code></td><td>Yield once, let others run</td></tr>
+    <tr><td><code>asyncio.current_task()</code></td><td>Return running Task or None</td></tr>
+    <tr><td><code>asyncio.all_tasks()</code></td><td>Set of all non-done tasks</td></tr>
+    <tr><td><code>task.cancel()</code></td><td>Request cancellation (raises CancelledError)</td></tr>
+    <tr><td><code>task.done()</code></td><td>True if finished/cancelled/exception</td></tr>
+    <tr><td><code>task.result()</code></td><td>Get result (raises if error)</td></tr>
+    <tr><td><code>task.add_done_callback(fn)</code></td><td>Register callback for completion</td></tr>
+  </table>
+</div>
+
+<div class="card col-6">
+  <div class="card-label label-yellow">Concurrency &amp; Sync Primitives</div>
+  <table class="ref-table">
+    <tr><td><code>asyncio.gather(*coros)</code></td><td>Run concurrently, list of results</td></tr>
+    <tr><td><code>asyncio.wait(tasks)</code></td><td>Fine-grained; returns done/pending sets</td></tr>
+    <tr><td><code>asyncio.as_completed(coros)</code></td><td>Iterate in completion order</td></tr>
+    <tr><td><code>asyncio.timeout(n)</code></td><td>Context manager — raises TimeoutError</td></tr>
+    <tr><td><code>asyncio.shield(coro)</code></td><td>Protect coro from outer cancellation</td></tr>
+    <tr><td><code>asyncio.TaskGroup()</code></td><td>3.11+ — cancel-safe concurrent tasks</td></tr>
+    <tr><td><code>asyncio.Queue(maxsize)</code></td><td>Async FIFO queue</td></tr>
+    <tr><td><code>asyncio.Lock()</code></td><td>Mutual exclusion</td></tr>
+    <tr><td><code>asyncio.Event()</code></td><td>One-shot signal between coroutines</td></tr>
+    <tr><td><code>asyncio.Semaphore(n)</code></td><td>Limit concurrent access to n</td></tr>
+    <tr><td><code>asyncio.to_thread(fn)</code></td><td>3.9+ — run sync fn in thread</td></tr>
+  </table>
+</div>
+
+<!-- Gotchas -->
+<div class="section-header" id="s-gotchas">
+  <div class="section-dot dot-pink"></div>
+  <h2 class="section-title">Common Gotchas &amp; Debugging</h2>
+  <span class="section-num">13</span>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">⚠ Don't Do This</div>
+  <pre>
+<span class="cm"># WRONG: forgetting await</span>
+result = <span class="fn">fetch</span>(<span class="st">"url"</span>)   <span class="cm"># coroutine, not result!</span>
+<span class="cm"># Fix: result = await fetch("url")</span>
+
+<span class="cm"># WRONG: blocking the event loop</span>
+<span class="kw">import</span> time
+<span class="kw">async def</span> <span class="fn">bad</span>():
+    time.<span class="fn">sleep</span>(<span class="nu">2</span>)          <span class="cm"># freezes everything</span>
+<span class="cm"># Fix: await asyncio.sleep(2)</span>
+
+<span class="cm"># WRONG: using requests in async</span>
+<span class="kw">async def</span> <span class="fn">bad</span>():
+    <span class="kw">return</span> requests.<span class="fn">get</span>(url)  <span class="cm"># blocking!</span>
+<span class="cm"># Fix: use aiohttp, httpx</span>
+
+<span class="cm"># WRONG: bare asyncio.get_event_loop()</span>
+loop = asyncio.<span class="fn">get_event_loop</span>()  <span class="cm"># deprecated</span>
+<span class="cm"># Fix: asyncio.get_running_loop()</span>
+<span class="cm">#   or  asyncio.run(main())</span>
+
+<span class="cm"># WRONG: not re-raising CancelledError</span>
+<span class="kw">async def</span> <span class="fn">bad</span>():
+    <span class="kw">try</span>: ...
+    <span class="kw">except</span> asyncio.<span class="ty">CancelledError</span>:
+        <span class="kw">pass</span>  <span class="cm"># swallowed! task won't cancel</span>
+<span class="cm"># Fix: always raise after cleanup</span></pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">Debugging Tricks</div>
+  <pre>
+<span class="cm"># Enable debug mode — finds issues</span>
+asyncio.<span class="fn">run</span>(<span class="fn">main</span>(), debug=<span class="kw">True</span>)
+<span class="cm"># or: PYTHONASYNCIODEBUG=1 python app.py</span>
+
+<span class="cm"># Detect unawaited coroutines</span>
+<span class="kw">import</span> warnings
+warnings.<span class="fn">simplefilter</span>(<span class="st">"always"</span>,
+    <span class="ty">RuntimeWarning</span>)
+
+<span class="cm"># Inspect running tasks</span>
+<span class="kw">for</span> t <span class="kw">in</span> asyncio.<span class="fn">all_tasks</span>():
+    <span class="bi">print</span>(t.get_name(), t.get_stack())
+
+<span class="cm"># Task with custom name</span>
+t = asyncio.<span class="fn">create_task</span>(
+    <span class="fn">work</span>(), name=<span class="st">"my-worker"</span>
+)
+
+<span class="cm"># Slow callback warning threshold</span>
+loop = asyncio.<span class="fn">get_running_loop</span>()
+loop.<span class="fn">slow_callback_duration</span> = <span class="nu">0.1</span>  <span class="cm"># 100ms</span>
+
+<span class="cm"># Exception handler for unhandled</span>
+<span class="kw">def</span> <span class="fn">exc_handler</span>(loop, ctx):
+    <span class="bi">print</span>(ctx[<span class="st">"message"</span>], ctx.<span class="fn">get</span>(<span class="st">"exception"</span>))
+loop.<span class="fn">set_exception_handler</span>(exc_handler)</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-pink">Performance Tips</div>
+  <pre>
+<span class="cm"># Prefer TaskGroup over gather</span>
+<span class="cm"># — better exception semantics</span>
+<span class="cm"># — cancels siblings on first error</span>
+
+<span class="cm"># batch small tasks</span>
+<span class="cm"># — avoid millions of tiny create_task calls</span>
+<span class="cm"># — use Queue + worker pool pattern</span>
+
+<span class="cm"># Keep coroutines small / focused</span>
+<span class="cm"># — easier to test and cancel</span>
+
+<span class="cm"># Use asyncio.sleep(0) judiciously</span>
+<span class="cm"># — forces a loop iteration</span>
+<span class="cm"># — good after CPU-heavy chunks</span>
+<span class="kw">for</span> i, item <span class="kw">in</span> <span class="bi">enumerate</span>(big_list):
+    <span class="fn">process</span>(item)
+    <span class="kw">if</span> i % <span class="nu">1000</span> == <span class="nu">0</span>:
+        <span class="kw">await</span> asyncio.<span class="fn">sleep</span>(<span class="nu">0</span>)
+
+<span class="cm"># uvloop — drop-in faster event loop</span>
+<span class="kw">import</span> uvloop
+asyncio.<span class="fn">set_event_loop_policy</span>(
+    uvloop.<span class="ty">EventLoopPolicy</span>()
+)
+asyncio.<span class="fn">run</span>(<span class="fn">main</span>())</pre>
+</div>
+
+<!-- functools & stdlib -->
+<div class="section-header" id="s-stdlib">
+  <div class="section-dot dot-purple"></div>
+  <h2 class="section-title">functools, collections &amp; Useful stdlib</h2>
+  <span class="section-num">14</span>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-purple">functools</div>
+  <pre>
+<span class="kw">from</span> functools <span class="kw">import</span> (
+    lru_cache, cache, partial,
+    reduce, cached_property,
+)
+
+<span class="cm"># Memoization</span>
+<span class="dc">@lru_cache</span>(maxsize=<span class="nu">128</span>)
+<span class="kw">def</span> <span class="fn">fib</span>(n): <span class="kw">return</span> n <span class="kw">if</span> n<<span class="nu">2</span> <span class="kw">else</span> <span class="fn">fib</span>(n-<span class="nu">1</span>)+<span class="fn">fib</span>(n-<span class="nu">2</span>)
+
+<span class="dc">@cache</span>          <span class="cm"># unbounded lru_cache</span>
+<span class="kw">def</span> <span class="fn">expensive</span>(x): ...
+
+<span class="cm"># Partial application</span>
+add5 = <span class="fn">partial</span>(<span class="bi">int</span>.__add__, <span class="nu">5</span>)
+
+<span class="cm"># Reduce</span>
+total = <span class="fn">reduce</span>(<span class="kw">lambda</span> a,b: a+b, lst)
+
+<span class="cm"># Cached property (computed once)</span>
+<span class="kw">class</span> <span class="ty">Circle</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, r): <span class="kw">self</span>.r = r
+
+    <span class="dc">@cached_property</span>
+    <span class="kw">def</span> <span class="fn">area</span>(<span class="kw">self</span>):
+        <span class="kw">return</span> <span class="num">3.14159</span> * <span class="kw">self</span>.r ** <span class="nu">2</span></pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-purple">collections</div>
+  <pre>
+<span class="kw">from</span> collections <span class="kw">import</span> (
+    defaultdict, Counter,
+    deque, namedtuple, OrderedDict,
+)
+
+<span class="cm"># defaultdict — auto-init values</span>
+dd = <span class="fn">defaultdict</span>(<span class="bi">list</span>)
+dd[<span class="st">"k"</span>].<span class="fn">append</span>(<span class="nu">1</span>)  <span class="cm"># no KeyError</span>
+
+<span class="cm"># Counter — frequency map</span>
+c = <span class="ty">Counter</span>(<span class="st">"abracadabra"</span>)
+c.<span class="fn">most_common</span>(<span class="nu">3</span>)  <span class="cm"># [('a',5), ('b',2), ('r',2)]</span>
+c[<span class="st">"z"</span>]            <span class="cm"># 0, not KeyError</span>
+
+<span class="cm"># deque — O(1) both ends</span>
+dq = <span class="fn">deque</span>(maxlen=<span class="nu">10</span>)
+dq.<span class="fn">appendleft</span>(x)
+dq.<span class="fn">popleft</span>()
+
+<span class="cm"># namedtuple</span>
+<span class="ty">Point</span> = <span class="fn">namedtuple</span>(<span class="st">"Point"</span>, [<span class="st">"x"</span>, <span class="st">"y"</span>])
+p = <span class="ty">Point</span>(<span class="nu">1</span>, <span class="nu">2</span>)
+p.x, p._asdict()</pre>
+</div>
+
+<div class="card col-4">
+  <div class="card-label label-purple">pathlib, typing, dataclasses extras</div>
+  <pre>
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="ty">Path</span>
+
+p = <span class="ty">Path</span>(<span class="st">"~/data"</span>).<span class="fn">expanduser</span>()
+p / <span class="st">"file.txt"</span>         <span class="cm"># join paths</span>
+p.<span class="fn">read_text</span>()
+p.<span class="fn">write_text</span>(<span class="st">"hello"</span>)
+p.<span class="fn">glob</span>(<span class="st">"**/*.py"</span>)       <span class="cm"># recursive glob</span>
+p.<span class="fn">stat</span>().<span class="fn">st_size</span>
+
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">TypedDict, NamedTuple</span>
+
+<span class="kw">class</span> <span class="ty">Config</span>(<span class="ty">TypedDict</span>):
+    host: <span class="ty">str</span>
+    port: <span class="ty">int</span>
+    debug: <span class="ty">bool</span>
+
+<span class="kw">class</span> <span class="ty">Coord</span>(<span class="ty">NamedTuple</span>):
+    x: <span class="ty">float</span>
+    y: <span class="ty">float</span>
+    label: <span class="ty">str</span> = <span class="st">""</span>
+
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="ty">Final, ClassVar</span>
+MAX: <span class="ty">Final</span> = <span class="nu">100</span>   <span class="cm"># can't be reassigned</span></pre>
+</div>
+
+<!-- Footer note -->
+<div class="card col-12" style="background: var(--surface2); border-color: var(--border);">
+  <div class="card-label label-neutral">Notes</div>
+  <pre style="color: var(--text-muted); font-size: 11.5px;">
+<span class="cm">•  asyncio is single-threaded — never share mutable state between coroutines without a Lock.
+•  asyncio.TaskGroup (3.11+) is the modern way to run concurrent tasks — it handles cancellation correctly.
+•  "await" only works inside "async def" functions. Async code must stay async all the way to asyncio.run().
+•  For true parallelism (CPU-bound): use multiprocessing or ProcessPoolExecutor. asyncio only helps I/O.
+•  Libraries: aiohttp (HTTP), aiofiles (file I/O), asyncpg (PostgreSQL), aiobotocore (AWS), anyio (compatible asyncio/trio).
+•  Python version: features marked 3.10+ include match/case; 3.11+ includes TaskGroup, ExceptionGroup, asyncio.timeout().</span></pre>
+</div>
+
+</div><!-- end layout -->
+</body>
+</html>
