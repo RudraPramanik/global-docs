@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qdrant Vector DB — Agentic AI Developer Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --bg4: #1e2d45;
+  --accent: #dc4f00;
+  --accent2: #ff6b35;
+  --accent3: #ff8c5a;
+  --teal: #00d4aa;
+  --teal2: #00b894;
+  --purple: #7c3aed;
+  --purple2: #a855f7;
+  --blue: #3b82f6;
+  --blue2: #60a5fa;
+  --amber: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --text: #f0f4f8;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --radius: 10px;
+  --radius2: 14px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── HERO ─── */
+.hero {
+  background: linear-gradient(135deg, #0a0e17 0%, #0f1a2e 60%, #0a0e17 100%);
+  border-bottom: 1px solid var(--border2);
+  padding: 2.5rem 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(220,79,0,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: 10%;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(0,212,170,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero-inner { max-width: 860px; }
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(220,79,0,0.15);
+  border: 1px solid rgba(220,79,0,0.35);
+  color: var(--accent2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 1.2rem;
+}
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 0.7rem;
+}
+.hero h1 .hl { color: var(--accent2); }
+.hero-sub {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.65;
+  max-width: 620px;
+  margin-bottom: 1.4rem;
+}
+.hero-stats {
+  display: flex;
+  gap: 1.8rem;
+  flex-wrap: wrap;
+}
+.hero-stat {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+/* ─── NAV ─── */
+.nav {
+  background: rgba(10,14,23,0.97);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  backdrop-filter: blur(12px);
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+/* ─── LAYOUT ─── */
+.section { display: none; padding: 2rem; max-width: 900px; animation: fadeIn 0.2s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.section-title { font-size: 1.15rem; font-weight: 700; }
+.section-desc { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+/* ─── GRIDS ─── */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 1.2rem;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--border2); }
+.card-title {
+  font-size: 13px; font-weight: 700;
+  margin-bottom: 0.65rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-body { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+/* ─── CODE ─── */
+.code-block {
+  background: #060a12;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 0.9rem 0;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.code-lang {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent2);
+}
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover { border-color: var(--border2); color: var(--text); }
+.copy-btn.copied { color: var(--green); border-color: rgba(16,185,129,0.4); }
+pre {
+  padding: 1.1rem 1.2rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.75;
+  color: #e2e8f0;
+}
+.kw { color: #c792ea; }
+.fn { color: #82aaff; }
+.str { color: #c3e88d; }
+.num { color: #f78c6c; }
+.cm { color: #546e7a; font-style: italic; }
+.cls { color: #ffcb6b; }
+.op { color: #89ddff; }
+.key { color: #f07178; }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  letter-spacing: 0.05em;
+}
+.badge-orange { background: rgba(220,79,0,0.2); color: var(--accent2); border: 1px solid rgba(220,79,0,0.35); }
+.badge-teal   { background: rgba(0,212,170,0.15); color: var(--teal); border: 1px solid rgba(0,212,170,0.25); }
+.badge-purple { background: rgba(124,58,237,0.2); color: var(--purple2); border: 1px solid rgba(124,58,237,0.3); }
+.badge-blue   { background: rgba(59,130,246,0.2); color: var(--blue2); border: 1px solid rgba(59,130,246,0.3); }
+.badge-green  { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+.badge-amber  { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+.badge-red    { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+
+/* ─── ALERTS ─── */
+.alert {
+  display: flex; gap: 12px;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 12px; line-height: 1.65;
+  margin: 0.9rem 0;
+}
+.alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+.alert-teal   { background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.22); color: #a7f3d0; }
+.alert-orange { background: rgba(220,79,0,0.08); border: 1px solid rgba(220,79,0,0.28); color: #fed7aa; }
+.alert-blue   { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.28); color: #bfdbfe; }
+.alert-purple { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.28); color: #e9d5ff; }
+
+/* ─── TABLE ─── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin: 0.9rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  background: var(--bg3); color: var(--text2);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.75rem 1.1rem; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 0.7rem 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text2); vertical-align: top;
+}
+td:first-child { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.025); }
+
+/* ─── HEADINGS / TEXT ─── */
+h3 { font-size: 14px; font-weight: 700; color: var(--text); margin: 1.4rem 0 0.65rem; }
+h3:first-child { margin-top: 0; }
+h4 { font-size: 12px; font-weight: 700; color: var(--text2); margin: 1rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.08em; }
+p { font-size: 12px; color: var(--text2); line-height: 1.65; margin-bottom: 0.65rem; }
+ul { padding-left: 1.3rem; margin-bottom: 0.65rem; }
+li { font-size: 12px; color: var(--text2); line-height: 1.75; }
+li strong { color: var(--text); font-weight: 700; }
+.divider { height: 1px; background: var(--border); margin: 1.4rem 0; }
+.inline-code {
+  font-family: var(--mono); font-size: 11px;
+  background: rgba(255,255,255,0.07); padding: 1px 6px;
+  border-radius: 4px; color: var(--accent3);
+}
+
+/* ─── ARCH DIAGRAM ─── */
+.arch {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 1.5rem;
+  text-align: center; margin: 0.9rem 0;
+}
+.arch-row {
+  display: flex; justify-content: center; align-items: center;
+  gap: 0.6rem; margin: 0.45rem 0; flex-wrap: wrap;
+}
+.arch-box {
+  border-radius: 8px; padding: 0.5rem 1rem;
+  font-size: 11px; font-weight: 700; border: 1px solid;
+}
+.arch-arrow { color: var(--text3); font-size: 14px; }
+
+/* ─── TIPS ─── */
+.tip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; margin: 0.9rem 0; }
+.tip {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-left: 3px solid; border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.85rem 1rem;
+}
+.tip-title { font-size: 12px; font-weight: 700; margin-bottom: 0.35rem; }
+.tip-body { font-size: 11px; color: var(--text2); line-height: 1.55; }
+
+/* ─── PARAMS ─── */
+.param-grid { display: grid; gap: 0.5rem; margin: 0.9rem 0; }
+.param {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem 1rem;
+}
+.param-name { font-family: var(--mono); font-size: 11px; color: var(--blue2); white-space: nowrap; min-width: 160px; }
+.param-desc { font-size: 11px; color: var(--text2); line-height: 1.55; }
+
+/* ─── CHEATSHEET ─── */
+.cs-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); overflow: hidden; }
+.cs-card-header {
+  padding: 0.7rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.cs-card pre { padding: 0.85rem 1.1rem; font-size: 11px; }
+
+/* ─── FLOW ─── */
+.flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.flow-step {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.5rem 0.85rem;
+  font-size: 11px; font-weight: 700;
+}
+.flow-arrow { color: var(--text3); font-size: 18px; }
+
+/* ─── AGENTIC PATTERN ─── */
+.pattern-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 1.3rem; margin-bottom: 1rem;
+}
+.pattern-title {
+  font-size: 14px; font-weight: 700; margin-bottom: 0.5rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.pattern-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 0.9rem; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">🚀 Agentic AI Reference 2024</div>
+    <h1>Qdrant <span class="hl">Vector DB</span><br>Developer Guide</h1>
+    <p class="hero-sub">Complete interactive reference for building production-grade agentic AI systems with Qdrant — from initial setup to advanced hybrid search, memory patterns, and multi-agent architectures.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="dot" style="background:var(--teal)"></span> Collections &amp; Points</div>
+      <div class="hero-stat"><span class="dot" style="background:var(--accent2)"></span> Vector &amp; Hybrid Search</div>
+      <div class="hero-stat"><span class="dot" style="background:var(--purple2)"></span> Filtering &amp; Payloads</div>
+      <div class="hero-stat"><span class="dot" style="background:var(--blue2)"></span> Agentic AI Patterns</div>
+      <div class="hero-stat"><span class="dot" style="background:var(--amber)"></span> Production Tips</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchTab('overview')">Overview</button>
+  <button class="nav-btn" onclick="switchTab('setup')">Setup</button>
+  <button class="nav-btn" onclick="switchTab('collections')">Collections</button>
+  <button class="nav-btn" onclick="switchTab('points')">Points</button>
+  <button class="nav-btn" onclick="switchTab('search')">Search</button>
+  <button class="nav-btn" onclick="switchTab('filters')">Filters</button>
+  <button class="nav-btn" onclick="switchTab('payload')">Payloads</button>
+  <button class="nav-btn" onclick="switchTab('advanced')">Advanced</button>
+  <button class="nav-btn" onclick="switchTab('agentic')">Agentic AI</button>
+  <button class="nav-btn" onclick="switchTab('cheatsheet')">Cheatsheet</button>
+</nav>
+
+<!-- ═══════════════════ OVERVIEW ═══════════════════ -->
+<section class="section active" id="tab-overview">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(220,79,0,0.15)">🧠</div>
+    <div>
+      <div class="section-title">What is Qdrant?</div>
+      <div class="section-desc">High-performance vector database built for AI applications</div>
+    </div>
+  </div>
+
+  <div class="grid3" style="margin-bottom:1.2rem">
+    <div class="card">
+      <div class="card-title"><span style="color:var(--accent2)">⚡</span> Purpose-Built</div>
+      <div class="card-body">Written in Rust for maximum performance. Handles billions of vectors with millisecond latency. HNSW indexing for approximate nearest neighbor search.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span style="color:var(--teal)">🔍</span> Hybrid Search</div>
+      <div class="card-body">Combines dense vectors, sparse vectors (BM25/SPLADE), and full-text search in a single query. Perfect for RAG and semantic retrieval.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span style="color:var(--purple2)">🤖</span> Agentic Ready</div>
+      <div class="card-body">Payload filtering, named vectors, scroll API, and persistent storage make Qdrant ideal for memory-augmented AI agents.</div>
+    </div>
+  </div>
+
+  <h3>Core Architecture</h3>
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-box" style="background:rgba(220,79,0,0.1);border-color:rgba(220,79,0,0.3);color:var(--accent2)">🤖 AI Agent / Application</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕</span></div>
+    <div class="arch-row">
+      <div class="arch-box" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:var(--blue2)">REST API :6333</div>
+      <span class="arch-arrow">|</span>
+      <div class="arch-box" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:var(--blue2)">gRPC API :6334</div>
+      <span class="arch-arrow">|</span>
+      <div class="arch-box" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:var(--blue2)">Python / JS SDK</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕</span></div>
+    <div class="arch-row">
+      <div class="arch-box" style="background:rgba(0,212,170,0.1);border-color:rgba(0,212,170,0.3);color:var(--teal)">Collections</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-box" style="background:rgba(0,212,170,0.1);border-color:rgba(0,212,170,0.3);color:var(--teal)">Points + Vectors</div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-box" style="background:rgba(0,212,170,0.1);border-color:rgba(0,212,170,0.3);color:var(--teal)">Payload (JSON)</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕</span></div>
+    <div class="arch-row">
+      <div class="arch-box" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.3);color:var(--purple2)">HNSW Index</div>
+      <span class="arch-arrow">+</span>
+      <div class="arch-box" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.3);color:var(--purple2)">Payload Index</div>
+      <span class="arch-arrow">+</span>
+      <div class="arch-box" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.3);color:var(--purple2)">Sparse Vectors</div>
+    </div>
+  </div>
+
+  <h3>Key Concepts</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Concept</th><th>Description</th><th>SQL Analogy</th></tr></thead>
+      <tbody>
+        <tr><td>Collection</td><td>Named group of points sharing the same vector dimensionality</td><td>Table</td></tr>
+        <tr><td>Point</td><td>Single record — vector + optional payload + optional id</td><td>Row</td></tr>
+        <tr><td>Vector</td><td>Float array (e.g. 1536-dim for OpenAI) representing semantic meaning</td><td>Embedding column</td></tr>
+        <tr><td>Payload</td><td>JSON metadata attached to a point for filtering and retrieval</td><td>JSON columns</td></tr>
+        <tr><td>Filter</td><td>Conditions applied during search to narrow results</td><td>WHERE clause</td></tr>
+        <tr><td>Shard</td><td>Horizontal partition of a collection for scaling</td><td>Partition</td></tr>
+        <tr><td>Segment</td><td>Internal storage unit within a shard</td><td>Data file</td></tr>
+        <tr><td>Snapshot</td><td>Point-in-time backup of a collection</td><td>Database dump</td></tr>
+        <tr><td>Alias</td><td>Named pointer to a collection, enables zero-downtime updates</td><td>View / synonym</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>When to use Qdrant</h3>
+  <div class="tip-grid">
+    <div class="tip" style="border-color:var(--green)">
+      <div class="tip-title" style="color:var(--green)">✅ Great for</div>
+      <div class="tip-body">RAG pipelines, semantic search, agent long-term memory, recommendation engines, duplicate detection, multi-modal retrieval, real-time personalization</div>
+    </div>
+    <div class="tip" style="border-color:var(--red)">
+      <div class="tip-title" style="color:var(--red)">❌ Not ideal for</div>
+      <div class="tip-body">Exact key-value lookups, ACID transactions, complex relational joins, or real-time OLTP transactional workloads</div>
+    </div>
+    <div class="tip" style="border-color:var(--amber)">
+      <div class="tip-title" style="color:var(--amber)">⚡ Sweet spot</div>
+      <div class="tip-body">Collections with 10K–1B+ vectors needing sub-10ms search with rich metadata filtering and optional re-ranking</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SETUP ═══════════════════ -->
+<section class="section" id="tab-setup">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(16,185,129,0.15)">⚙️</div>
+    <div>
+      <div class="section-title">Installation &amp; Setup</div>
+      <div class="section-desc">Get Qdrant running locally and connect with Python</div>
+    </div>
+  </div>
+
+  <h3>Docker (Recommended)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Run Qdrant with persistent storage</span>
+<span class="fn">docker</span> run -p <span class="num">6333</span>:<span class="num">6333</span> -p <span class="num">6334</span>:<span class="num">6334</span> \
+  -v <span class="str">$(pwd)/qdrant_storage:/qdrant/storage:z</span> \
+  qdrant/qdrant
+
+<span class="cm"># Port 6333 = REST API  |  Port 6334 = gRPC</span>
+<span class="cm"># Dashboard: http://localhost:6333/dashboard</span></pre>
+  </div>
+
+  <h3>Docker Compose</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="key">version</span>: <span class="str">'3.8'</span>
+<span class="key">services</span>:
+  <span class="key">qdrant</span>:
+    <span class="key">image</span>: <span class="str">qdrant/qdrant:latest</span>
+    <span class="key">ports</span>:
+      - <span class="str">"6333:6333"</span>
+      - <span class="str">"6334:6334"</span>
+    <span class="key">volumes</span>:
+      - <span class="str">./qdrant_data:/qdrant/storage</span>
+    <span class="key">environment</span>:
+      - <span class="str">QDRANT__SERVICE__API_KEY=your-secret-key</span></pre>
+  </div>
+
+  <h3>Python SDK Install</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="fn">pip</span> install qdrant-client
+<span class="fn">pip</span> install <span class="str">"qdrant-client[fastembed]"</span>  <span class="cm"># + local embeddings support</span></pre>
+  </div>
+
+  <h3>Connect to Qdrant</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client</span> <span class="kw">import</span> <span class="cls">QdrantClient</span>
+
+<span class="cm"># Local / Docker</span>
+client = <span class="cls">QdrantClient</span>(<span class="str">"localhost"</span>, port=<span class="num">6333</span>)
+
+<span class="cm"># In-memory (perfect for tests)</span>
+client = <span class="cls">QdrantClient</span>(<span class="str">":memory:"</span>)
+
+<span class="cm"># Qdrant Cloud</span>
+client = <span class="cls">QdrantClient</span>(
+    url=<span class="str">"https://xyz.us-east.aws.cloud.qdrant.io"</span>,
+    api_key=<span class="str">"your-api-key"</span>
+)
+
+<span class="cm"># With timeout config</span>
+client = <span class="cls">QdrantClient</span>(
+    <span class="str">"localhost"</span>, port=<span class="num">6333</span>,
+    timeout=<span class="num">30</span>, prefer_grpc=<span class="kw">True</span>
+)</pre>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>Env Variables Pattern</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="kw">import</span> os
+client = <span class="cls">QdrantClient</span>(
+  url=os.<span class="fn">getenv</span>(<span class="str">"QDRANT_URL"</span>),
+  api_key=os.<span class="fn">getenv</span>(<span class="str">"QDRANT_API_KEY"</span>)
+)</pre>
+      </div>
+    </div>
+    <div>
+      <h3>Health Check</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+        <pre><span class="cm"># REST health check</span>
+<span class="fn">curl</span> http://localhost:<span class="num">6333</span>/
+
+<span class="cm"># Python check</span>
+client.<span class="fn">get_collections</span>()
+client.<span class="fn">info</span>()</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-teal">
+    <div class="alert-icon">💡</div>
+    <div><strong>Qdrant Cloud Free Tier:</strong> Create a free cluster at <strong>cloud.qdrant.io</strong> — 1GB storage, no credit card required. Get a cluster URL and API key in under 2 minutes.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ COLLECTIONS ═══════════════════ -->
+<section class="section" id="tab-collections">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(0,212,170,0.15)">📦</div>
+    <div>
+      <div class="section-title">Collections</div>
+      <div class="section-desc">Create, configure, and manage vector collections</div>
+    </div>
+  </div>
+
+  <h3>Create a Collection</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client</span> <span class="kw">import</span> <span class="cls">QdrantClient</span>
+<span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">Distance</span>, <span class="cls">VectorParams</span>
+
+client.<span class="fn">create_collection</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    vectors_config=<span class="cls">VectorParams</span>(
+        size=<span class="num">1536</span>,              <span class="cm"># OpenAI text-embedding-3-small dim</span>
+        distance=<span class="cls">Distance</span>.COSINE  <span class="cm"># COSINE | EUCLID | DOT | MANHATTAN</span>
+    )
+)</pre>
+  </div>
+
+  <h3>Distance Metrics</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Best For</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>COSINE</td><td>Text embeddings (OpenAI, Cohere, sentence-transformers)</td><td>Most common for NLP. Normalizes magnitude differences.</td></tr>
+        <tr><td>DOT</td><td>Dense retrieval models, ColBERT, bi-encoders</td><td>Faster if vectors are pre-normalized (= COSINE).</td></tr>
+        <tr><td>EUCLID</td><td>Image embeddings, geometric/spatial data</td><td>L2 distance. Sensitive to scale differences.</td></tr>
+        <tr><td>MANHATTAN</td><td>Sparse feature vectors</td><td>L1 distance. More robust to outliers than Euclid.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Collection with HNSW &amp; Optimizer Config</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> (
+    <span class="cls">HnswConfigDiff</span>, <span class="cls">OptimizersConfigDiff</span>, <span class="cls">QuantizationConfig</span>,
+    <span class="cls">ScalarQuantization</span>, <span class="cls">ScalarType</span>
+)
+
+client.<span class="fn">create_collection</span>(
+    collection_name=<span class="str">"optimized_docs"</span>,
+    vectors_config=<span class="cls">VectorParams</span>(
+        size=<span class="num">1536</span>,
+        distance=<span class="cls">Distance</span>.COSINE,
+        on_disk=<span class="kw">False</span>  <span class="cm"># True = save RAM for huge collections</span>
+    ),
+    hnsw_config=<span class="cls">HnswConfigDiff</span>(
+        m=<span class="num">16</span>,            <span class="cm"># connections per node (16-64 typical)</span>
+        ef_construct=<span class="num">100</span>,  <span class="cm"># build-time quality (higher = better recall)</span>
+        full_scan_threshold=<span class="num">10000</span>
+    ),
+    optimizers_config=<span class="cls">OptimizersConfigDiff</span>(
+        indexing_threshold=<span class="num">10000</span>,  <span class="cm"># start indexing after N vectors</span>
+        memmap_threshold=<span class="num">50000</span>
+    ),
+    <span class="cm"># Optional: Scalar quantization (reduces memory 4x)</span>
+    quantization_config=<span class="cls">ScalarQuantization</span>(
+        scalar=<span class="cls">ScalarQuantization</span>(type=<span class="cls">ScalarType</span>.INT8, quantile=<span class="num">0.99</span>)
+    )
+)</pre>
+  </div>
+
+  <h3>Named Vectors (Multi-vector per Point)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Store multiple vector representations per document</span>
+client.<span class="fn">create_collection</span>(
+    collection_name=<span class="str">"multimodal_docs"</span>,
+    vectors_config={
+        <span class="str">"dense"</span>:  <span class="cls">VectorParams</span>(size=<span class="num">768</span>,  distance=<span class="cls">Distance</span>.COSINE),
+        <span class="str">"title"</span>:  <span class="cls">VectorParams</span>(size=<span class="num">768</span>,  distance=<span class="cls">Distance</span>.COSINE),
+        <span class="str">"image"</span>:  <span class="cls">VectorParams</span>(size=<span class="num">512</span>,  distance=<span class="cls">Distance</span>.COSINE),
+        <span class="str">"colbert"</span>:<span class="cls">VectorParams</span>(size=<span class="num">128</span>,  distance=<span class="cls">Distance</span>.COSINE,
+                                multivector_config=<span class="cls">MultiVectorConfig</span>(
+                                    comparator=<span class="cls">MultiVectorComparator</span>.MAX_SIM))
+    }
+)</pre>
+  </div>
+
+  <h3>Collection Management</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># List all collections</span>
+client.<span class="fn">get_collections</span>()
+
+<span class="cm"># Get collection info (points count, status, config)</span>
+info = client.<span class="fn">get_collection</span>(<span class="str">"my_docs"</span>)
+<span class="fn">print</span>(info.points_count)
+
+<span class="cm"># Check if exists</span>
+client.<span class="fn">collection_exists</span>(<span class="str">"my_docs"</span>)  <span class="cm"># → True / False</span>
+
+<span class="cm"># Update collection settings</span>
+client.<span class="fn">update_collection</span>(
+    <span class="str">"my_docs"</span>,
+    hnsw_config=<span class="cls">HnswConfigDiff</span>(ef_construct=<span class="num">200</span>)
+)
+
+<span class="cm"># Create alias (zero-downtime deployment)</span>
+client.<span class="fn">update_aliases</span>(
+    change_aliases_operations=[
+        <span class="cls">CreateAliasOperation</span>(
+            create_alias=<span class="cls">CreateAlias</span>(
+                collection_name=<span class="str">"my_docs_v2"</span>,
+                alias_name=<span class="str">"my_docs"</span>
+            )
+        )
+    ]
+)
+
+<span class="cm"># Delete collection</span>
+client.<span class="fn">delete_collection</span>(<span class="str">"my_docs"</span>)
+
+<span class="cm"># Snapshot (backup)</span>
+client.<span class="fn">create_snapshot</span>(collection_name=<span class="str">"my_docs"</span>)
+client.<span class="fn">list_snapshots</span>(collection_name=<span class="str">"my_docs"</span>)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ POINTS ═══════════════════ -->
+<section class="section" id="tab-points">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(59,130,246,0.15)">📍</div>
+    <div>
+      <div class="section-title">Points</div>
+      <div class="section-desc">Upsert, retrieve, update, and delete vector records</div>
+    </div>
+  </div>
+
+  <h3>Upsert Points</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">PointStruct</span>
+
+client.<span class="fn">upsert</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    points=[
+        <span class="cls">PointStruct</span>(
+            id=<span class="num">1</span>,                        <span class="cm"># int or UUID string</span>
+            vector=[<span class="num">0.1</span>, <span class="num">0.2</span>, ...],      <span class="cm"># must match collection size</span>
+            payload={
+                <span class="str">"text"</span>: <span class="str">"Hello world"</span>,
+                <span class="str">"category"</span>: <span class="str">"tech"</span>,
+                <span class="str">"score"</span>: <span class="num">4.5</span>,
+                <span class="str">"tags"</span>: [<span class="str">"ai"</span>, <span class="str">"ml"</span>]
+            }
+        ),
+        <span class="cls">PointStruct</span>(id=<span class="num">2</span>, vector=[...], payload={...}),
+    ]
+)</pre>
+  </div>
+
+  <h3>Batch Upsert (Efficient)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Best practice: use batch upsert for large datasets</span>
+BATCH_SIZE = <span class="num">100</span>
+
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="num">0</span>, <span class="fn">len</span>(documents), BATCH_SIZE):
+    batch = documents[i:i+BATCH_SIZE]
+    vectors = embed_model.<span class="fn">encode</span>([d[<span class="str">"text"</span>] <span class="kw">for</span> d <span class="kw">in</span> batch])
+    
+    client.<span class="fn">upsert</span>(
+        collection_name=<span class="str">"my_docs"</span>,
+        points=[
+            <span class="cls">PointStruct</span>(id=d[<span class="str">"id"</span>], vector=v.<span class="fn">tolist</span>(), payload=d)
+            <span class="kw">for</span> d, v <span class="kw">in</span> <span class="fn">zip</span>(batch, vectors)
+        ]
+    )
+
+<span class="cm"># Or use upload_collection for very large datasets</span>
+client.<span class="fn">upload_collection</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    vectors=all_vectors,         <span class="cm"># list of lists</span>
+    payload=all_payloads,        <span class="cm"># list of dicts</span>
+    ids=all_ids,                 <span class="cm"># optional</span>
+    batch_size=<span class="num">256</span>,
+    parallel=<span class="num">4</span>                   <span class="cm"># threads</span>
+)</pre>
+  </div>
+
+  <h3>Named Vector Upsert</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># For collections with multiple named vectors</span>
+client.<span class="fn">upsert</span>(
+    collection_name=<span class="str">"multimodal_docs"</span>,
+    points=[
+        <span class="cls">PointStruct</span>(
+            id=<span class="num">1</span>,
+            vector={
+                <span class="str">"dense"</span>: [<span class="num">0.1</span>, <span class="num">0.2</span>, ...],
+                <span class="str">"title"</span>: [<span class="num">0.3</span>, <span class="num">0.4</span>, ...],
+            },
+            payload={<span class="str">"title"</span>: <span class="str">"AI Article"</span>, <span class="str">"content"</span>: <span class="str">"..."</span>}
+        )
+    ]
+)</pre>
+  </div>
+
+  <h3>Retrieve Points</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Get by ID(s)</span>
+points = client.<span class="fn">retrieve</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    ids=[<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>],
+    with_payload=<span class="kw">True</span>,
+    with_vectors=<span class="kw">False</span>  <span class="cm"># set True only if needed</span>
+)
+
+<span class="cm"># Scroll through all points (pagination)</span>
+results, next_offset = client.<span class="fn">scroll</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    limit=<span class="num">50</span>,
+    offset=<span class="kw">None</span>,         <span class="cm"># pass next_offset to paginate</span>
+    with_payload=<span class="kw">True</span>,
+    scroll_filter=<span class="cls">Filter</span>(
+        must=[<span class="cls">FieldCondition</span>(key=<span class="str">"category"</span>,
+              match=<span class="cls">MatchValue</span>(value=<span class="str">"tech"</span>))]
+    )
+)</pre>
+  </div>
+
+  <h3>Update &amp; Delete</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Update payload (partial)</span>
+client.<span class="fn">set_payload</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    payload={<span class="str">"category"</span>: <span class="str">"updated_tech"</span>, <span class="str">"reviewed"</span>: <span class="kw">True</span>},
+    points=[<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>]  <span class="cm"># or Filter(...)</span>
+)
+
+<span class="cm"># Overwrite entire payload</span>
+client.<span class="fn">overwrite_payload</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    payload={<span class="str">"new_field"</span>: <span class="str">"value"</span>},
+    points=[<span class="num">1</span>]
+)
+
+<span class="cm"># Delete payload keys</span>
+client.<span class="fn">delete_payload</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    keys=[<span class="str">"old_field"</span>],
+    points=[<span class="num">1</span>, <span class="num">2</span>]
+)
+
+<span class="cm"># Delete points by ID</span>
+client.<span class="fn">delete</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    points_selector=<span class="cls">PointIdsList</span>(points=[<span class="num">1</span>, <span class="num">2</span>])
+)
+
+<span class="cm"># Delete by filter</span>
+client.<span class="fn">delete</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    points_selector=<span class="cls">FilterSelector</span>(
+        filter=<span class="cls">Filter</span>(must=[
+            <span class="cls">FieldCondition</span>(key=<span class="str">"category"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"spam"</span>))
+        ])
+    )
+)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ SEARCH ═══════════════════ -->
+<section class="section" id="tab-search">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.15)">🔍</div>
+    <div>
+      <div class="section-title">Vector Search</div>
+      <div class="section-desc">Semantic search, hybrid search, and multi-vector queries</div>
+    </div>
+  </div>
+
+  <h3>Basic Semantic Search</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># 1. Embed your query</span>
+query_vector = openai_client.embeddings.<span class="fn">create</span>(
+    model=<span class="str">"text-embedding-3-small"</span>,
+    input=<span class="str">"What is vector search?"</span>
+).data[<span class="num">0</span>].embedding
+
+<span class="cm"># 2. Search Qdrant</span>
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    limit=<span class="num">5</span>,                  <span class="cm"># top-k results</span>
+    with_payload=<span class="kw">True</span>,
+    score_threshold=<span class="num">0.7</span>      <span class="cm"># min similarity score</span>
+)
+
+<span class="kw">for</span> r <span class="kw">in</span> results:
+    <span class="fn">print</span>(r.score, r.payload[<span class="str">"text"</span>])</pre>
+  </div>
+
+  <h3>Search with Filter</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">Filter</span>, <span class="cls">FieldCondition</span>, <span class="cls">MatchValue</span>
+
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    query_filter=<span class="cls">Filter</span>(
+        must=[
+            <span class="cls">FieldCondition</span>(key=<span class="str">"category"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"tech"</span>))
+        ]
+    ),
+    limit=<span class="num">10</span>,
+    with_payload=<span class="kw">True</span>
+)</pre>
+  </div>
+
+  <h3>Hybrid Search (Dense + Sparse)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> (
+    <span class="cls">NamedVector</span>, <span class="cls">NamedSparseVector</span>, <span class="cls">SparseVector</span>,
+    <span class="cls">Prefetch</span>, <span class="cls">FusionQuery</span>, <span class="cls">Fusion</span>
+)
+
+<span class="cm"># Hybrid: combine dense embedding + BM25 sparse</span>
+results = client.<span class="fn">query_points</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    prefetch=[
+        <span class="cls">Prefetch</span>(
+            query=dense_vector,         <span class="cm"># semantic</span>
+            using=<span class="str">"dense"</span>,
+            limit=<span class="num">20</span>
+        ),
+        <span class="cls">Prefetch</span>(
+            query=<span class="cls">SparseVector</span>(         <span class="cm"># keyword BM25</span>
+                indices=sparse_indices,
+                values=sparse_values
+            ),
+            using=<span class="str">"sparse"</span>,
+            limit=<span class="num">20</span>
+        )
+    ],
+    query=<span class="cls">FusionQuery</span>(fusion=<span class="cls">Fusion</span>.RRF),  <span class="cm"># Reciprocal Rank Fusion</span>
+    limit=<span class="num">10</span>,
+    with_payload=<span class="kw">True</span>
+)</pre>
+  </div>
+
+  <h3>Named Vector Search</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Search using a specific named vector</span>
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"multimodal_docs"</span>,
+    query_vector=<span class="cls">NamedVector</span>(name=<span class="str">"image"</span>, vector=image_embedding),
+    limit=<span class="num">5</span>
+)</pre>
+  </div>
+
+  <h3>Batch Search</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">SearchRequest</span>
+
+<span class="cm"># Multiple queries in one round-trip</span>
+results = client.<span class="fn">search_batch</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    requests=[
+        <span class="cls">SearchRequest</span>(vector=v1, limit=<span class="num">3</span>),
+        <span class="cls">SearchRequest</span>(vector=v2, limit=<span class="num">3</span>, with_payload=<span class="kw">True</span>),
+        <span class="cls">SearchRequest</span>(vector=v3, limit=<span class="num">5</span>,
+                       filter=<span class="cls">Filter</span>(must=[...])),
+    ]
+)</pre>
+  </div>
+
+  <h3>Recommend / Similar Items</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Find similar to existing point(s)</span>
+results = client.<span class="fn">recommend</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    positive=[<span class="num">1</span>, <span class="num">2</span>],      <span class="cm"># liked point IDs</span>
+    negative=[<span class="num">5</span>],          <span class="cm"># disliked point IDs</span>
+    limit=<span class="num">10</span>,
+    with_payload=<span class="kw">True</span>
+)</pre>
+  </div>
+
+  <h3>Search Parameters Tuning</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">SearchParams</span>
+
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    search_params=<span class="cls">SearchParams</span>(
+        hnsw_ef=<span class="num">128</span>,   <span class="cm"># higher = better recall, slower (default 64)</span>
+        exact=<span class="kw">False</span>,    <span class="cm"># True = brute force (exact but slow)</span>
+        indexed_only=<span class="kw">True</span>  <span class="cm"># skip un-indexed segments</span>
+    ),
+    limit=<span class="num">10</span>
+)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ FILTERS ═══════════════════ -->
+<section class="section" id="tab-filters">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(124,58,237,0.15)">🔬</div>
+    <div>
+      <div class="section-title">Filtering</div>
+      <div class="section-desc">Narrow search results with payload conditions</div>
+    </div>
+  </div>
+
+  <div class="alert alert-purple">
+    <div class="alert-icon">⚡</div>
+    <div>Qdrant filters run <strong>during</strong> vector search (not post-filter), so they don't sacrifice performance. Always index fields used in filters for best speed.</div>
+  </div>
+
+  <h3>Filter Operators</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Operator</th><th>Class</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>must</td><td>Filter(must=[...])</td><td>All conditions must match (AND)</td></tr>
+        <tr><td>should</td><td>Filter(should=[...])</td><td>At least one must match (OR)</td></tr>
+        <tr><td>must_not</td><td>Filter(must_not=[...])</td><td>None must match (NOT)</td></tr>
+        <tr><td>MatchValue</td><td>match=MatchValue(value=x)</td><td>Exact equality</td></tr>
+        <tr><td>MatchAny</td><td>match=MatchAny(any=[...])</td><td>Value in list (IN)</td></tr>
+        <tr><td>MatchExcept</td><td>match=MatchExcept(except=[...])</td><td>Value NOT in list</td></tr>
+        <tr><td>MatchText</td><td>match=MatchText(text=x)</td><td>Full-text substring match</td></tr>
+        <tr><td>Range</td><td>range=Range(gt=, lt=, gte=, lte=)</td><td>Numeric / datetime range</td></tr>
+        <tr><td>HasId</td><td>HasIdCondition(has_id=[...])</td><td>Filter by point IDs</td></tr>
+        <tr><td>IsEmpty</td><td>IsEmptyCondition(is_empty=...)</td><td>Field is null/missing</td></tr>
+        <tr><td>IsNull</td><td>IsNullCondition(is_null=...)</td><td>Field is explicitly null</td></tr>
+        <tr><td>Nested</td><td>Nested(key=, filter=)</td><td>Filter inside nested arrays</td></tr>
+        <tr><td>GeoRadius</td><td>geo_radius=GeoRadius(...)</td><td>Geospatial circle filter</td></tr>
+        <tr><td>GeoBoundingBox</td><td>geo_bounding_box=...</td><td>Geospatial rectangle</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Filter Examples</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> (
+    <span class="cls">Filter</span>, <span class="cls">FieldCondition</span>, <span class="cls">MatchValue</span>, <span class="cls">MatchAny</span>,
+    <span class="cls">MatchText</span>, <span class="cls">Range</span>, <span class="cls">HasIdCondition</span>, <span class="cls">IsEmptyCondition</span>,
+    <span class="cls">GeoRadius</span>, <span class="cls">GeoPoint</span>, <span class="cls">Nested</span>
+)
+
+<span class="cm"># Exact match</span>
+f1 = <span class="cls">Filter</span>(must=[
+    <span class="cls">FieldCondition</span>(key=<span class="str">"status"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"active"</span>))
+])
+
+<span class="cm"># IN list</span>
+f2 = <span class="cls">Filter</span>(must=[
+    <span class="cls">FieldCondition</span>(key=<span class="str">"category"</span>, match=<span class="cls">MatchAny</span>(any=[<span class="str">"tech"</span>, <span class="str">"ai"</span>]))
+])
+
+<span class="cm"># Numeric range</span>
+f3 = <span class="cls">Filter</span>(must=[
+    <span class="cls">FieldCondition</span>(key=<span class="str">"score"</span>, range=<span class="cls">Range</span>(gte=<span class="num">4.0</span>, lte=<span class="num">5.0</span>))
+])
+
+<span class="cm"># Full-text search</span>
+f4 = <span class="cls">Filter</span>(must=[
+    <span class="cls">FieldCondition</span>(key=<span class="str">"content"</span>, match=<span class="cls">MatchText</span>(text=<span class="str">"machine learning"</span>))
+])
+
+<span class="cm"># Complex AND + OR</span>
+f5 = <span class="cls">Filter</span>(
+    must=[
+        <span class="cls">FieldCondition</span>(key=<span class="str">"published"</span>, match=<span class="cls">MatchValue</span>(value=<span class="kw">True</span>))
+    ],
+    should=[
+        <span class="cls">FieldCondition</span>(key=<span class="str">"type"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"article"</span>)),
+        <span class="cls">FieldCondition</span>(key=<span class="str">"type"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"blog"</span>)),
+    ],
+    must_not=[
+        <span class="cls">FieldCondition</span>(key=<span class="str">"spam"</span>, match=<span class="cls">MatchValue</span>(value=<span class="kw">True</span>))
+    ]
+)
+
+<span class="cm"># Geospatial filter</span>
+f6 = <span class="cls">Filter</span>(must=[
+    <span class="cls">FieldCondition</span>(
+        key=<span class="str">"location"</span>,
+        geo_radius=<span class="cls">GeoRadius</span>(
+            center=<span class="cls">GeoPoint</span>(lon=<span class="num">-73.9857</span>, lat=<span class="num">40.7484</span>),
+            radius=<span class="num">5000.0</span>  <span class="cm"># meters</span>
+        )
+    )
+])
+
+<span class="cm"># Nested array filter</span>
+f7 = <span class="cls">Filter</span>(must=[
+    <span class="cls">Nested</span>(
+        key=<span class="str">"comments"</span>,
+        filter=<span class="cls">Filter</span>(must=[
+            <span class="cls">FieldCondition</span>(key=<span class="str">"user"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"alice"</span>))
+        ])
+    )
+])</pre>
+  </div>
+
+  <h3>Create Payload Index (Required for fast filtering)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">PayloadSchemaType</span>
+
+<span class="cm"># Index a keyword field</span>
+client.<span class="fn">create_payload_index</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    field_name=<span class="str">"category"</span>,
+    field_schema=<span class="cls">PayloadSchemaType</span>.KEYWORD
+)
+
+<span class="cm"># Index a numeric field</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"score"</span>, <span class="cls">PayloadSchemaType</span>.FLOAT)
+
+<span class="cm"># Full-text index</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"content"</span>, <span class="cls">PayloadSchemaType</span>.TEXT)
+
+<span class="cm"># Geo index</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"location"</span>, <span class="cls">PayloadSchemaType</span>.GEO)
+
+<span class="cm"># Integer index</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"user_id"</span>, <span class="cls">PayloadSchemaType</span>.INTEGER)
+
+<span class="cm"># Boolean index</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"published"</span>, <span class="cls">PayloadSchemaType</span>.BOOL)
+
+<span class="cm"># Datetime index</span>
+client.<span class="fn">create_payload_index</span>(<span class="str">"my_docs"</span>, <span class="str">"created_at"</span>, <span class="cls">PayloadSchemaType</span>.DATETIME)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ PAYLOAD ═══════════════════ -->
+<section class="section" id="tab-payload">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.15)">📋</div>
+    <div>
+      <div class="section-title">Payloads</div>
+      <div class="section-desc">Attaching and managing metadata on points</div>
+    </div>
+  </div>
+
+  <h3>Payload Types</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Python Value</th><th>Schema Type</th><th>Use Case</th></tr></thead>
+      <tbody>
+        <tr><td>Keyword</td><td>str, list[str]</td><td>KEYWORD</td><td>Categories, tags, IDs, labels</td></tr>
+        <tr><td>Integer</td><td>int</td><td>INTEGER</td><td>Counts, IDs, timestamps</td></tr>
+        <tr><td>Float</td><td>float</td><td>FLOAT</td><td>Scores, ratings, prices</td></tr>
+        <tr><td>Bool</td><td>bool</td><td>BOOL</td><td>Flags, published status</td></tr>
+        <tr><td>Text</td><td>str (long)</td><td>TEXT</td><td>Full-text search content</td></tr>
+        <tr><td>Geo</td><td>dict(lon, lat)</td><td>GEO</td><td>Geospatial filtering</td></tr>
+        <tr><td>Datetime</td><td>datetime / ISO str</td><td>DATETIME</td><td>Date range filtering</td></tr>
+        <tr><td>Nested</td><td>dict, list[dict]</td><td>—</td><td>Nested object filtering</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Rich Payload Design for RAG</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Recommended payload structure for RAG pipelines</span>
+payload = {
+    <span class="cm"># Content</span>
+    <span class="str">"text"</span>: <span class="str">"The chunk text for LLM context window..."</span>,
+    <span class="str">"source_url"</span>: <span class="str">"https://docs.example.com/page"</span>,
+    <span class="str">"title"</span>: <span class="str">"Document Title"</span>,
+
+    <span class="cm"># Provenance</span>
+    <span class="str">"doc_id"</span>: <span class="str">"uuid-1234"</span>,
+    <span class="str">"chunk_index"</span>: <span class="num">3</span>,
+    <span class="str">"total_chunks"</span>: <span class="num">12</span>,
+
+    <span class="cm"># Classification</span>
+    <span class="str">"category"</span>: <span class="str">"tech"</span>,
+    <span class="str">"tags"</span>: [<span class="str">"python"</span>, <span class="str">"qdrant"</span>, <span class="str">"vector-db"</span>],
+    <span class="str">"language"</span>: <span class="str">"en"</span>,
+
+    <span class="cm"># Temporal</span>
+    <span class="str">"created_at"</span>: <span class="str">"2024-01-15T10:30:00Z"</span>,
+    <span class="str">"updated_at"</span>: <span class="str">"2024-03-20T08:00:00Z"</span>,
+
+    <span class="cm"># Access control</span>
+    <span class="str">"user_id"</span>: <span class="str">"user-abc"</span>,
+    <span class="str">"tenant_id"</span>: <span class="str">"org-xyz"</span>,
+    <span class="str">"is_public"</span>: <span class="kw">False</span>,
+
+    <span class="cm"># Quality signals</span>
+    <span class="str">"relevance_score"</span>: <span class="num">0.92</span>,
+    <span class="str">"word_count"</span>: <span class="num">312</span>,
+}</pre>
+  </div>
+
+  <h3>Selective Payload Return</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">PayloadSelectorInclude</span>, <span class="cls">PayloadSelectorExclude</span>
+
+<span class="cm"># Include only specific fields</span>
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    with_payload=<span class="cls">PayloadSelectorInclude</span>(include=[<span class="str">"text"</span>, <span class="str">"source_url"</span>]),
+    limit=<span class="num">5</span>
+)
+
+<span class="cm"># Exclude heavy fields (save bandwidth)</span>
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    with_payload=<span class="cls">PayloadSelectorExclude</span>(exclude=[<span class="str">"raw_html"</span>, <span class="str">"embeddings"</span>]),
+    limit=<span class="num">10</span>
+)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ ADVANCED ═══════════════════ -->
+<section class="section" id="tab-advanced">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(220,79,0,0.15)">🚀</div>
+    <div>
+      <div class="section-title">Advanced Features</div>
+      <div class="section-desc">Quantization, sparse vectors, grouping, and production patterns</div>
+    </div>
+  </div>
+
+  <h3>Sparse Vectors (BM25 / SPLADE)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">SparseVectorParams</span>
+
+<span class="cm"># Create collection with sparse vectors</span>
+client.<span class="fn">create_collection</span>(
+    collection_name=<span class="str">"hybrid_docs"</span>,
+    vectors_config={
+        <span class="str">"dense"</span>: <span class="cls">VectorParams</span>(size=<span class="num">1536</span>, distance=<span class="cls">Distance</span>.COSINE)
+    },
+    sparse_vectors_config={
+        <span class="str">"sparse"</span>: <span class="cls">SparseVectorParams</span>()  <span class="cm"># BM25 / SPLADE indices</span>
+    }
+)
+
+<span class="cm"># Upsert with sparse vector</span>
+<span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> <span class="cls">SparseVector</span>
+
+client.<span class="fn">upsert</span>(
+    collection_name=<span class="str">"hybrid_docs"</span>,
+    points=[<span class="cls">PointStruct</span>(
+        id=<span class="num">1</span>,
+        vector={
+            <span class="str">"dense"</span>: dense_vec,
+            <span class="str">"sparse"</span>: <span class="cls">SparseVector</span>(
+                indices=[<span class="num">102</span>, <span class="num">567</span>, <span class="num">1200</span>],   <span class="cm"># token IDs</span>
+                values=[<span class="num">0.8</span>, <span class="num">0.4</span>, <span class="num">0.3</span>]       <span class="cm"># TF-IDF weights</span>
+            )
+        },
+        payload={<span class="str">"text"</span>: <span class="str">"..."</span>}
+    )]
+)</pre>
+  </div>
+
+  <h3>Quantization (Memory Reduction)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client.models</span> <span class="kw">import</span> (
+    <span class="cls">ScalarQuantizationConfig</span>, <span class="cls">ScalarType</span>,
+    <span class="cls">BinaryQuantizationConfig</span>, <span class="cls">ProductQuantizationConfig</span>,
+    <span class="cls">CompressionRatio</span>
+)
+
+<span class="cm"># Scalar INT8 quantization (4x smaller, ~1% recall loss)</span>
+client.<span class="fn">create_collection</span>(
+    <span class="str">"quantized_docs"</span>,
+    vectors_config=<span class="cls">VectorParams</span>(size=<span class="num">1536</span>, distance=<span class="cls">Distance</span>.COSINE),
+    quantization_config=<span class="cls">ScalarQuantizationConfig</span>(
+        scalar=<span class="cls">ScalarQuantization</span>(
+            type=<span class="cls">ScalarType</span>.INT8,
+            quantile=<span class="num">0.99</span>,      <span class="cm"># outlier threshold</span>
+            always_ram=<span class="kw">True</span>     <span class="cm"># keep quantized vecs in RAM</span>
+        )
+    )
+)
+
+<span class="cm"># Binary quantization (32x smaller, good for high-dim)</span>
+client.<span class="fn">create_collection</span>(
+    <span class="str">"binary_docs"</span>,
+    vectors_config=<span class="cls">VectorParams</span>(size=<span class="num">1536</span>, distance=<span class="cls">Distance</span>.COSINE),
+    quantization_config=<span class="cls">BinaryQuantizationConfig</span>(
+        binary=<span class="cls">BinaryQuantization</span>(always_ram=<span class="kw">True</span>)
+    )
+)
+
+<span class="cm"># Rescore with quantization (balance speed vs recall)</span>
+results = client.<span class="fn">search</span>(
+    collection_name=<span class="str">"quantized_docs"</span>,
+    query_vector=query_vector,
+    search_params=<span class="cls">SearchParams</span>(
+        quantization=<span class="cls">QuantizationSearchParams</span>(
+            ignore=<span class="kw">False</span>,
+            rescore=<span class="kw">True</span>,       <span class="cm"># re-rank with full precision</span>
+            oversampling=<span class="num">2.0</span>    <span class="cm"># fetch 2x candidates for rescore</span>
+        )
+    ),
+    limit=<span class="num">10</span>
+)</pre>
+  </div>
+
+  <h3>Group By (Diversity in Results)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Get top K results per group (e.g., top 2 chunks per document)</span>
+groups = client.<span class="fn">search_groups</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    query_vector=query_vector,
+    group_by=<span class="str">"doc_id"</span>,         <span class="cm"># group field</span>
+    group_size=<span class="num">2</span>,              <span class="cm"># results per group</span>
+    limit=<span class="num">5</span>,                   <span class="cm"># number of groups</span>
+    with_payload=<span class="kw">True</span>
+)
+
+<span class="kw">for</span> group <span class="kw">in</span> groups.groups:
+    <span class="fn">print</span>(<span class="str">f"Doc: {group.id} → {len(group.hits)} hits"</span>)</pre>
+  </div>
+
+  <h3>Facets &amp; Count</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Count matching points</span>
+count = client.<span class="fn">count</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    count_filter=<span class="cls">Filter</span>(must=[
+        <span class="cls">FieldCondition</span>(key=<span class="str">"category"</span>, match=<span class="cls">MatchValue</span>(value=<span class="str">"tech"</span>))
+    ]),
+    exact=<span class="kw">True</span>
+)
+<span class="fn">print</span>(count.count)
+
+<span class="cm"># Facet counts (new in v1.10)</span>
+facets = client.<span class="fn">facet</span>(
+    collection_name=<span class="str">"my_docs"</span>,
+    key=<span class="str">"category"</span>,
+    limit=<span class="num">10</span>
+)</pre>
+  </div>
+
+  <h3>Async Client</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">from</span> <span class="cls">qdrant_client</span> <span class="kw">import</span> <span class="cls">AsyncQdrantClient</span>
+<span class="kw">import</span> asyncio
+
+async_client = <span class="cls">AsyncQdrantClient</span>(<span class="str">"localhost"</span>, port=<span class="num">6333</span>)
+
+<span class="kw">async def</span> <span class="fn">search_async</span>(query_vec):
+    results = <span class="kw">await</span> async_client.<span class="fn">search</span>(
+        collection_name=<span class="str">"my_docs"</span>,
+        query_vector=query_vec,
+        limit=<span class="num">5</span>
+    )
+    <span class="kw">return</span> results
+
+<span class="cm"># Run concurrent searches</span>
+results = <span class="kw">await</span> asyncio.<span class="fn">gather</span>(
+    <span class="fn">search_async</span>(vec1), <span class="fn">search_async</span>(vec2), <span class="fn">search_async</span>(vec3)
+)</pre>
+  </div>
+
+  <h3>Collections with Sharding (Scale Out)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># Distributed / multi-node sharding</span>
+client.<span class="fn">create_collection</span>(
+    <span class="str">"large_collection"</span>,
+    vectors_config=<span class="cls">VectorParams</span>(size=<span class="num">1536</span>, distance=<span class="cls">Distance</span>.COSINE),
+    shard_number=<span class="num">6</span>,        <span class="cm"># horizontal partitions</span>
+    replication_factor=<span class="num">2</span>,  <span class="cm"># replicas per shard (HA)</span>
+    write_consistency_factor=<span class="num">2</span>
+)</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ AGENTIC AI ═══════════════════ -->
+<section class="section" id="tab-agentic">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(0,212,170,0.15)">🤖</div>
+    <div>
+      <div class="section-title">Agentic AI Patterns</div>
+      <div class="section-desc">Memory, RAG, and multi-agent architectures with Qdrant</div>
+    </div>
+  </div>
+
+  <h3>Pattern 1 — Agent Long-Term Memory</h3>
+  <div class="pattern-card">
+    <div class="pattern-title"><span style="color:var(--teal)">🧠</span> Episodic + Semantic Memory Store</div>
+    <div class="pattern-desc">Store every agent interaction as a vector point. Retrieve relevant past context before generating each response. Implements "what has this user/agent done before?"</div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">import</span> uuid
+<span class="kw">from</span> <span class="cls">datetime</span> <span class="kw">import</span> datetime
+
+<span class="kw">class</span> <span class="cls">AgentMemory</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, client, collection=<span class="str">"agent_memory"</span>, embedder=<span class="kw">None</span>):
+        self.client = client
+        self.collection = collection
+        self.embedder = embedder
+        self.<span class="fn">_ensure_collection</span>()
+
+    <span class="kw">def</span> <span class="fn">_ensure_collection</span>(self):
+        <span class="kw">if not</span> self.client.<span class="fn">collection_exists</span>(self.collection):
+            self.client.<span class="fn">create_collection</span>(
+                self.collection,
+                vectors_config=<span class="cls">VectorParams</span>(size=<span class="num">1536</span>, distance=<span class="cls">Distance</span>.COSINE)
+            )
+            <span class="cm"># Index for fast filtering by agent/user</span>
+            self.client.<span class="fn">create_payload_index</span>(
+                self.collection, <span class="str">"agent_id"</span>, <span class="cls">PayloadSchemaType</span>.KEYWORD)
+            self.client.<span class="fn">create_payload_index</span>(
+                self.collection, <span class="str">"user_id"</span>, <span class="cls">PayloadSchemaType</span>.KEYWORD)
+            self.client.<span class="fn">create_payload_index</span>(
+                self.collection, <span class="str">"memory_type"</span>, <span class="cls">PayloadSchemaType</span>.KEYWORD)
+
+    <span class="kw">def</span> <span class="fn">save</span>(self, text, agent_id, user_id, memory_type=<span class="str">"episodic"</span>, metadata=<span class="kw">None</span>):
+        vec = self.embedder.<span class="fn">embed</span>(text)
+        self.client.<span class="fn">upsert</span>(self.collection, points=[
+            <span class="cls">PointStruct</span>(
+                id=<span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()),
+                vector=vec,
+                payload={
+                    <span class="str">"text"</span>: text,
+                    <span class="str">"agent_id"</span>: agent_id,
+                    <span class="str">"user_id"</span>: user_id,
+                    <span class="str">"memory_type"</span>: memory_type,
+                    <span class="str">"timestamp"</span>: datetime.<span class="fn">utcnow</span>().<span class="fn">isoformat</span>(),
+                    **(metadata <span class="kw">or</span> {})
+                }
+            )
+        ])
+
+    <span class="kw">def</span> <span class="fn">recall</span>(self, query, agent_id, user_id, k=<span class="num">5</span>):
+        vec = self.embedder.<span class="fn">embed</span>(query)
+        <span class="kw">return</span> self.client.<span class="fn">search</span>(
+            self.collection,
+            query_vector=vec,
+            query_filter=<span class="cls">Filter</span>(must=[
+                <span class="cls">FieldCondition</span>(<span class="str">"agent_id"</span>, match=<span class="cls">MatchValue</span>(value=agent_id)),
+                <span class="cls">FieldCondition</span>(<span class="str">"user_id"</span>, match=<span class="cls">MatchValue</span>(value=user_id))
+            ]),
+            limit=k, with_payload=<span class="kw">True</span>
+        )</pre>
+    </div>
+  </div>
+
+  <h3>Pattern 2 — Production RAG Pipeline</h3>
+  <div class="pattern-card">
+    <div class="pattern-title"><span style="color:var(--accent2)">📚</span> Retrieval-Augmented Generation</div>
+    <div class="pattern-desc">Full RAG pipeline: chunk documents → embed → store → retrieve → augment LLM prompt with top-k context.</div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cls">RAGPipeline</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, qdrant_client, openai_client, collection=<span class="str">"rag_docs"</span>):
+        self.q = qdrant_client
+        self.oai = openai_client
+        self.col = collection
+
+    <span class="kw">def</span> <span class="fn">ingest</span>(self, documents: list[dict]):
+        <span class="cm">"""Chunk, embed, and store documents."""</span>
+        points = []
+        <span class="kw">for</span> doc <span class="kw">in</span> documents:
+            chunks = self.<span class="fn">_chunk</span>(doc[<span class="str">"text"</span>], size=<span class="num">512</span>, overlap=<span class="num">64</span>)
+            vecs = self.<span class="fn">_embed_batch</span>(chunks)
+            <span class="kw">for</span> i, (chunk, vec) <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="fn">zip</span>(chunks, vecs)):
+                points.<span class="fn">append</span>(<span class="cls">PointStruct</span>(
+                    id=<span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()),
+                    vector=vec,
+                    payload={
+                        <span class="str">"text"</span>: chunk,
+                        <span class="str">"doc_id"</span>: doc[<span class="str">"id"</span>],
+                        <span class="str">"source"</span>: doc.<span class="fn">get</span>(<span class="str">"source"</span>),
+                        <span class="str">"chunk_index"</span>: i,
+                    }
+                ))
+        self.q.<span class="fn">upsert</span>(self.col, points=points)
+
+    <span class="kw">def</span> <span class="fn">query</span>(self, question: str, k=<span class="num">5</span>, filter_dict: dict=<span class="kw">None</span>):
+        <span class="cm">"""Retrieve + generate answer."""</span>
+        vec = self.<span class="fn">_embed</span>(question)
+        results = self.q.<span class="fn">search</span>(
+            self.col, query_vector=vec, limit=k,
+            query_filter=self.<span class="fn">_build_filter</span>(filter_dict),
+            with_payload=<span class="kw">True</span>
+        )
+        context = <span class="str">"\n\n"</span>.<span class="fn">join</span>([r.payload[<span class="str">"text"</span>] <span class="kw">for</span> r <span class="kw">in</span> results])
+        answer = self.oai.chat.completions.<span class="fn">create</span>(
+            model=<span class="str">"gpt-4o-mini"</span>,
+            messages=[
+                {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>:
+                    <span class="str">f"Answer based on context:\n\n{context}"</span>},
+                {<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: question}
+            ]
+        )
+        <span class="kw">return</span> {
+            <span class="str">"answer"</span>: answer.choices[<span class="num">0</span>].message.content,
+            <span class="str">"sources"</span>: [r.payload.<span class="fn">get</span>(<span class="str">"source"</span>) <span class="kw">for</span> r <span class="kw">in</span> results],
+            <span class="str">"contexts"</span>: [r.payload[<span class="str">"text"</span>] <span class="kw">for</span> r <span class="kw">in</span> results]
+        }</pre>
+    </div>
+  </div>
+
+  <h3>Pattern 3 — Multi-Tenant Agent Memory</h3>
+  <div class="pattern-card">
+    <div class="pattern-title"><span style="color:var(--purple2)">🏢</span> Tenant Isolation via Payload Filtering</div>
+    <div class="pattern-desc">Single Qdrant collection serving multiple tenants. Use <span class="inline-code">tenant_id</span> in payload + mandatory filter to guarantee isolation without separate collections.</div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">class</span> <span class="cls">MultiTenantStore</span>:
+    <span class="kw">def</span> <span class="fn">search</span>(self, query_vec, tenant_id: str, k=<span class="num">10</span>):
+        <span class="cm"># tenant_id filter is MANDATORY — never skip it</span>
+        <span class="kw">return</span> self.client.<span class="fn">search</span>(
+            collection_name=<span class="str">"shared_docs"</span>,
+            query_vector=query_vec,
+            query_filter=<span class="cls">Filter</span>(must=[
+                <span class="cls">FieldCondition</span>(
+                    key=<span class="str">"tenant_id"</span>,
+                    match=<span class="cls">MatchValue</span>(value=tenant_id)
+                )
+            ]),
+            limit=k, with_payload=<span class="kw">True</span>
+        )
+
+<span class="cm"># For strict isolation at scale, use separate collections per tenant</span>
+<span class="cm"># collection name = f"tenant_{tenant_id}_docs"</span></pre>
+    </div>
+  </div>
+
+  <h3>Pattern 4 — Tool / Function Memory for Agents</h3>
+  <div class="pattern-card">
+    <div class="pattern-title"><span style="color:var(--blue2)">🔧</span> Semantic Tool Routing</div>
+    <div class="pattern-desc">Store tool descriptions as vectors. Given a user intent, retrieve the most relevant tools for the LLM to call — dynamic tool selection at scale.</div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+      <pre><span class="kw">def</span> <span class="fn">register_tool</span>(tool_name, description, schema, tags):
+    vec = <span class="fn">embed</span>(description)
+    client.<span class="fn">upsert</span>(<span class="str">"agent_tools"</span>, points=[
+        <span class="cls">PointStruct</span>(
+            id=<span class="fn">hash_id</span>(tool_name),
+            vector=vec,
+            payload={
+                <span class="str">"name"</span>: tool_name,
+                <span class="str">"description"</span>: description,
+                <span class="str">"schema"</span>: schema,    <span class="cm"># JSON schema</span>
+                <span class="str">"tags"</span>: tags,
+            }
+        )
+    ])
+
+<span class="kw">def</span> <span class="fn">select_tools</span>(user_intent: str, k=<span class="num">5</span>) -> list[dict]:
+    <span class="cm">"""Dynamically pick relevant tools for the LLM."""</span>
+    vec = <span class="fn">embed</span>(user_intent)
+    results = client.<span class="fn">search</span>(
+        <span class="str">"agent_tools"</span>, query_vector=vec, limit=k, with_payload=<span class="kw">True</span>
+    )
+    <span class="kw">return</span> [r.payload <span class="kw">for</span> r <span class="kw">in</span> results]</pre>
+    </div>
+  </div>
+
+  <h3>Pattern 5 — Deduplication &amp; Novelty Detection</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="kw">def</span> <span class="fn">is_duplicate</span>(text, threshold=<span class="num">0.95</span>) -> bool:
+    <span class="cm">"""Check if content already exists in the store."""</span>
+    vec = <span class="fn">embed</span>(text)
+    results = client.<span class="fn">search</span>(
+        <span class="str">"my_docs"</span>, query_vector=vec, limit=<span class="num">1</span>,
+        score_threshold=threshold, with_payload=<span class="kw">False</span>
+    )
+    <span class="kw">return</span> <span class="fn">len</span>(results) > <span class="num">0</span>
+
+<span class="kw">def</span> <span class="fn">smart_upsert</span>(text, payload):
+    <span class="kw">if not</span> <span class="fn">is_duplicate</span>(text):
+        vec = <span class="fn">embed</span>(text)
+        client.<span class="fn">upsert</span>(<span class="str">"my_docs"</span>, points=[
+            <span class="cls">PointStruct</span>(id=<span class="fn">str</span>(uuid.<span class="fn">uuid4</span>()), vector=vec, payload=payload)
+        ])
+        <span class="kw">return True</span>
+    <span class="kw">return False</span></pre>
+  </div>
+
+  <h3>LangChain / LlamaIndex Integration</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div>
+    <pre><span class="cm"># LangChain</span>
+<span class="kw">from</span> <span class="cls">langchain_qdrant</span> <span class="kw">import</span> <span class="cls">QdrantVectorStore</span>
+<span class="kw">from</span> <span class="cls">langchain_openai</span> <span class="kw">import</span> <span class="cls">OpenAIEmbeddings</span>
+
+vectorstore = <span class="cls">QdrantVectorStore</span>.<span class="fn">from_documents</span>(
+    documents=docs,
+    embedding=<span class="cls">OpenAIEmbeddings</span>(),
+    url=<span class="str">"http://localhost:6333"</span>,
+    collection_name=<span class="str">"langchain_docs"</span>,
+)
+retriever = vectorstore.<span class="fn">as_retriever</span>(search_kwargs={<span class="str">"k"</span>: <span class="num">5</span>})
+
+<span class="cm"># LlamaIndex</span>
+<span class="kw">from</span> <span class="cls">llama_index.vector_stores.qdrant</span> <span class="kw">import</span> <span class="cls">QdrantVectorStore</span>
+<span class="kw">from</span> <span class="cls">llama_index.core</span> <span class="kw">import</span> <span class="cls">VectorStoreIndex</span>, <span class="cls">StorageContext</span>
+
+vector_store = <span class="cls">QdrantVectorStore</span>(client=client, collection_name=<span class="str">"llama_docs"</span>)
+storage_context = <span class="cls">StorageContext</span>.<span class="fn">from_defaults</span>(vector_store=vector_store)
+index = <span class="cls">VectorStoreIndex</span>.<span class="fn">from_documents</span>(documents, storage_context=storage_context)
+query_engine = index.<span class="fn">as_query_engine</span>()</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ CHEATSHEET ═══════════════════ -->
+<section class="section" id="tab-cheatsheet">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(59,130,246,0.15)">⚡</div>
+    <div>
+      <div class="section-title">Quick Cheatsheet</div>
+      <div class="section-desc">Essential one-liners and patterns at a glance</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem">
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--teal)">🔗 Connect</div>
+      <pre><span class="cm"># local</span>
+QdrantClient(<span class="str">"localhost"</span>, port=<span class="num">6333</span>)
+<span class="cm"># memory</span>
+QdrantClient(<span class="str">":memory:"</span>)
+<span class="cm"># cloud</span>
+QdrantClient(url=URL, api_key=KEY)</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--accent2)">📦 Collections</div>
+      <pre>create_collection(name, VectorParams(...))
+get_collection(name)
+collection_exists(name)
+delete_collection(name)
+list_collections()</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--blue2)">📍 Upsert</div>
+      <pre>upsert(col, points=[
+  PointStruct(id=1,
+    vector=[...],
+    payload={...})
+])</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--purple2)">🔍 Search</div>
+      <pre>search(col,
+  query_vector=vec,
+  limit=5,
+  query_filter=Filter(...),
+  score_threshold=0.7,
+  with_payload=True)</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--amber)">🔬 Filters</div>
+      <pre>Filter(must=[
+  FieldCondition(key,
+    match=MatchValue(v))
+  FieldCondition(key,
+    range=Range(gte=0,lte=1))
+])</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--green)">📋 Payload Ops</div>
+      <pre>set_payload(col, {k:v}, points)
+overwrite_payload(col, {k:v}, pts)
+delete_payload(col, [keys], pts)
+retrieve(col, ids=[1,2,3])</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--teal)">📜 Scroll All</div>
+      <pre>results, offset = scroll(
+  col, limit=100,
+  offset=None,
+  with_payload=True,
+  scroll_filter=Filter(...)
+)
+<span class="cm"># loop until offset is None</span></pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--red)">🗑️ Delete</div>
+      <pre>delete(col,
+  PointIdsList(points=[1,2]))
+
+delete(col,
+  FilterSelector(filter=
+    Filter(must=[...])))</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--blue2)">🧮 Count</div>
+      <pre>count(col,
+  count_filter=Filter(...),
+  exact=True
+).count</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--purple2)">🏷️ Index Fields</div>
+      <pre>create_payload_index(col,
+  "field", PayloadSchemaType
+  .KEYWORD / .FLOAT /
+  .INTEGER / .TEXT /
+  .GEO / .BOOL / .DATETIME)</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--accent2)">🎯 Recommend</div>
+      <pre>recommend(col,
+  positive=[1, 2],
+  negative=[5],
+  limit=10)</pre>
+    </div>
+
+    <div class="cs-card">
+      <div class="cs-card-header" style="color:var(--amber)">👥 Groups</div>
+      <pre>search_groups(col,
+  query_vector=vec,
+  group_by="doc_id",
+  group_size=2,
+  limit=5)</pre>
+    </div>
+
+  </div>
+
+  <h3 style="margin-top:1.8rem">Embedding Dimensions Reference</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Provider</th><th>Dims</th><th>Distance</th></tr></thead>
+      <tbody>
+        <tr><td>text-embedding-3-small</td><td>OpenAI</td><td>1536</td><td>COSINE</td></tr>
+        <tr><td>text-embedding-3-large</td><td>OpenAI</td><td>3072</td><td>COSINE</td></tr>
+        <tr><td>embed-english-v3.0</td><td>Cohere</td><td>1024</td><td>COSINE</td></tr>
+        <tr><td>all-MiniLM-L6-v2</td><td>SBERT</td><td>384</td><td>COSINE</td></tr>
+        <tr><td>all-mpnet-base-v2</td><td>SBERT</td><td>768</td><td>COSINE</td></tr>
+        <tr><td>BAAI/bge-large-en-v1.5</td><td>BAAI</td><td>1024</td><td>COSINE</td></tr>
+        <tr><td>nomic-embed-text-v1.5</td><td>Nomic</td><td>768</td><td>COSINE</td></tr>
+        <tr><td>clip-vit-base-patch32</td><td>OpenAI</td><td>512</td><td>COSINE</td></tr>
+        <tr><td>SPLADE++</td><td>naver</td><td>30522</td><td>DOT (sparse)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Production Checklist</h3>
+  <div class="tip-grid">
+    <div class="tip" style="border-color:var(--green)">
+      <div class="tip-title" style="color:var(--green)">✅ Indexing</div>
+      <div class="tip-body">Index every payload field used in filters. Use KEYWORD for categories, FLOAT for scores, TEXT for full-text.</div>
+    </div>
+    <div class="tip" style="border-color:var(--green)">
+      <div class="tip-title" style="color:var(--green)">✅ Quantization</div>
+      <div class="tip-body">Enable INT8 scalar quantization for collections &gt;1M vectors. Saves 4x RAM with minimal recall loss.</div>
+    </div>
+    <div class="tip" style="border-color:var(--green)">
+      <div class="tip-title" style="color:var(--green)">✅ Batching</div>
+      <div class="tip-body">Upsert in batches of 64–256 points. Use upload_collection() for millions of vectors.</div>
+    </div>
+    <div class="tip" style="border-color:var(--amber)">
+      <div class="tip-title" style="color:var(--amber)">⚠️ HNSW Tuning</div>
+      <div class="tip-body">Default m=16, ef_construct=100 works well. Increase ef at search time for better recall, not at build time.</div>
+    </div>
+    <div class="tip" style="border-color:var(--amber)">
+      <div class="tip-title" style="color:var(--amber)">⚠️ Async Client</div>
+      <div class="tip-body">Use AsyncQdrantClient for FastAPI or async agent frameworks to avoid blocking the event loop.</div>
+    </div>
+    <div class="tip" style="border-color:var(--red)">
+      <div class="tip-title" style="color:var(--red)">❌ Avoid</div>
+      <div class="tip-body">Don't use exact=True in production search — it bypasses HNSW and does brute force O(n) scan.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText || pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
