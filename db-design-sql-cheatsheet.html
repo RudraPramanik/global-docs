@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DB Design & SQL — Cheatsheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #111520;
+    --surface2: #161b28;
+    --border: #1e2638;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #7c6cf8;
+    --accent4: #39d98a;
+    --text: #c9d4e8;
+    --text-dim: #5a6a8a;
+    --text-bright: #eef2ff;
+    --code-bg: #0d1117;
+    --keyword: #ff79c6;
+    --func: #50fa7b;
+    --string: #f1fa8c;
+    --type: #8be9fd;
+    --comment: #6272a4;
+    --number: #bd93f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID NOISE BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeDown .6s ease both;
+  }
+
+  .header-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 62px);
+    font-weight: 800;
+    color: var(--text-bright);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 14px;
+    color: var(--text-dim);
+    font-size: 15px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: .04em;
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-bottom: 48px;
+    animation: fadeUp .5s ease both;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    opacity: .6;
+  }
+
+  .section-header h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-bright);
+    letter-spacing: -.01em;
+  }
+
+  .section-header h2 .accent { color: var(--accent); }
+  .section-header h2 .accent2 { color: var(--accent2); }
+  .section-header h2 .accent3 { color: var(--accent3); }
+  .section-header h2 .accent4 { color: var(--accent4); }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── CARD GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  @media (max-width: 720px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    transition: border-color .2s;
+  }
+
+  .card:hover { border-color: var(--accent); }
+
+  .card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    margin-bottom: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .card.accent-cyan h3 { color: var(--accent); }
+  .card.accent-orange h3 { color: var(--accent2); }
+  .card.accent-purple h3 { color: var(--accent3); }
+  .card.accent-green h3 { color: var(--accent4); }
+
+  /* ── CODE BLOCKS ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+
+  .kw  { color: var(--keyword); }
+  .fn  { color: var(--func); }
+  .st  { color: var(--string); }
+  .tp  { color: var(--type); }
+  .cm  { color: var(--comment); font-style: italic; }
+  .nm  { color: var(--number); }
+  .op  { color: #ff79c6; }
+
+  /* ── INLINE TAGS ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  .tag-cyan   { color: var(--accent);  border-color: var(--accent);  background: rgba(0,229,255,.06); }
+  .tag-orange { color: var(--accent2); border-color: var(--accent2); background: rgba(255,107,53,.06); }
+  .tag-purple { color: var(--accent3); border-color: var(--accent3); background: rgba(124,108,248,.06); }
+  .tag-green  { color: var(--accent4); border-color: var(--accent4); background: rgba(57,217,138,.06); }
+
+  /* ── LIST ITEMS ── */
+  ul.clean { list-style: none; padding: 0; }
+  ul.clean li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li .dot { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+
+  /* ── HIGHLIGHT BOX ── */
+  .highlight-box {
+    background: rgba(0,229,255,.04);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .highlight-box.orange { background: rgba(255,107,53,.04); border-color: var(--accent2); }
+  .highlight-box.purple { background: rgba(124,108,248,.04); border-color: var(--accent3); }
+  .highlight-box.green  { background: rgba(57,217,138,.04);  border-color: var(--accent4); }
+
+  /* ── TABLE ── */
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .styled-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .styled-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .styled-table tr:last-child td { border-bottom: none; }
+  .styled-table tr:hover td { background: var(--surface2); }
+
+  /* ── SPAN FULL ── */
+  .span-full { grid-column: 1 / -1; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .s1 { animation-delay: .05s; }
+  .s2 { animation-delay: .10s; }
+  .s3 { animation-delay: .15s; }
+  .s4 { animation-delay: .20s; }
+  .s5 { animation-delay: .25s; }
+  .s6 { animation-delay: .30s; }
+  .s7 { animation-delay: .35s; }
+  .s8 { animation-delay: .40s; }
+
+  code {
+    font-family: 'Space Mono', monospace;
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+
+  p { font-size: 13.5px; margin-bottom: 8px; line-height: 1.7; }
+
+  .full-width-code { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-tag">Reference Cheatsheet</div>
+    <h1>DB Design &amp; <span>SQL</span></h1>
+    <p class="subtitle">// fundamentals · syntax · operations · patterns</p>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 1. CORE CONCEPTS OF DB DESIGN                      -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s1">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>Core <span class="accent">DB Design</span> Concepts</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card accent-cyan">
+        <h3>Key Terms</h3>
+        <ul class="clean">
+          <li><span class="dot">▸</span><div><strong style="color:var(--text-bright)">Table</strong> — a collection of related data in rows &amp; columns (also called a relation)</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--text-bright)">Row / Record</strong> — a single data entry</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--text-bright)">Column / Field</strong> — an attribute of data</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--text-bright)">Schema</strong> — the blueprint/structure of the DB</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--text-bright)">Query</strong> — a request to retrieve or modify data</div></li>
+        </ul>
+      </div>
+
+      <div class="card accent-orange">
+        <h3>Keys</h3>
+        <ul class="clean">
+          <li><span class="dot">▸</span><div><strong style="color:var(--accent2)">Primary Key (PK)</strong> — uniquely identifies each row; never NULL</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--accent2)">Foreign Key (FK)</strong> — references a PK in another table; enforces referential integrity</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--accent2)">Composite Key</strong> — PK made of 2+ columns</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--accent2)">Unique Key</strong> — like PK but can be NULL</div></li>
+          <li><span class="dot">▸</span><div><strong style="color:var(--accent2)">Surrogate Key</strong> — artificial PK (e.g. auto-increment ID)</div></li>
+        </ul>
+      </div>
+
+      <div class="card accent-purple">
+        <h3>Constraints</h3>
+        <ul class="clean">
+          <li><span class="dot">▸</span><div><code>PRIMARY KEY</code> — unique + not null</div></li>
+          <li><span class="dot">▸</span><div><code>FOREIGN KEY</code> — referential integrity</div></li>
+          <li><span class="dot">▸</span><div><code>UNIQUE</code> — no duplicates in column</div></li>
+          <li><span class="dot">▸</span><div><code>NOT NULL</code> — field is required</div></li>
+          <li><span class="dot">▸</span><div><code>CHECK</code> — custom rule validation</div></li>
+          <li><span class="dot">▸</span><div><code>DEFAULT</code> — fallback value</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 2. NORMAL FORMS                                    -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s2">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>Normalization <span class="accent2">(Normal Forms)</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-orange">
+        <h3>1NF → 3NF Rules</h3>
+        <ul class="clean">
+          <li><span class="dot" style="color:var(--accent2)">1NF</span><div>Each column holds atomic (single) values. No repeating groups. Table has a PK.</div></li>
+          <li><span class="dot" style="color:var(--accent2)">2NF</span><div>Must be 1NF. Every non-key column fully depends on the entire PK (eliminates partial dependency).</div></li>
+          <li><span class="dot" style="color:var(--accent2)">3NF</span><div>Must be 2NF. No transitive dependencies — non-key columns depend only on the PK, not on other non-key columns.</div></li>
+          <li><span class="dot" style="color:var(--accent2)">BCNF</span><div>Stricter 3NF. Every determinant must be a candidate key.</div></li>
+        </ul>
+      </div>
+
+      <div class="card accent-cyan">
+        <h3>Why Normalize?</h3>
+        <div class="highlight-box">
+          Normalization reduces data redundancy, prevents update/insert/delete anomalies, and keeps data consistent across the database.
+        </div>
+        <div style="margin-top:12px">
+          <p style="color:var(--text-dim); font-size:12px; font-family:'Space Mono',monospace;">BAD — redundant data:</p>
+          <pre><span class="cm">-- OrderID | Customer | CustCity | Product</span>
+<span class="nm">1</span>        | Alice    | Dhaka    | Laptop
+<span class="nm">2</span>        | Alice    | Dhaka    | Mouse  <span class="cm">← duplicated</span></pre>
+          <p style="color:var(--text-dim); font-size:12px; font-family:'Space Mono',monospace; margin-top:8px">GOOD — normalized:</p>
+          <pre><span class="cm">-- Customers: CustomerID, Name, City</span>
+<span class="cm">-- Orders:    OrderID, CustomerID(FK), Product</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 3. RELATIONSHIPS                                   -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s3">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Relationships <span class="accent3">&amp; Cardinality</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card accent-purple">
+        <h3>One-to-Many (1:M)</h3>
+        <p>Most common. One record in table A links to many in table B.</p>
+        <pre><span class="cm">-- One Customer → Many Orders</span>
+<span class="tp">Customers</span> (CustomerID <span class="kw">PK</span>)
+<span class="tp">Orders</span>    (OrderID <span class="kw">PK</span>, CustomerID <span class="kw">FK</span>)</pre>
+      </div>
+
+      <div class="card accent-cyan">
+        <h3>Many-to-Many (M:N)</h3>
+        <p>Requires a junction/bridge table with two FKs.</p>
+        <pre><span class="cm">-- Students ↔ Courses</span>
+<span class="tp">Enrollments</span> (
+  StudentID <span class="kw">FK</span>,
+  CourseID  <span class="kw">FK</span>,
+  <span class="kw">PRIMARY KEY</span>(StudentID, CourseID)
+)</pre>
+      </div>
+
+      <div class="card accent-green">
+        <h3>One-to-One (1:1)</h3>
+        <p>Each row in A matches exactly one row in B. Used to split large tables or store optional data.</p>
+        <pre><span class="cm">-- User ↔ UserProfile</span>
+<span class="tp">UserProfiles</span> (
+  UserID <span class="kw">PK FK</span> <span class="kw">REFERENCES</span> Users
+)</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 4. DATA TYPES                                      -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s4">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>Common <span class="accent4">Data Types</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="card accent-green">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Description / Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--accent2)">Numeric</td><td><code>INT</code> / <code>BIGINT</code></td><td>Whole numbers. BIGINT for very large values.</td></tr>
+          <tr><td style="color:var(--accent2)">Numeric</td><td><code>DECIMAL(p,s)</code></td><td>Exact precision — use for money. e.g. DECIMAL(10,2)</td></tr>
+          <tr><td style="color:var(--accent2)">Numeric</td><td><code>FLOAT</code> / <code>DOUBLE</code></td><td>Approximate decimals. Avoid for currency.</td></tr>
+          <tr><td style="color:var(--accent)">String</td><td><code>VARCHAR(n)</code></td><td>Variable-length string up to n chars.</td></tr>
+          <tr><td style="color:var(--accent)">String</td><td><code>CHAR(n)</code></td><td>Fixed-length. Padded with spaces. Good for codes.</td></tr>
+          <tr><td style="color:var(--accent)">String</td><td><code>TEXT</code></td><td>Long text with no length limit.</td></tr>
+          <tr><td style="color:var(--accent4)">Date/Time</td><td><code>DATE</code></td><td>YYYY-MM-DD</td></tr>
+          <tr><td style="color:var(--accent4)">Date/Time</td><td><code>DATETIME</code> / <code>TIMESTAMP</code></td><td>Full date + time. TIMESTAMP auto-updates.</td></tr>
+          <tr><td style="color:var(--accent3)">Other</td><td><code>BOOLEAN</code></td><td>TRUE / FALSE (stored as 1/0 in many DBs)</td></tr>
+          <tr><td style="color:var(--accent3)">Other</td><td><code>JSON</code></td><td>Semi-structured data (MySQL 5.7+, PostgreSQL)</td></tr>
+          <tr><td style="color:var(--accent3)">Other</td><td><code>UUID</code></td><td>Globally unique ID string</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 5. DDL                                             -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s5">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2>DDL — <span class="accent">Data Definition Language</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-cyan">
+        <h3>CREATE TABLE</h3>
+        <pre><span class="kw">CREATE TABLE</span> <span class="tp">users</span> (
+  id         <span class="tp">INT</span>          <span class="kw">PRIMARY KEY AUTO_INCREMENT</span>,
+  username   <span class="tp">VARCHAR</span>(<span class="nm">50</span>)  <span class="kw">NOT NULL UNIQUE</span>,
+  email      <span class="tp">VARCHAR</span>(<span class="nm">100</span>) <span class="kw">NOT NULL</span>,
+  age        <span class="tp">INT</span>          <span class="kw">CHECK</span> (age &gt;= <span class="nm">0</span>),
+  status     <span class="tp">VARCHAR</span>(<span class="nm">20</span>)  <span class="kw">DEFAULT</span> <span class="st">'active'</span>,
+  created_at <span class="tp">TIMESTAMP</span>    <span class="kw">DEFAULT CURRENT_TIMESTAMP</span>
+);</pre>
+      </div>
+
+      <div class="card accent-orange">
+        <h3>ALTER &amp; DROP</h3>
+        <pre><span class="cm">-- Add column</span>
+<span class="kw">ALTER TABLE</span> <span class="tp">users</span>
+  <span class="kw">ADD COLUMN</span> phone <span class="tp">VARCHAR</span>(<span class="nm">15</span>);
+
+<span class="cm">-- Modify column</span>
+<span class="kw">ALTER TABLE</span> <span class="tp">users</span>
+  <span class="kw">MODIFY COLUMN</span> email <span class="tp">VARCHAR</span>(<span class="nm">200</span>);
+
+<span class="cm">-- Drop column</span>
+<span class="kw">ALTER TABLE</span> <span class="tp">users</span>
+  <span class="kw">DROP COLUMN</span> phone;
+
+<span class="cm">-- Rename table</span>
+<span class="kw">ALTER TABLE</span> <span class="tp">users</span>
+  <span class="kw">RENAME TO</span> <span class="tp">accounts</span>;
+
+<span class="cm">-- Delete table entirely</span>
+<span class="kw">DROP TABLE</span> <span class="tp">users</span>;
+
+<span class="cm">-- Remove all rows, keep structure</span>
+<span class="kw">TRUNCATE TABLE</span> <span class="tp">users</span>;</pre>
+      </div>
+
+      <div class="card accent-purple span-full">
+        <h3>Foreign Key Example</h3>
+        <pre><span class="kw">CREATE TABLE</span> <span class="tp">orders</span> (
+  order_id    <span class="tp">INT</span>           <span class="kw">PRIMARY KEY AUTO_INCREMENT</span>,
+  customer_id <span class="tp">INT</span>           <span class="kw">NOT NULL</span>,
+  total       <span class="tp">DECIMAL</span>(<span class="nm">10</span>,<span class="nm">2</span>) <span class="kw">NOT NULL</span>,
+  ordered_at  <span class="tp">TIMESTAMP</span>     <span class="kw">DEFAULT CURRENT_TIMESTAMP</span>,
+  <span class="kw">FOREIGN KEY</span> (customer_id) <span class="kw">REFERENCES</span> <span class="tp">users</span>(id)
+    <span class="kw">ON DELETE CASCADE</span>    <span class="cm">-- delete orders when user is deleted</span>
+    <span class="kw">ON UPDATE CASCADE</span>    <span class="cm">-- update FK when PK changes</span>
+);</pre>
+        <div class="tag-row" style="margin-top:10px">
+          <span class="tag tag-purple">ON DELETE CASCADE</span>
+          <span class="tag tag-purple">ON DELETE SET NULL</span>
+          <span class="tag tag-purple">ON DELETE RESTRICT</span>
+          <span class="tag tag-purple">ON UPDATE CASCADE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 6. DML                                             -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s6">
+    <div class="section-header">
+      <span class="section-number">06</span>
+      <h2>DML — <span class="accent2">Data Manipulation Language</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-orange">
+        <h3>INSERT</h3>
+        <pre><span class="cm">-- Single row</span>
+<span class="kw">INSERT INTO</span> <span class="tp">users</span> (username, email, age)
+<span class="kw">VALUES</span> (<span class="st">'alice'</span>, <span class="st">'alice@mail.com'</span>, <span class="nm">28</span>);
+
+<span class="cm">-- Multiple rows</span>
+<span class="kw">INSERT INTO</span> <span class="tp">users</span> (username, email)
+<span class="kw">VALUES</span>
+  (<span class="st">'bob'</span>,   <span class="st">'bob@mail.com'</span>),
+  (<span class="st">'carol'</span>, <span class="st">'carol@mail.com'</span>);
+
+<span class="cm">-- Insert from SELECT</span>
+<span class="kw">INSERT INTO</span> <span class="tp">archive_users</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">users</span>
+<span class="kw">WHERE</span> status = <span class="st">'inactive'</span>;</pre>
+      </div>
+
+      <div class="card accent-cyan">
+        <h3>UPDATE &amp; DELETE</h3>
+        <pre><span class="cm">-- Update specific rows</span>
+<span class="kw">UPDATE</span> <span class="tp">users</span>
+<span class="kw">SET</span>   status = <span class="st">'inactive'</span>,
+      age    = age + <span class="nm">1</span>
+<span class="kw">WHERE</span> id = <span class="nm">5</span>;
+
+<span class="cm">-- ⚠️  Always use WHERE with UPDATE</span>
+<span class="cm">-- Without it, ALL rows are updated!</span>
+
+<span class="cm">-- Delete specific rows</span>
+<span class="kw">DELETE FROM</span> <span class="tp">users</span>
+<span class="kw">WHERE</span> status = <span class="st">'inactive'</span>
+  <span class="kw">AND</span> created_at &lt; <span class="st">'2020-01-01'</span>;</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 7. SELECT & QUERYING                               -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s7">
+    <div class="section-header">
+      <span class="section-number">07</span>
+      <h2>SELECT — <span class="accent4">Querying Data</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-green">
+        <h3>SELECT Anatomy</h3>
+        <pre><span class="kw">SELECT</span>   col1, col2, <span class="fn">COUNT</span>(*)  <span class="cm">-- 1. what to return</span>
+<span class="kw">FROM</span>     <span class="tp">table_name</span>             <span class="cm">-- 2. where from</span>
+<span class="kw">JOIN</span>     <span class="tp">other_table</span> <span class="kw">ON</span> ...     <span class="cm">-- 3. joins</span>
+<span class="kw">WHERE</span>    condition               <span class="cm">-- 4. filter rows</span>
+<span class="kw">GROUP BY</span> col1                   <span class="cm">-- 5. aggregate</span>
+<span class="kw">HAVING</span>   <span class="fn">COUNT</span>(*) > <span class="nm">1</span>          <span class="cm">-- 6. filter groups</span>
+<span class="kw">ORDER BY</span> col2 <span class="kw">DESC</span>             <span class="cm">-- 7. sort</span>
+<span class="kw">LIMIT</span>    <span class="nm">10</span> <span class="kw">OFFSET</span> <span class="nm">20</span>;         <span class="cm">-- 8. paginate</span></pre>
+        <div class="highlight-box" style="margin-top:8px">
+          Logical execution order: FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT
+        </div>
+      </div>
+
+      <div class="card accent-cyan">
+        <h3>WHERE Operators</h3>
+        <pre><span class="kw">WHERE</span> age <span class="kw">BETWEEN</span> <span class="nm">18</span> <span class="kw">AND</span> <span class="nm">30</span>
+<span class="kw">WHERE</span> name <span class="kw">LIKE</span> <span class="st">'A%'</span>       <span class="cm">-- starts with A</span>
+<span class="kw">WHERE</span> name <span class="kw">LIKE</span> <span class="st">'%son'</span>     <span class="cm">-- ends with son</span>
+<span class="kw">WHERE</span> name <span class="kw">LIKE</span> <span class="st">'_ob'</span>      <span class="cm">-- _ = any char</span>
+<span class="kw">WHERE</span> status <span class="kw">IN</span> (<span class="st">'a'</span>, <span class="st">'b'</span>)
+<span class="kw">WHERE</span> email <span class="kw">IS NOT NULL</span>
+<span class="kw">WHERE</span> <span class="kw">NOT</span> (age &lt; <span class="nm">18</span>)
+<span class="kw">WHERE</span> a = <span class="nm">1</span> <span class="kw">AND</span> b = <span class="nm">2</span>
+<span class="kw">WHERE</span> a = <span class="nm">1</span> <span class="kw">OR</span>  b = <span class="nm">2</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 8. JOINS                                           -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section s8">
+    <div class="section-header">
+      <span class="section-number">08</span>
+      <h2>JOIN <span class="accent">Types</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-cyan">
+        <h3>All JOIN Types</h3>
+        <pre><span class="cm">-- INNER JOIN: only matching rows</span>
+<span class="kw">SELECT</span> u.username, o.total
+<span class="kw">FROM</span>  <span class="tp">users</span> u
+<span class="kw">INNER JOIN</span> <span class="tp">orders</span> o <span class="kw">ON</span> u.id = o.customer_id;
+
+<span class="cm">-- LEFT JOIN: all from left + matches</span>
+<span class="kw">SELECT</span> u.username, o.total
+<span class="kw">FROM</span>  <span class="tp">users</span> u
+<span class="kw">LEFT JOIN</span> <span class="tp">orders</span> o <span class="kw">ON</span> u.id = o.customer_id;
+<span class="cm">-- users with NO orders → o.total = NULL</span>
+
+<span class="cm">-- RIGHT JOIN: all from right + matches</span>
+<span class="kw">SELECT</span> u.username, o.total
+<span class="kw">FROM</span>  <span class="tp">users</span> u
+<span class="kw">RIGHT JOIN</span> <span class="tp">orders</span> o <span class="kw">ON</span> u.id = o.customer_id;
+
+<span class="cm">-- FULL OUTER JOIN (not in MySQL)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">a</span>
+<span class="kw">FULL OUTER JOIN</span> <span class="tp">b</span> <span class="kw">ON</span> a.id = b.id;
+
+<span class="cm">-- CROSS JOIN: every combination</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">colors</span> <span class="kw">CROSS JOIN</span> <span class="tp">sizes</span>;</pre>
+      </div>
+
+      <div class="card accent-orange">
+        <h3>Self Join &amp; USING</h3>
+        <pre><span class="cm">-- Self Join: table joins itself</span>
+<span class="kw">SELECT</span> e.name <span class="kw">AS</span> employee,
+       m.name <span class="kw">AS</span> manager
+<span class="kw">FROM</span>   <span class="tp">employees</span> e
+<span class="kw">LEFT JOIN</span> <span class="tp">employees</span> m
+  <span class="kw">ON</span> e.manager_id = m.id;
+
+<span class="cm">-- USING shorthand (same column name)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">orders</span>
+<span class="kw">JOIN</span> <span class="tp">customers</span> <span class="kw">USING</span> (customer_id);</pre>
+
+        <div class="highlight-box orange" style="margin-top:10px">
+          <strong>Rule of thumb:</strong> INNER JOIN when you only want matched records. LEFT JOIN when you want all from the left table, even with no match.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 9. AGGREGATE & GROUP BY                            -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">09</span>
+      <h2>Aggregate <span class="accent3">Functions &amp; GROUP BY</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-purple">
+        <h3>Aggregate Functions</h3>
+        <pre><span class="fn">COUNT</span>(*)         <span class="cm">-- total rows</span>
+<span class="fn">COUNT</span>(col)        <span class="cm">-- non-null count</span>
+<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> col) <span class="cm">-- unique count</span>
+<span class="fn">SUM</span>(col)          <span class="cm">-- total</span>
+<span class="fn">AVG</span>(col)          <span class="cm">-- average</span>
+<span class="fn">MIN</span>(col)          <span class="cm">-- smallest</span>
+<span class="fn">MAX</span>(col)          <span class="cm">-- largest</span>
+<span class="fn">GROUP_CONCAT</span>(col) <span class="cm">-- join strings (MySQL)</span></pre>
+      </div>
+
+      <div class="card accent-green">
+        <h3>GROUP BY + HAVING</h3>
+        <pre><span class="cm">-- Orders per customer (count ≥ 2)</span>
+<span class="kw">SELECT</span>   customer_id,
+         <span class="fn">COUNT</span>(*) <span class="kw">AS</span> order_count,
+         <span class="fn">SUM</span>(total) <span class="kw">AS</span> revenue
+<span class="kw">FROM</span>     <span class="tp">orders</span>
+<span class="kw">GROUP BY</span> customer_id
+<span class="kw">HAVING</span>   <span class="fn">COUNT</span>(*) >= <span class="nm">2</span>
+<span class="kw">ORDER BY</span> revenue <span class="kw">DESC</span>;
+
+<span class="cm">-- WHERE filters rows BEFORE grouping</span>
+<span class="cm">-- HAVING filters AFTER grouping</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 10. SUBQUERIES & CTEs                              -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">10</span>
+      <h2>Subqueries <span class="accent">&amp; CTEs</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-cyan">
+        <h3>Subqueries</h3>
+        <pre><span class="cm">-- Scalar subquery in SELECT</span>
+<span class="kw">SELECT</span> name,
+  (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> <span class="tp">orders</span>
+   <span class="kw">WHERE</span> customer_id = u.id) <span class="kw">AS</span> total_orders
+<span class="kw">FROM</span> <span class="tp">users</span> u;
+
+<span class="cm">-- Subquery in WHERE</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">products</span>
+<span class="kw">WHERE</span> price > (<span class="kw">SELECT</span> <span class="fn">AVG</span>(price) <span class="kw">FROM</span> <span class="tp">products</span>);
+
+<span class="cm">-- EXISTS subquery</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">users</span> u
+<span class="kw">WHERE EXISTS</span> (
+  <span class="kw">SELECT</span> <span class="nm">1</span> <span class="kw">FROM</span> <span class="tp">orders</span>
+  <span class="kw">WHERE</span> customer_id = u.id
+);</pre>
+      </div>
+
+      <div class="card accent-purple">
+        <h3>CTE (Common Table Expression)</h3>
+        <pre><span class="cm">-- Clean, readable alternative to subqueries</span>
+<span class="kw">WITH</span> <span class="tp">top_customers</span> <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>   customer_id, <span class="fn">SUM</span>(total) <span class="kw">AS</span> spent
+  <span class="kw">FROM</span>     <span class="tp">orders</span>
+  <span class="kw">GROUP BY</span> customer_id
+  <span class="kw">HAVING</span>   <span class="fn">SUM</span>(total) > <span class="nm">1000</span>
+),
+<span class="tp">vip</span> <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> u.username, tc.spent
+  <span class="kw">FROM</span>   <span class="tp">top_customers</span> tc
+  <span class="kw">JOIN</span>   <span class="tp">users</span> u <span class="kw">ON</span> u.id = tc.customer_id
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">vip</span> <span class="kw">ORDER BY</span> spent <span class="kw">DESC</span>;</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 11. INDEXES                                        -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">11</span>
+      <h2>Indexes <span class="accent2">&amp; Performance</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-orange">
+        <h3>Creating Indexes</h3>
+        <pre><span class="cm">-- Single column index</span>
+<span class="kw">CREATE INDEX</span> idx_email
+  <span class="kw">ON</span> <span class="tp">users</span>(email);
+
+<span class="cm">-- Unique index (prevents duplicates)</span>
+<span class="kw">CREATE UNIQUE INDEX</span> idx_username
+  <span class="kw">ON</span> <span class="tp">users</span>(username);
+
+<span class="cm">-- Composite index</span>
+<span class="kw">CREATE INDEX</span> idx_name_status
+  <span class="kw">ON</span> <span class="tp">users</span>(status, created_at);
+
+<span class="cm">-- Drop index</span>
+<span class="kw">DROP INDEX</span> idx_email <span class="kw">ON</span> <span class="tp">users</span>;</pre>
+      </div>
+
+      <div class="card accent-cyan">
+        <h3>Index Rules</h3>
+        <ul class="clean">
+          <li><span class="dot">✓</span><div>Index columns used in WHERE, JOIN ON, ORDER BY</div></li>
+          <li><span class="dot">✓</span><div>Foreign key columns should almost always be indexed</div></li>
+          <li><span class="dot">✓</span><div>Composite indexes — order matters; leads with most selective column</div></li>
+          <li><span class="dot">✗</span><div>Don't over-index — each index slows INSERT/UPDATE/DELETE</div></li>
+          <li><span class="dot">✗</span><div>Avoid indexing low-cardinality columns (e.g. boolean)</div></li>
+        </ul>
+        <div class="highlight-box" style="margin-top:10px">
+          Use <code>EXPLAIN SELECT ...</code> to see if an index is being used by the query planner.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 12. TRANSACTIONS                                   -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">12</span>
+      <h2>Transactions <span class="accent4">&amp; ACID</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-green">
+        <h3>ACID Properties</h3>
+        <ul class="clean">
+          <li><span class="dot" style="color:var(--accent4)">A</span><div><strong style="color:var(--text-bright)">Atomicity</strong> — all operations succeed, or all are rolled back</div></li>
+          <li><span class="dot" style="color:var(--accent4)">C</span><div><strong style="color:var(--text-bright)">Consistency</strong> — data moves from one valid state to another</div></li>
+          <li><span class="dot" style="color:var(--accent4)">I</span><div><strong style="color:var(--text-bright)">Isolation</strong> — concurrent transactions don't interfere</div></li>
+          <li><span class="dot" style="color:var(--accent4)">D</span><div><strong style="color:var(--text-bright)">Durability</strong> — committed data persists even after crashes</div></li>
+        </ul>
+      </div>
+
+      <div class="card accent-purple">
+        <h3>Transaction Syntax</h3>
+        <pre><span class="kw">START TRANSACTION</span>;  <span class="cm">-- or BEGIN;</span>
+
+<span class="kw">UPDATE</span> <span class="tp">accounts</span>
+  <span class="kw">SET</span> balance = balance - <span class="nm">500</span>
+  <span class="kw">WHERE</span> id = <span class="nm">1</span>;
+
+<span class="kw">UPDATE</span> <span class="tp">accounts</span>
+  <span class="kw">SET</span> balance = balance + <span class="nm">500</span>
+  <span class="kw">WHERE</span> id = <span class="nm">2</span>;
+
+<span class="cm">-- If everything is OK:</span>
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- If something fails, undo all:</span>
+<span class="kw">ROLLBACK</span>;
+
+<span class="cm">-- Save partial progress</span>
+<span class="kw">SAVEPOINT</span> sp1;
+<span class="kw">ROLLBACK TO</span> sp1;</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 13. VIEWS & WINDOW FUNCTIONS                       -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">13</span>
+      <h2>Views <span class="accent">&amp; Window Functions</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-cyan">
+        <h3>Views</h3>
+        <pre><span class="cm">-- Create a reusable named query</span>
+<span class="kw">CREATE VIEW</span> <span class="tp">active_users</span> <span class="kw">AS</span>
+  <span class="kw">SELECT</span> id, username, email
+  <span class="kw">FROM</span>   <span class="tp">users</span>
+  <span class="kw">WHERE</span>  status = <span class="st">'active'</span>;
+
+<span class="cm">-- Use it like a table</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tp">active_users</span>;
+
+<span class="cm">-- Drop a view</span>
+<span class="kw">DROP VIEW</span> <span class="tp">active_users</span>;</pre>
+        <div class="highlight-box" style="margin-top:8px">Views don't store data. They are saved SQL queries executed fresh on each call.</div>
+      </div>
+
+      <div class="card accent-orange">
+        <h3>Window Functions</h3>
+        <pre><span class="cm">-- ROW_NUMBER, RANK, DENSE_RANK</span>
+<span class="kw">SELECT</span>
+  username,
+  total,
+  <span class="fn">ROW_NUMBER</span>()
+    <span class="kw">OVER</span>(<span class="kw">ORDER BY</span> total <span class="kw">DESC</span>) <span class="kw">AS</span> row_num,
+  <span class="fn">RANK</span>()
+    <span class="kw">OVER</span>(<span class="kw">ORDER BY</span> total <span class="kw">DESC</span>) <span class="kw">AS</span> rank_pos
+<span class="kw">FROM</span> <span class="tp">users</span>;
+
+<span class="cm">-- Running total with PARTITION</span>
+<span class="kw">SELECT</span>
+  dept,
+  salary,
+  <span class="fn">SUM</span>(salary) <span class="kw">OVER</span>(
+    <span class="kw">PARTITION BY</span> dept
+    <span class="kw">ORDER BY</span> salary
+  ) <span class="kw">AS</span> running_total
+<span class="kw">FROM</span> <span class="tp">employees</span>;</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- 14. QUICK REFERENCE                                -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">14</span>
+      <h2>Quick <span class="accent3">Reference</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card accent-purple">
+        <h3>SQL Command Categories</h3>
+        <table class="styled-table">
+          <thead><tr><th>Category</th><th>Commands</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--accent)">DDL</td><td><code>CREATE ALTER DROP TRUNCATE</code></td><td>Define structure</td></tr>
+            <tr><td style="color:var(--accent2)">DML</td><td><code>INSERT UPDATE DELETE</code></td><td>Modify data</td></tr>
+            <tr><td style="color:var(--accent4)">DQL</td><td><code>SELECT</code></td><td>Query data</td></tr>
+            <tr><td style="color:var(--accent3)">DCL</td><td><code>GRANT REVOKE</code></td><td>Access control</td></tr>
+            <tr><td style="color:var(--keyword)">TCL</td><td><code>COMMIT ROLLBACK SAVEPOINT</code></td><td>Transactions</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card accent-green">
+        <h3>Design Best Practices</h3>
+        <ul class="clean">
+          <li><span class="dot">▸</span><div>Always define a Primary Key on every table</div></li>
+          <li><span class="dot">▸</span><div>Use meaningful, consistent naming (snake_case)</div></li>
+          <li><span class="dot">▸</span><div>Normalize to 3NF; denormalize only for performance</div></li>
+          <li><span class="dot">▸</span><div>Index FK columns and frequently filtered columns</div></li>
+          <li><span class="dot">▸</span><div>Use transactions for multi-step write operations</div></li>
+          <li><span class="dot">▸</span><div>Prefer <code>NOT NULL</code> by default; allow NULL only intentionally</div></li>
+          <li><span class="dot">▸</span><div>Use <code>DECIMAL</code> for money, never <code>FLOAT</code></div></li>
+          <li><span class="dot">▸</span><div>Run EXPLAIN to analyze slow queries</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer style="text-align:center; margin-top:32px; padding-top:24px; border-top:1px solid var(--border)">
+    <p style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); letter-spacing:.1em;">
+      DB DESIGN &amp; SQL CHEATSHEET &nbsp;·&nbsp; FUNDAMENTALS REFERENCE
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>
