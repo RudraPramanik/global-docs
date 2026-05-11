@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LangGraph & MCP Server — Complete Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #0f1629;
+    --surface2: #151d35;
+    --border: #1e2d50;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --accent3: #2ec4a9;
+    --accent4: #f7934c;
+    --text: #e2e8f8;
+    --text-muted: #7a8ab0;
+    --text-dim: #4a5880;
+    --green: #3dd68c;
+    --red: #f06d6d;
+    --yellow: #f7c948;
+    --code-bg: #080c18;
+    --tag-py: #3572a5;
+    --tag-concept: #7c5cbf;
+    --tag-new: #2ec4a9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    height: 52px;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--accent);
+    white-space: nowrap;
+    margin-right: 1.5rem;
+    letter-spacing: -0.02em;
+  }
+  .nav-logo span { color: var(--accent3); }
+  nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  nav a:hover { color: var(--text); background: var(--surface2); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 5rem 2rem 4rem;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .hero-eyebrow::before, .hero-eyebrow::after {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--accent3);
+    opacity: 0.4;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 0%, #a8c4f8 50%, #7c5cbf 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+    font-weight: 300;
+  }
+  .hero-tags {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-tags span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .t-py { color: #7aa8e8; border-color: #7aa8e820; background: #7aa8e808; }
+  .t-lg { color: var(--accent3); border-color: #2ec4a920; background: #2ec4a908; }
+  .t-mcp { color: var(--accent4); border-color: #f7934c20; background: #f7934c08; }
+  .t-new { color: var(--accent2); border-color: #7c5cbf20; background: #7c5cbf08; }
+
+  /* ─── LAYOUT ─── */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  /* ─── SECTION ─── */
+  .section {
+    margin-bottom: 4rem;
+    scroll-margin-top: 64px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 28px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .section-badge {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ─── SUBSECTIONS ─── */
+  .subsection {
+    margin-bottom: 2rem;
+  }
+  .subsection h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .subsection h3::before {
+    content: '▸';
+    font-size: 10px;
+    color: var(--accent3);
+  }
+  .subsection h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent4);
+    margin: 1rem 0 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  p {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin-bottom: 0.75rem;
+    line-height: 1.75;
+  }
+  strong { color: var(--text); font-weight: 500; }
+
+  /* ─── CODE BLOCKS ─── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 0.75rem 0 1.25rem;
+    overflow: hidden;
+    position: relative;
+  }
+  .code-header {
+    background: var(--surface);
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .code-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  pre {
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    tab-size: 2;
+  }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-track { background: transparent; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* syntax colors */
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .cls { color: #ffcb6b; }
+  .dec { color: #89ddff; }
+  .op { color: #89ddff; }
+  .var { color: var(--text); }
+
+  /* ─── INFO CARDS ─── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.1rem;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+  .card p { font-size: 12.5px; margin: 0; }
+
+  /* ─── CALLOUT ─── */
+  .callout {
+    border-left: 3px solid;
+    padding: 0.9rem 1.1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 13px;
+  }
+  .callout-info { border-color: var(--accent); background: #4f8ef710; }
+  .callout-warn { border-color: var(--yellow); background: #f7c94810; }
+  .callout-tip  { border-color: var(--green);  background: #3dd68c10; }
+  .callout-important { border-color: var(--accent4); background: #f7934c10; }
+  .callout strong { display: block; margin-bottom: 0.3rem; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .callout-info strong { color: var(--accent); }
+  .callout-warn strong { color: var(--yellow); }
+  .callout-tip  strong { color: var(--green); }
+  .callout-important strong { color: var(--accent4); }
+  .callout p { margin: 0; color: var(--text-muted); }
+
+  /* ─── TABLE ─── */
+  .tbl-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  tr:hover td { background: var(--surface); }
+  td code, th code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent3);
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ─── FLOW DIAGRAM ─── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 1rem 0 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    overflow-x: auto;
+  }
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .flow-node.start { border-color: var(--green); color: var(--green); }
+  .flow-node.end   { border-color: var(--red); color: var(--red); }
+  .flow-node.cond  { border-color: var(--yellow); color: var(--yellow); }
+  .flow-node.tool  { border-color: var(--accent4); color: var(--accent4); }
+  .flow-arrow {
+    color: var(--text-dim);
+    font-size: 18px;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* ─── INLINE CODE ─── */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--surface2);
+    color: var(--accent3);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ─── DIVIDER ─── */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* ─── GRID 2COL ─── */
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  @media(max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .badge-new   { background: #2ec4a920; color: var(--accent3); }
+  .badge-core  { background: #4f8ef720; color: var(--accent); }
+  .badge-mcp   { background: #f7934c20; color: var(--accent4); }
+
+  /* ─── STEP LIST ─── */
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .steps li:last-child { border: none; }
+  .steps li::before {
+    content: counter(step);
+    min-width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .steps li p { margin: 0; }
+
+  /* ─── TOC ─── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 3rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.4rem 1.5rem;
+  }
+  .toc a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.15s;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc a::before { content: '→'; font-size: 11px; color: var(--text-dim); }
+  .toc-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 0.8rem;
+    grid-column: 1/-1;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ─── FILE TREE ─── */
+  .filetree {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.9;
+    margin: 0.75rem 0 1.25rem;
+  }
+  .ft-dir { color: var(--accent); }
+  .ft-file { color: var(--text-muted); }
+  .ft-comment { color: var(--text-dim); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Lang<span>Graph</span> × MCP</div>
+  <a href="#overview">Overview</a>
+  <a href="#langchain">LangChain</a>
+  <a href="#langgraph">LangGraph</a>
+  <a href="#state">State & Nodes</a>
+  <a href="#edges">Edges</a>
+  <a href="#mcp">MCP Server</a>
+  <a href="#tools">Tools</a>
+  <a href="#memory">Memory</a>
+  <a href="#crud">CRUD Demo</a>
+  <a href="#patterns">Patterns</a>
+  <a href="#cheatsheet">Cheatsheet</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Fundamental Guide · Learning Reference · Cheatsheet</div>
+  <h1>LangGraph & MCP Server<br>Complete Developer Guide</h1>
+  <p>Build stateful, multi-step AI agents with LangGraph and Model Context Protocol. From first principles to a full CRUD demo.</p>
+  <div class="hero-tags">
+    <span class="t-py">Python 3.10+</span>
+    <span class="t-lg">LangGraph 0.2+</span>
+    <span class="t-lg">LangChain 0.3+</span>
+    <span class="t-mcp">MCP 2024-11</span>
+    <span class="t-new">OpenAI / Claude APIs</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">📖 Table of Contents</div>
+    <a href="#overview">1. Overview & Architecture</a>
+    <a href="#langchain">2. LangChain Fundamentals</a>
+    <a href="#langgraph">3. LangGraph Core Concepts</a>
+    <a href="#state">4. State & TypedDict</a>
+    <a href="#edges">5. Edges & Routing</a>
+    <a href="#mcp">6. MCP Server Protocol</a>
+    <a href="#tools">7. Tools & ToolNodes</a>
+    <a href="#memory">8. Memory & Checkpointing</a>
+    <a href="#crud">9. Full CRUD Demo Project</a>
+    <a href="#patterns">10. Agent Patterns</a>
+    <a href="#cheatsheet">11. Quick Cheatsheet</a>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       1. OVERVIEW
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="overview">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Overview & Architecture</h2>
+      <span class="section-badge">foundation</span>
+    </div>
+
+    <p>LangGraph is a <strong>stateful graph framework</strong> built on top of LangChain for orchestrating multi-step AI agents. Where LangChain provides chains and tools, LangGraph provides <strong>nodes, edges, and state</strong> to model complex, cyclical workflows.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">⛓</div>
+        <div class="card-title">LangChain</div>
+        <p>Building blocks — LLMs, prompts, retrievers, chains, tools. The foundation layer.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🕸</div>
+        <div class="card-title">LangGraph</div>
+        <p>Stateful graphs on top of LangChain. Models agents as nodes + directed edges with shared state.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔌</div>
+        <div class="card-title">MCP (Model Context Protocol)</div>
+        <p>Standard protocol for connecting LLMs to external tools & resources via JSON-RPC servers.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🤖</div>
+        <div class="card-title">Agent Loop</div>
+        <p>LLM → decide → call tool → observe → decide again. LangGraph models this as a cyclic graph.</p>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>How They Fit Together</h3>
+      <div class="flow">
+        <div class="flow-node start">User Input</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">LangGraph State</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">LLM Node</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node cond">Route?</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node tool">MCP Tool</div>
+        <div class="flow-arrow">↩</div>
+        <div class="flow-node end">END</div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Install Everything</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">bash</span><span class="code-title">installation</span></div>
+        <pre><span class="cm"># Core packages</span>
+pip install langgraph langchain langchain-openai langchain-anthropic
+
+<span class="cm"># MCP support</span>
+pip install mcp langchain-mcp-adapters
+
+<span class="cm"># Useful extras</span>
+pip install langchain-community python-dotenv pydantic</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       2. LANGCHAIN FUNDAMENTALS
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="langchain">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">LangChain Fundamentals</h2>
+      <span class="section-badge">building blocks</span>
+    </div>
+
+    <div class="subsection">
+      <h3>Core Components</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Class / Import</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>LLM</strong></td><td><code>ChatOpenAI</code>, <code>ChatAnthropic</code></td><td>The language model itself</td></tr>
+            <tr><td><strong>Prompt</strong></td><td><code>ChatPromptTemplate</code></td><td>Structured input templates</td></tr>
+            <tr><td><strong>Chain</strong></td><td><code>prompt | llm | parser</code></td><td>LCEL pipe syntax</td></tr>
+            <tr><td><strong>Tool</strong></td><td><code>@tool</code> decorator</td><td>Functions an LLM can call</td></tr>
+            <tr><td><strong>Retriever</strong></td><td><code>VectorStoreRetriever</code></td><td>Semantic search over docs</td></tr>
+            <tr><td><strong>Memory</strong></td><td><code>ConversationBufferMemory</code></td><td>Chat history (legacy)</td></tr>
+            <tr><td><strong>Parser</strong></td><td><code>StrOutputParser</code>, <code>PydanticOutputParser</code></td><td>Parse LLM output</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>LCEL — LangChain Expression Language</h3>
+      <p>LCEL uses the <code>|</code> pipe operator to compose chains declaratively.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">lcel_basics.py</span></div>
+        <pre><span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="cls">ChatOpenAI</span>
+<span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> <span class="cls">ChatPromptTemplate</span>
+<span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> <span class="cls">StrOutputParser</span>
+
+<span class="cm"># 1. Define the building blocks</span>
+llm = <span class="cls">ChatOpenAI</span>(model=<span class="str">"gpt-4o-mini"</span>, temperature=<span class="num">0</span>)
+
+prompt = <span class="cls">ChatPromptTemplate</span>.from_messages([
+    (<span class="str">"system"</span>, <span class="str">"You are a helpful assistant."</span>),
+    (<span class="str">"human"</span>, <span class="str">"{question}"</span>),
+])
+
+parser = <span class="cls">StrOutputParser</span>()
+
+<span class="cm"># 2. Compose with | operator (LCEL)</span>
+chain = prompt | llm | parser
+
+<span class="cm"># 3. Invoke</span>
+result = chain.invoke({<span class="str">"question"</span>: <span class="str">"What is LangGraph?"</span>})
+<span class="fn">print</span>(result)</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Defining Tools</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">tools.py</span></div>
+        <pre><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="cls">BaseModel</span>, <span class="cls">Field</span>
+
+<span class="cm"># Simple tool with @tool decorator</span>
+<span class="dec">@tool</span>
+<span class="kw">def</span> <span class="fn">get_weather</span>(city: <span class="cls">str</span>) -> <span class="cls">str</span>:
+    <span class="str">"""Get current weather for a city."""</span>
+    <span class="kw">return</span> <span class="str">f"It's sunny in {city}, 25°C"</span>
+
+<span class="cm"># Tool with Pydantic schema for validation</span>
+<span class="kw">class</span> <span class="cls">SearchInput</span>(<span class="cls">BaseModel</span>):
+    query: <span class="cls">str</span> = <span class="cls">Field</span>(description=<span class="str">"Search query"</span>)
+    max_results: <span class="cls">int</span> = <span class="cls">Field</span>(default=<span class="num">5</span>, description=<span class="str">"Max results"</span>)
+
+<span class="dec">@tool</span>(<span class="str">"web_search"</span>, args_schema=<span class="cls">SearchInput</span>)
+<span class="kw">def</span> <span class="fn">web_search</span>(query: <span class="cls">str</span>, max_results: <span class="cls">int</span> = <span class="num">5</span>) -> <span class="cls">list</span>:
+    <span class="str">"""Search the web for information."""</span>
+    <span class="kw">return</span> [<span class="str">f"Result {i}: {query}"</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(max_results)]
+
+<span class="cm"># Bind tools to LLM for function-calling</span>
+llm_with_tools = llm.bind_tools([get_weather, web_search])</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       3. LANGGRAPH CORE CONCEPTS
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="langgraph">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">LangGraph Core Concepts</h2>
+      <span class="section-badge">graph mechanics</span>
+    </div>
+
+    <p>LangGraph represents an agent as a <strong>directed graph</strong> where each node performs computation and edges route the flow based on state.</p>
+
+    <div class="subsection">
+      <h3>The 3 Primitives</h3>
+      <div class="cards">
+        <div class="card">
+          <div class="card-icon">🟦</div>
+          <div class="card-title">State</div>
+          <p>Shared data schema (<code>TypedDict</code>) that persists across nodes. Each node reads and writes to it.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⬜</div>
+          <div class="card-title">Node</div>
+          <p>A Python function that takes state and returns a partial state update. Think of it as a step.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">➡️</div>
+          <div class="card-title">Edge</div>
+          <p>Connection between nodes. Can be static (always go to X) or conditional (branch based on state).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Minimal Graph Example</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">minimal_graph.py</span></div>
+        <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">TypedDict</span>
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">END</span>
+
+<span class="cm"># 1. Define State schema</span>
+<span class="kw">class</span> <span class="cls">AgentState</span>(<span class="cls">TypedDict</span>):
+    messages: <span class="cls">list</span>
+    step_count: <span class="cls">int</span>
+
+<span class="cm"># 2. Define Nodes (functions)</span>
+<span class="kw">def</span> <span class="fn">greet_node</span>(state: <span class="cls">AgentState</span>) -> <span class="cls">dict</span>:
+    <span class="kw">return</span> {
+        <span class="str">"messages"</span>: state[<span class="str">"messages"</span>] + [<span class="str">"Hello!"</span>],
+        <span class="str">"step_count"</span>: state[<span class="str">"step_count"</span>] + <span class="num">1</span>
+    }
+
+<span class="kw">def</span> <span class="fn">respond_node</span>(state: <span class="cls">AgentState</span>) -> <span class="cls">dict</span>:
+    last = state[<span class="str">"messages"</span>][-<span class="num">1</span>]
+    <span class="kw">return</span> {
+        <span class="str">"messages"</span>: state[<span class="str">"messages"</span>] + [<span class="str">f"Responding to: {last}"</span>]
+    }
+
+<span class="cm"># 3. Build the graph</span>
+graph = <span class="cls">StateGraph</span>(<span class="cls">AgentState</span>)
+graph.add_node(<span class="str">"greet"</span>, greet_node)
+graph.add_node(<span class="str">"respond"</span>, respond_node)
+
+<span class="cm"># 4. Add edges</span>
+graph.set_entry_point(<span class="str">"greet"</span>)
+graph.add_edge(<span class="str">"greet"</span>, <span class="str">"respond"</span>)
+graph.add_edge(<span class="str">"respond"</span>, <span class="cls">END</span>)
+
+<span class="cm"># 5. Compile and run</span>
+app = graph.compile()
+result = app.invoke({<span class="str">"messages"</span>: [<span class="str">"Hi"</span>], <span class="str">"step_count"</span>: <span class="num">0</span>})
+<span class="fn">print</span>(result)</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       4. STATE & TYPEDDICT
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="state">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">State & TypedDict</h2>
+      <span class="section-badge">data model</span>
+    </div>
+
+    <div class="subsection">
+      <h3>State with Annotated Reducers</h3>
+      <p>By default, returning a key in a node <strong>replaces</strong> it. Use <code>Annotated</code> with <code>operator.add</code> to <strong>append</strong> instead.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">state_reducers.py</span></div>
+        <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">TypedDict</span>, <span class="cls">Annotated</span>
+<span class="kw">import</span> operator
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cls">BaseMessage</span>, <span class="cls">HumanMessage</span>, <span class="cls">AIMessage</span>
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+
+<span class="kw">class</span> <span class="cls">ChatState</span>(<span class="cls">TypedDict</span>):
+    <span class="cm"># add_messages = smart reducer: appends, handles updates by ID</span>
+    messages: <span class="cls">Annotated</span>[<span class="cls">list</span>[<span class="cls">BaseMessage</span>], add_messages]
+
+    <span class="cm"># operator.add = appends list items</span>
+    logs: <span class="cls">Annotated</span>[<span class="cls">list</span>[<span class="cls">str</span>], operator.add]
+
+    <span class="cm"># No annotation = REPLACE on each update</span>
+    current_step: <span class="cls">str</span>
+    is_done: <span class="cls">bool</span>
+
+<span class="cm"># add_messages handles HumanMessage, AIMessage, ToolMessage correctly</span>
+<span class="kw">def</span> <span class="fn">chat_node</span>(state: <span class="cls">ChatState</span>):
+    response = llm.invoke(state[<span class="str">"messages"</span>])
+    <span class="kw">return</span> {
+        <span class="str">"messages"</span>: [response],  <span class="cm"># appended via add_messages</span>
+        <span class="str">"logs"</span>: [<span class="str">"chat_node ran"</span>],   <span class="cm"># appended via operator.add</span>
+        <span class="str">"current_step"</span>: <span class="str">"chatting"</span>  <span class="cm"># replaced</span>
+    }</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <strong>💡 Tip</strong>
+      <p>Always use <code>add_messages</code> reducer for message lists. It handles deduplication, ToolMessage correlation, and AIMessage updates by message ID automatically.</p>
+    </div>
+
+    <div class="subsection">
+      <h3>MessagesState — Shorthand</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span></div>
+        <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">MessagesState</span>
+
+<span class="cm"># Equivalent to TypedDict with Annotated[list[BaseMessage], add_messages]</span>
+<span class="cm"># Plus you can extend it:</span>
+<span class="kw">class</span> <span class="cls">MyState</span>(<span class="cls">MessagesState</span>):
+    user_id: <span class="cls">str</span>
+    tool_results: <span class="cls">list</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       5. EDGES & ROUTING
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="edges">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">Edges & Conditional Routing</h2>
+      <span class="section-badge">control flow</span>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Edge Type</th><th>Method</th><th>When to Use</th></tr></thead>
+        <tbody>
+          <tr><td>Static</td><td><code>add_edge(src, dst)</code></td><td>Always go from src → dst</td></tr>
+          <tr><td>Conditional</td><td><code>add_conditional_edges(src, fn)</code></td><td>Branch based on state</td></tr>
+          <tr><td>Entry</td><td><code>set_entry_point(node)</code></td><td>First node to execute</td></tr>
+          <tr><td>Finish</td><td><code>set_finish_point(node)</code></td><td>Last node, equivalent to → END</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="subsection">
+      <h3>Conditional Edges — The Router Pattern</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">conditional_routing.py</span></div>
+        <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">END</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cls">AIMessage</span>
+
+<span class="cm"># Router function: examines state → returns node name or END</span>
+<span class="kw">def</span> <span class="fn">should_continue</span>(state: <span class="cls">MessagesState</span>) -> <span class="cls">str</span>:
+    last_message = state[<span class="str">"messages"</span>][-<span class="num">1</span>]
+
+    <span class="cm"># If LLM called a tool → go to tools node</span>
+    <span class="kw">if</span> <span class="fn">hasattr</span>(last_message, <span class="str">"tool_calls"</span>) <span class="kw">and</span> last_message.tool_calls:
+        <span class="kw">return</span> <span class="str">"tools"</span>
+
+    <span class="cm"># Otherwise → we're done</span>
+    <span class="kw">return</span> <span class="cls">END</span>
+
+<span class="cm"># Add conditional edge with path_map</span>
+graph.add_conditional_edges(
+    <span class="str">"agent"</span>,            <span class="cm"># from node</span>
+    should_continue,     <span class="cm"># router function</span>
+    {                    <span class="cm"># path_map: return value → node name</span>
+        <span class="str">"tools"</span>: <span class="str">"tools"</span>,
+        <span class="cls">END</span>: <span class="cls">END</span>
+    }
+)
+
+<span class="cm"># After tools run, loop back to agent</span>
+graph.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <strong>ℹ️ The ReAct Loop</strong>
+      <p>The <code>agent → should_continue → tools → agent</code> pattern IS the ReAct agent loop. The LLM reasons, calls a tool, observes the result, and repeats until no more tools are needed.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       6. MCP SERVER
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="mcp">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">MCP — Model Context Protocol</h2>
+      <span class="section-badge">protocol</span>
+    </div>
+
+    <p>MCP is a <strong>JSON-RPC 2.0 based protocol</strong> that standardizes how LLMs connect to external tools, resources, and data sources. Think of it as a USB-C standard for AI tool integrations.</p>
+
+    <div class="subsection">
+      <h3>MCP Architecture</h3>
+      <div class="flow">
+        <div class="flow-node start">LLM Client</div>
+        <div class="flow-arrow">→ JSON-RPC →</div>
+        <div class="flow-node">MCP Server</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node tool">Tools / Resources</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Database / API / Files</div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>MCP Server Primitives</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Primitive</th><th>Description</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Tools</strong></td><td>Functions the LLM can call with arguments</td><td><code>create_task</code>, <code>search_db</code></td></tr>
+            <tr><td><strong>Resources</strong></td><td>Data the LLM can read (like files, DB records)</td><td><code>file://notes.txt</code></td></tr>
+            <tr><td><strong>Prompts</strong></td><td>Reusable prompt templates exposed to the LLM</td><td><code>summarize_template</code></td></tr>
+            <tr><td><strong>Sampling</strong></td><td>Ask the server to make LLM calls itself</td><td>Embedded reasoning</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Building an MCP Server (Python)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">mcp_server.py</span></div>
+        <pre><span class="kw">from</span> mcp.server <span class="kw">import</span> <span class="cls">Server</span>
+<span class="kw">from</span> mcp.server.stdio <span class="kw">import</span> stdio_server
+<span class="kw">from</span> mcp <span class="kw">import</span> types
+<span class="kw">import</span> asyncio
+
+<span class="cm"># Create server instance</span>
+server = <span class="cls">Server</span>(<span class="str">"my-crud-server"</span>)
+
+<span class="cm"># In-memory "database"</span>
+items_db: <span class="cls">dict</span>[<span class="cls">str</span>, <span class="cls">dict</span>] = {}
+
+<span class="cm"># ─── List available tools ───────────────────</span>
+<span class="dec">@server.list_tools()</span>
+<span class="kw">async def</span> <span class="fn">list_tools</span>() -> <span class="cls">list</span>[types.<span class="cls">Tool</span>]:
+    <span class="kw">return</span> [
+        types.<span class="cls">Tool</span>(
+            name=<span class="str">"create_item"</span>,
+            description=<span class="str">"Create a new item in the database"</span>,
+            inputSchema={
+                <span class="str">"type"</span>: <span class="str">"object"</span>,
+                <span class="str">"properties"</span>: {
+                    <span class="str">"name"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>},
+                    <span class="str">"value"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>}
+                },
+                <span class="str">"required"</span>: [<span class="str">"name"</span>, <span class="str">"value"</span>]
+            }
+        ),
+        types.<span class="cls">Tool</span>(
+            name=<span class="str">"read_item"</span>,
+            description=<span class="str">"Read an item by ID"</span>,
+            inputSchema={
+                <span class="str">"type"</span>: <span class="str">"object"</span>,
+                <span class="str">"properties"</span>: {<span class="str">"item_id"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>}},
+                <span class="str">"required"</span>: [<span class="str">"item_id"</span>]
+            }
+        ),
+        types.<span class="cls">Tool</span>(name=<span class="str">"list_items"</span>, description=<span class="str">"List all items"</span>,
+                    inputSchema={<span class="str">"type"</span>: <span class="str">"object"</span>, <span class="str">"properties"</span>: {}}),
+        types.<span class="cls">Tool</span>(
+            name=<span class="str">"update_item"</span>,
+            description=<span class="str">"Update an existing item"</span>,
+            inputSchema={
+                <span class="str">"type"</span>: <span class="str">"object"</span>,
+                <span class="str">"properties"</span>: {
+                    <span class="str">"item_id"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>},
+                    <span class="str">"value"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>}
+                },
+                <span class="str">"required"</span>: [<span class="str">"item_id"</span>, <span class="str">"value"</span>]
+            }
+        ),
+        types.<span class="cls">Tool</span>(
+            name=<span class="str">"delete_item"</span>,
+            description=<span class="str">"Delete an item by ID"</span>,
+            inputSchema={
+                <span class="str">"type"</span>: <span class="str">"object"</span>,
+                <span class="str">"properties"</span>: {<span class="str">"item_id"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>}},
+                <span class="str">"required"</span>: [<span class="str">"item_id"</span>]
+            }
+        ),
+    ]
+
+<span class="cm"># ─── Handle tool calls ──────────────────────</span>
+<span class="dec">@server.call_tool()</span>
+<span class="kw">async def</span> <span class="fn">call_tool</span>(name: <span class="cls">str</span>, arguments: <span class="cls">dict</span>) -> <span class="cls">list</span>[types.<span class="cls">TextContent</span>]:
+    <span class="kw">import</span> uuid, json
+
+    <span class="kw">if</span> name == <span class="str">"create_item"</span>:
+        item_id = <span class="cls">str</span>(uuid.uuid4())[:<span class="num">8</span>]
+        items_db[item_id] = {<span class="str">"name"</span>: arguments[<span class="str">"name"</span>], <span class="str">"value"</span>: arguments[<span class="str">"value"</span>]}
+        <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps({<span class="str">"id"</span>: item_id, <span class="str">"status"</span>: <span class="str">"created"</span>}))]
+
+    <span class="kw">elif</span> name == <span class="str">"read_item"</span>:
+        item = items_db.get(arguments[<span class="str">"item_id"</span>])
+        <span class="kw">if not</span> item:
+            <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=<span class="str">"Item not found"</span>)]
+        <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps(item))]
+
+    <span class="kw">elif</span> name == <span class="str">"list_items"</span>:
+        <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps(items_db))]
+
+    <span class="kw">elif</span> name == <span class="str">"update_item"</span>:
+        item_id = arguments[<span class="str">"item_id"</span>]
+        <span class="kw">if</span> item_id <span class="kw">not in</span> items_db:
+            <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=<span class="str">"Item not found"</span>)]
+        items_db[item_id][<span class="str">"value"</span>] = arguments[<span class="str">"value"</span>]
+        <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps({<span class="str">"status"</span>: <span class="str">"updated"</span>}))]
+
+    <span class="kw">elif</span> name == <span class="str">"delete_item"</span>:
+        item_id = arguments[<span class="str">"item_id"</span>]
+        <span class="kw">if</span> items_db.pop(item_id, <span class="cls">None</span>):
+            <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps({<span class="str">"status"</span>: <span class="str">"deleted"</span>}))]
+        <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=<span class="str">"Not found"</span>)]
+
+<span class="cm"># ─── Run the server ─────────────────────────</span>
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    asyncio.run(stdio_server(server))</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Connecting MCP Server to LangGraph</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">mcp_client.py</span></div>
+        <pre><span class="kw">from</span> langchain_mcp_adapters.client <span class="kw">import</span> <span class="cls">MultiServerMCPClient</span>
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> create_react_agent
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="cls">ChatOpenAI</span>
+<span class="kw">import</span> asyncio
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="cm"># Connect to MCP server via stdio transport</span>
+    <span class="kw">async with</span> <span class="cls">MultiServerMCPClient</span>({
+        <span class="str">"crud-server"</span>: {
+            <span class="str">"command"</span>: <span class="str">"python"</span>,
+            <span class="str">"args"</span>: [<span class="str">"mcp_server.py"</span>],
+            <span class="str">"transport"</span>: <span class="str">"stdio"</span>
+        }
+    }) <span class="kw">as</span> client:
+
+        <span class="cm"># Get all MCP tools as LangChain tools</span>
+        tools = <span class="kw">await</span> client.get_tools()
+        <span class="fn">print</span>(<span class="str">f"Available tools: {[t.name for t in tools]}"</span>)
+
+        <span class="cm"># Build agent with MCP tools</span>
+        llm = <span class="cls">ChatOpenAI</span>(model=<span class="str">"gpt-4o-mini"</span>)
+        agent = create_react_agent(llm, tools)
+
+        <span class="cm"># Run the agent</span>
+        result = <span class="kw">await</span> agent.ainvoke({
+            <span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"Create an item called 'notebook' with value 'my notes'"</span>)]
+        })
+        <span class="fn">print</span>(result[<span class="str">"messages"</span>][-<span class="num">1</span>].content)
+
+asyncio.run(main())</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>MCP Transport Types</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Transport</th><th>Use Case</th><th>Config</th></tr></thead>
+          <tbody>
+            <tr><td><code>stdio</code></td><td>Local scripts, subprocess</td><td><code>"command": "python", "args": ["server.py"]</code></td></tr>
+            <tr><td><code>sse</code></td><td>Remote HTTP server (Server-Sent Events)</td><td><code>"url": "http://localhost:8000/sse"</code></td></tr>
+            <tr><td><code>streamable_http</code></td><td>Modern HTTP transport (2024-11 spec)</td><td><code>"url": "http://localhost:8000/mcp"</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       7. TOOLS & TOOLNODE
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="tools">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2 class="section-title">Tools & ToolNode</h2>
+      <span class="section-badge">execution</span>
+    </div>
+
+    <div class="subsection">
+      <h3>ToolNode — Automatic Tool Execution</h3>
+      <p><code>ToolNode</code> is a prebuilt node that reads <code>tool_calls</code> from the last AIMessage, executes each tool, and returns <code>ToolMessage</code> results.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">tool_node.py</span></div>
+        <pre><span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="cls">ToolNode</span>, tools_condition
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">MessagesState</span>, <span class="cls">END</span>
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="cls">ChatOpenAI</span>
+<span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+
+<span class="dec">@tool</span>
+<span class="kw">def</span> <span class="fn">calculator</span>(expression: <span class="cls">str</span>) -> <span class="cls">float</span>:
+    <span class="str">"""Evaluate a math expression."""</span>
+    <span class="kw">return</span> <span class="fn">eval</span>(expression)
+
+tools = [calculator]
+llm = <span class="cls">ChatOpenAI</span>(model=<span class="str">"gpt-4o-mini"</span>).bind_tools(tools)
+
+<span class="kw">def</span> <span class="fn">agent_node</span>(state: <span class="cls">MessagesState</span>):
+    <span class="kw">return</span> {<span class="str">"messages"</span>: [llm.invoke(state[<span class="str">"messages"</span>])]}
+
+<span class="cm"># ToolNode auto-handles all tool calls</span>
+tool_node = <span class="cls">ToolNode</span>(tools)
+
+graph = <span class="cls">StateGraph</span>(<span class="cls">MessagesState</span>)
+graph.add_node(<span class="str">"agent"</span>, agent_node)
+graph.add_node(<span class="str">"tools"</span>, tool_node)
+
+graph.set_entry_point(<span class="str">"agent"</span>)
+
+<span class="cm"># tools_condition = prebuilt router</span>
+<span class="cm"># → "tools" if tool_calls present, END otherwise</span>
+graph.add_conditional_edges(<span class="str">"agent"</span>, tools_condition)
+graph.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)  <span class="cm"># loop back</span>
+
+app = graph.compile()</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>create_react_agent — Zero-Boilerplate Agent</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">react_agent.py</span></div>
+        <pre><span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> create_react_agent
+<span class="kw">from</span> langchain_anthropic <span class="kw">import</span> <span class="cls">ChatAnthropic</span>
+
+<span class="cm"># Everything above in one call:</span>
+agent = create_react_agent(
+    model=<span class="cls">ChatAnthropic</span>(model=<span class="str">"claude-3-5-sonnet-20241022"</span>),
+    tools=tools,
+    state_modifier=<span class="str">"You are a helpful assistant with database access."</span>
+)
+
+result = agent.invoke({
+    <span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"What is 42 * 1337?"</span>)]
+})
+<span class="fn">print</span>(result[<span class="str">"messages"</span>][-<span class="num">1</span>].content)</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       8. MEMORY & CHECKPOINTING
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="memory">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2 class="section-title">Memory & Checkpointing</h2>
+      <span class="section-badge">persistence</span>
+    </div>
+
+    <p>LangGraph's checkpointing system saves <strong>full state snapshots</strong> after each node, enabling pause/resume, time-travel debugging, and multi-turn conversations.</p>
+
+    <div class="subsection">
+      <h3>In-Memory Checkpointer</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">memory.py</span></div>
+        <pre><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> <span class="cls">MemorySaver</span>
+
+checkpointer = <span class="cls">MemorySaver</span>()
+
+<span class="cm"># Compile with checkpointer</span>
+app = graph.compile(checkpointer=checkpointer)
+
+<span class="cm"># thread_id groups messages into a "conversation"</span>
+config = {<span class="str">"configurable"</span>: {<span class="str">"thread_id"</span>: <span class="str">"user-alice-session-1"</span>}}
+
+<span class="cm"># Turn 1</span>
+result1 = app.invoke(
+    {<span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"My name is Alice."</span>)]},
+    config=config
+)
+
+<span class="cm"># Turn 2 — the agent remembers "Alice"</span>
+result2 = app.invoke(
+    {<span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"What is my name?"</span>)]},
+    config=config  <span class="cm"># same thread_id = same conversation</span>
+)</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Persistent Checkpointer (SQLite / Postgres)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">persistent_memory.py</span></div>
+        <pre><span class="cm"># pip install langgraph-checkpoint-sqlite</span>
+<span class="kw">from</span> langgraph.checkpoint.sqlite <span class="kw">import</span> <span class="cls">SqliteSaver</span>
+<span class="kw">import</span> sqlite3
+
+conn = sqlite3.connect(<span class="str">"agent_memory.db"</span>, check_same_thread=<span class="cls">False</span>)
+checkpointer = <span class="cls">SqliteSaver</span>(conn)
+app = graph.compile(checkpointer=checkpointer)
+
+<span class="cm"># ─── Get state history ─────────────────────</span>
+config = {<span class="str">"configurable"</span>: {<span class="str">"thread_id"</span>: <span class="str">"alice"</span>}}
+history = <span class="cls">list</span>(app.get_state_history(config))
+<span class="fn">print</span>(<span class="str">f"Total checkpoints: {len(history)}"</span>)
+
+<span class="cm"># ─── Time travel: replay from checkpoint ──</span>
+old_checkpoint = history[-<span class="num">2</span>]  <span class="cm"># 2 steps ago</span>
+app.invoke(<span class="cls">None</span>, config=old_checkpoint.config)  <span class="cm"># resumes from there</span></pre>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <strong>⚠️ Warning</strong>
+      <p>Always use a unique <code>thread_id</code> per conversation. Sharing thread IDs across users will mix their conversation histories!</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       9. FULL CRUD DEMO PROJECT
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="crud">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2 class="section-title">Full CRUD Demo Project</h2>
+      <span class="section-badge">complete example</span>
+    </div>
+
+    <p>A complete <strong>Note-taking assistant</strong> with: an MCP server exposing CRUD tools, a LangGraph agent, SQLite persistence, and a conversational interface.</p>
+
+    <div class="subsection">
+      <h3>Project Structure</h3>
+      <div class="filetree">
+<span class="ft-dir">notes-agent/</span>
+├── <span class="ft-dir">mcp_server/</span>
+│   ├── <span class="ft-file">server.py</span>       <span class="ft-comment"># MCP server with CRUD tools</span>
+│   └── <span class="ft-file">database.py</span>     <span class="ft-comment"># SQLite operations</span>
+├── <span class="ft-dir">agent/</span>
+│   ├── <span class="ft-file">graph.py</span>        <span class="ft-comment"># LangGraph agent definition</span>
+│   ├── <span class="ft-file">state.py</span>        <span class="ft-comment"># State schema</span>
+│   └── <span class="ft-file">prompts.py</span>      <span class="ft-comment"># System prompts</span>
+├── <span class="ft-file">main.py</span>             <span class="ft-comment"># Entry point / CLI</span>
+├── <span class="ft-file">requirements.txt</span>
+└── <span class="ft-file">.env</span>                <span class="ft-comment"># OPENAI_API_KEY=...</span>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h4>Step 1 — database.py</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">mcp_server/database.py</span></div>
+        <pre><span class="kw">import</span> sqlite3, uuid
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+DB_PATH = <span class="str">"notes.db"</span>
+
+<span class="kw">def</span> <span class="fn">init_db</span>():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(<span class="str">"""
+        CREATE TABLE IF NOT EXISTS notes (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    """</span>)
+    conn.commit(); conn.close()
+
+<span class="kw">def</span> <span class="fn">create_note</span>(title: <span class="cls">str</span>, content: <span class="cls">str</span>) -> <span class="cls">dict</span>:
+    note_id = <span class="cls">str</span>(uuid.uuid4())
+    now = datetime.utcnow().isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        <span class="str">"INSERT INTO notes VALUES (?,?,?,?,?)"</span>,
+        (note_id, title, content, now, now)
+    )
+    conn.commit(); conn.close()
+    <span class="kw">return</span> {<span class="str">"id"</span>: note_id, <span class="str">"title"</span>: title, <span class="str">"content"</span>: content,
+            <span class="str">"created_at"</span>: now, <span class="str">"updated_at"</span>: now}
+
+<span class="kw">def</span> <span class="fn">read_note</span>(note_id: <span class="cls">str</span>) -> <span class="cls">dict</span> | <span class="cls">None</span>:
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        <span class="str">"SELECT id,title,content,created_at,updated_at FROM notes WHERE id=?"</span>,
+        (note_id,)
+    ).fetchone()
+    conn.close()
+    <span class="kw">if not</span> row: <span class="kw">return None</span>
+    <span class="kw">return</span> <span class="cls">dict</span>(<span class="fn">zip</span>([<span class="str">"id"</span>,<span class="str">"title"</span>,<span class="str">"content"</span>,<span class="str">"created_at"</span>,<span class="str">"updated_at"</span>], row))
+
+<span class="kw">def</span> <span class="fn">list_notes</span>() -> <span class="cls">list</span>[<span class="cls">dict</span>]:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        <span class="str">"SELECT id,title,content,created_at,updated_at FROM notes ORDER BY created_at DESC"</span>
+    ).fetchall()
+    conn.close()
+    keys = [<span class="str">"id"</span>,<span class="str">"title"</span>,<span class="str">"content"</span>,<span class="str">"created_at"</span>,<span class="str">"updated_at"</span>]
+    <span class="kw">return</span> [<span class="cls">dict</span>(<span class="fn">zip</span>(keys, r)) <span class="kw">for</span> r <span class="kw">in</span> rows]
+
+<span class="kw">def</span> <span class="fn">update_note</span>(note_id: <span class="cls">str</span>, title: <span class="cls">str</span> = <span class="cls">None</span>, content: <span class="cls">str</span> = <span class="cls">None</span>) -> <span class="cls">dict</span> | <span class="cls">None</span>:
+    note = read_note(note_id)
+    <span class="kw">if not</span> note: <span class="kw">return None</span>
+    new_title = title <span class="kw">or</span> note[<span class="str">"title"</span>]
+    new_content = content <span class="kw">or</span> note[<span class="str">"content"</span>]
+    now = datetime.utcnow().isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        <span class="str">"UPDATE notes SET title=?, content=?, updated_at=? WHERE id=?"</span>,
+        (new_title, new_content, now, note_id)
+    )
+    conn.commit(); conn.close()
+    <span class="kw">return</span> {**note, <span class="str">"title"</span>: new_title, <span class="str">"content"</span>: new_content, <span class="str">"updated_at"</span>: now}
+
+<span class="kw">def</span> <span class="fn">delete_note</span>(note_id: <span class="cls">str</span>) -> <span class="cls">bool</span>:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.execute(<span class="str">"DELETE FROM notes WHERE id=?"</span>, (note_id,))
+    conn.commit(); conn.close()
+    <span class="kw">return</span> cursor.rowcount > <span class="num">0</span></pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h4>Step 2 — mcp_server/server.py</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">mcp_server/server.py</span></div>
+        <pre><span class="kw">from</span> mcp.server <span class="kw">import</span> <span class="cls">Server</span>
+<span class="kw">from</span> mcp.server.stdio <span class="kw">import</span> stdio_server
+<span class="kw">from</span> mcp <span class="kw">import</span> types
+<span class="kw">import</span> asyncio, json
+<span class="kw">from</span> .database <span class="kw">import</span> init_db, create_note, read_note, list_notes, update_note, delete_note
+
+init_db()
+server = <span class="cls">Server</span>(<span class="str">"notes-crud-server"</span>)
+
+TOOLS = [
+    types.<span class="cls">Tool</span>(name=<span class="str">"create_note"</span>, description=<span class="str">"Create a new note"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{<span class="str">"title"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>},<span class="str">"content"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>}},<span class="str">"required"</span>:[<span class="str">"title"</span>,<span class="str">"content"</span>]}),
+    types.<span class="cls">Tool</span>(name=<span class="str">"read_note"</span>, description=<span class="str">"Get a note by ID"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{<span class="str">"note_id"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>}},<span class="str">"required"</span>:[<span class="str">"note_id"</span>]}),
+    types.<span class="cls">Tool</span>(name=<span class="str">"list_notes"</span>, description=<span class="str">"List all notes"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{}}),
+    types.<span class="cls">Tool</span>(name=<span class="str">"update_note"</span>, description=<span class="str">"Update title or content of a note"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{<span class="str">"note_id"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>},<span class="str">"title"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>},<span class="str">"content"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>}},<span class="str">"required"</span>:[<span class="str">"note_id"</span>]}),
+    types.<span class="cls">Tool</span>(name=<span class="str">"delete_note"</span>, description=<span class="str">"Delete a note by ID"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{<span class="str">"note_id"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>}},<span class="str">"required"</span>:[<span class="str">"note_id"</span>]}),
+    types.<span class="cls">Tool</span>(name=<span class="str">"search_notes"</span>, description=<span class="str">"Search notes by keyword"</span>,
+               inputSchema={<span class="str">"type"</span>:<span class="str">"object"</span>,<span class="str">"properties"</span>:{<span class="str">"keyword"</span>:{<span class="str">"type"</span>:<span class="str">"string"</span>}},<span class="str">"required"</span>:[<span class="str">"keyword"</span>]}),
+]
+
+<span class="dec">@server.list_tools()</span>
+<span class="kw">async def</span> <span class="fn">list_tools</span>(): <span class="kw">return</span> TOOLS
+
+<span class="dec">@server.call_tool()</span>
+<span class="kw">async def</span> <span class="fn">call_tool</span>(name: <span class="cls">str</span>, arguments: <span class="cls">dict</span>):
+    <span class="kw">def</span> <span class="fn">resp</span>(data): <span class="kw">return</span> [types.<span class="cls">TextContent</span>(type=<span class="str">"text"</span>, text=json.dumps(data, indent=<span class="num">2</span>))]
+
+    <span class="kw">if</span>   name == <span class="str">"create_note"</span>: <span class="kw">return</span> <span class="fn">resp</span>(create_note(arguments[<span class="str">"title"</span>], arguments[<span class="str">"content"</span>]))
+    <span class="kw">elif</span> name == <span class="str">"read_note"</span>:   <span class="kw">return</span> <span class="fn">resp</span>(read_note(arguments[<span class="str">"note_id"</span>]) <span class="kw">or</span> {<span class="str">"error"</span>: <span class="str">"Not found"</span>})
+    <span class="kw">elif</span> name == <span class="str">"list_notes"</span>:  <span class="kw">return</span> <span class="fn">resp</span>(list_notes())
+    <span class="kw">elif</span> name == <span class="str">"update_note"</span>: <span class="kw">return</span> <span class="fn">resp</span>(update_note(arguments[<span class="str">"note_id"</span>], arguments.get(<span class="str">"title"</span>), arguments.get(<span class="str">"content"</span>)) <span class="kw">or</span> {<span class="str">"error"</span>: <span class="str">"Not found"</span>})
+    <span class="kw">elif</span> name == <span class="str">"delete_note"</span>: <span class="kw">return</span> <span class="fn">resp</span>({<span class="str">"deleted"</span>: delete_note(arguments[<span class="str">"note_id"</span>])})
+    <span class="kw">elif</span> name == <span class="str">"search_notes"</span>:
+        kw = arguments[<span class="str">"keyword"</span>].lower()
+        matches = [n <span class="kw">for</span> n <span class="kw">in</span> list_notes() <span class="kw">if</span> kw <span class="kw">in</span> n[<span class="str">"title"</span>].lower() <span class="kw">or</span> kw <span class="kw">in</span> n[<span class="str">"content"</span>].lower()]
+        <span class="kw">return</span> <span class="fn">resp</span>(matches)
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    asyncio.run(stdio_server(server))</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h4>Step 3 — agent/graph.py</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">agent/graph.py</span></div>
+        <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">Annotated</span>
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">MessagesState</span>, <span class="cls">END</span>
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="cls">ToolNode</span>, tools_condition
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> <span class="cls">MemorySaver</span>
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="cls">ChatOpenAI</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="cls">SystemMessage</span>
+
+SYSTEM_PROMPT = <span class="str">"""You are a helpful notes assistant. You can:
+- CREATE notes with title and content
+- READ notes by their ID
+- LIST all notes
+- UPDATE notes (title or content)
+- DELETE notes by ID
+- SEARCH notes by keyword
+
+Always confirm operations to the user clearly."""</span>
+
+<span class="kw">def</span> <span class="fn">build_agent</span>(tools: <span class="cls">list</span>) -> <span class="cls">object</span>:
+    llm = <span class="cls">ChatOpenAI</span>(model=<span class="str">"gpt-4o-mini"</span>, temperature=<span class="num">0</span>).bind_tools(tools)
+
+    <span class="kw">def</span> <span class="fn">agent_node</span>(state: <span class="cls">MessagesState</span>):
+        messages = [<span class="cls">SystemMessage</span>(content=SYSTEM_PROMPT)] + state[<span class="str">"messages"</span>]
+        <span class="kw">return</span> {<span class="str">"messages"</span>: [llm.invoke(messages)]}
+
+    tool_node = <span class="cls">ToolNode</span>(tools)
+
+    graph = <span class="cls">StateGraph</span>(<span class="cls">MessagesState</span>)
+    graph.add_node(<span class="str">"agent"</span>, agent_node)
+    graph.add_node(<span class="str">"tools"</span>, tool_node)
+    graph.set_entry_point(<span class="str">"agent"</span>)
+    graph.add_conditional_edges(<span class="str">"agent"</span>, tools_condition)
+    graph.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)
+
+    checkpointer = <span class="cls">MemorySaver</span>()
+    <span class="kw">return</span> graph.compile(checkpointer=checkpointer)</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h4>Step 4 — main.py (CLI entrypoint)</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">main.py</span></div>
+        <pre><span class="kw">import</span> asyncio, os
+<span class="kw">from</span> dotenv <span class="kw">import</span> load_dotenv
+<span class="kw">from</span> langchain_mcp_adapters.client <span class="kw">import</span> <span class="cls">MultiServerMCPClient</span>
+<span class="kw">from</span> agent.graph <span class="kw">import</span> build_agent
+
+load_dotenv()
+
+<span class="kw">async def</span> <span class="fn">chat</span>():
+    <span class="kw">async with</span> <span class="cls">MultiServerMCPClient</span>({
+        <span class="str">"notes-server"</span>: {
+            <span class="str">"command"</span>: <span class="str">"python"</span>,
+            <span class="str">"args"</span>: [<span class="str">"-m"</span>, <span class="str">"mcp_server.server"</span>],
+            <span class="str">"transport"</span>: <span class="str">"stdio"</span>
+        }
+    }) <span class="kw">as</span> client:
+        tools = <span class="kw">await</span> client.get_tools()
+        agent = build_agent(tools)
+        thread = {<span class="str">"configurable"</span>: {<span class="str">"thread_id"</span>: <span class="str">"main"</span>}}
+
+        <span class="fn">print</span>(<span class="str">"📝 Notes Agent ready. Type 'quit' to exit.\n"</span>)
+
+        <span class="kw">while</span> <span class="cls">True</span>:
+            user_input = <span class="fn">input</span>(<span class="str">"You: "</span>).strip()
+            <span class="kw">if</span> user_input.lower() <span class="kw">in</span> (<span class="str">"quit"</span>, <span class="str">"exit"</span>): <span class="kw">break</span>
+            <span class="kw">if not</span> user_input: <span class="kw">continue</span>
+
+            result = <span class="kw">await</span> agent.ainvoke(
+                {<span class="str">"messages"</span>: [(<span class="str">"user"</span>, user_input)]},
+                config=thread
+            )
+            <span class="fn">print</span>(<span class="str">f"\nAssistant: {result['messages'][-1].content}\n"</span>)
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    asyncio.run(chat())</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <strong>🚀 Run the Demo</strong>
+      <p>Run with <code>python main.py</code>. Try: "Create a note called Meeting with content 'Discuss Q4 roadmap'" → "List all notes" → "Update the meeting note content to 'Q4 roadmap confirmed'" → "Delete all notes about meetings"</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       10. AGENT PATTERNS
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="patterns">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2 class="section-title">Agent Patterns</h2>
+      <span class="section-badge">architecture</span>
+    </div>
+
+    <div class="subsection">
+      <h3>Human-in-the-Loop</h3>
+      <p>Use <code>interrupt_before</code> to pause execution before sensitive nodes (e.g., delete operations) and wait for user confirmation.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">human_in_loop.py</span></div>
+        <pre><span class="cm"># Compile with interruption point</span>
+app = graph.compile(
+    checkpointer=checkpointer,
+    interrupt_before=[<span class="str">"tools"</span>]  <span class="cm"># pause before tool execution</span>
+)
+
+config = {<span class="str">"configurable"</span>: {<span class="str">"thread_id"</span>: <span class="str">"t1"</span>}}
+app.invoke({<span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"Delete note abc123"</span>)]}, config)
+
+<span class="cm"># State is now paused. Inspect it:</span>
+state = app.get_state(config)
+pending_tools = state.values[<span class="str">"messages"</span>][-<span class="num">1</span>].tool_calls
+<span class="fn">print</span>(<span class="str">f"About to call: {pending_tools}"</span>)
+
+<span class="cm"># Human approves → resume by passing None</span>
+confirmed = <span class="fn">input</span>(<span class="str">"Confirm? (y/n): "</span>)
+<span class="kw">if</span> confirmed == <span class="str">"y"</span>:
+    app.invoke(<span class="cls">None</span>, config)  <span class="cm"># resumes from checkpoint</span>
+<span class="kw">else</span>:
+    <span class="cm"># Override state to cancel</span>
+    app.update_state(config, {<span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"Cancel that."</span>)]})</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Multi-Agent (Supervisor Pattern)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">multi_agent.py</span></div>
+        <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">MessagesState</span>, <span class="cls">END</span>
+
+<span class="cm"># Each specialized agent as a node</span>
+<span class="kw">def</span> <span class="fn">supervisor_node</span>(state):
+    <span class="cm"># Supervisor decides which specialist to call</span>
+    task = state[<span class="str">"messages"</span>][-<span class="num">1</span>].content
+    <span class="kw">if</span> <span class="str">"note"</span> <span class="kw">in</span> task.lower():    <span class="kw">return</span> {<span class="str">"next"</span>: <span class="str">"notes_agent"</span>}
+    <span class="kw">elif</span> <span class="str">"search"</span> <span class="kw">in</span> task.lower(): <span class="kw">return</span> {<span class="str">"next"</span>: <span class="str">"search_agent"</span>}
+    <span class="kw">else</span>:                           <span class="kw">return</span> {<span class="str">"next"</span>: <span class="cls">END</span>}
+
+graph = <span class="cls">StateGraph</span>(<span class="cls">MessagesState</span>)
+graph.add_node(<span class="str">"supervisor"</span>, supervisor_node)
+graph.add_node(<span class="str">"notes_agent"</span>, notes_agent_fn)
+graph.add_node(<span class="str">"search_agent"</span>, search_agent_fn)
+
+graph.set_entry_point(<span class="str">"supervisor"</span>)
+graph.add_conditional_edges(<span class="str">"supervisor"</span>,
+    <span class="kw">lambda</span> s: s.get(<span class="str">"next"</span>, <span class="cls">END</span>),
+    {<span class="str">"notes_agent"</span>: <span class="str">"notes_agent"</span>, <span class="str">"search_agent"</span>: <span class="str">"search_agent"</span>, <span class="cls">END</span>: <span class="cls">END</span>}
+)</pre>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Streaming Responses</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">python</span><span class="code-title">streaming.py</span></div>
+        <pre><span class="cm"># Stream token-by-token output</span>
+<span class="kw">async for</span> chunk <span class="kw">in</span> agent.astream(
+    {<span class="str">"messages"</span>: [(<span class="str">"user"</span>, <span class="str">"List all notes"</span>)]},
+    config=config,
+    stream_mode=<span class="str">"messages"</span>  <span class="cm"># or "values", "updates", "events"</span>
+):
+    <span class="kw">if</span> chunk[<span class="num">1</span>].get(<span class="str">"langgraph_node"</span>) == <span class="str">"agent"</span>:
+        <span class="fn">print</span>(chunk[<span class="num">0</span>].content, end=<span class="str">""</span>, flush=<span class="cls">True</span>)
+
+<span class="cm"># Stream modes:
+# "values"  → full state after each node
+# "updates" → only state changes per node
+# "messages" → LLM tokens as they stream
+# "events"  → all internal events</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       11. CHEATSHEET
+  ═══════════════════════════════════════════ -->
+  <div class="section" id="cheatsheet">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2 class="section-title">Quick Cheatsheet</h2>
+      <span class="section-badge">reference</span>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <div class="subsection">
+          <h3>LangGraph Key Imports</h3>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">python</span></div>
+            <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> (
+    <span class="cls">StateGraph</span>,      <span class="cm"># build graph</span>
+    <span class="cls">MessagesState</span>,   <span class="cm"># message state</span>
+    <span class="cls">END</span>,             <span class="cm"># terminal node</span>
+    <span class="cls">START</span>            <span class="cm"># entry sentinel</span>
+)
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> (
+    <span class="cls">ToolNode</span>,        <span class="cm"># auto tool exec</span>
+    tools_condition, <span class="cm"># prebuilt router</span>
+    create_react_agent <span class="cm"># zero-boilerplate</span>
+)
+<span class="kw">from</span> langgraph.graph.message <span class="kw">import</span> add_messages
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> <span class="cls">MemorySaver</span></pre>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="subsection">
+          <h3>MCP Key Imports</h3>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">python</span></div>
+            <pre><span class="cm"># Server side</span>
+<span class="kw">from</span> mcp.server <span class="kw">import</span> <span class="cls">Server</span>
+<span class="kw">from</span> mcp.server.stdio <span class="kw">import</span> stdio_server
+<span class="kw">from</span> mcp <span class="kw">import</span> types
+
+<span class="cm"># Client side (LangChain adapter)</span>
+<span class="kw">from</span> langchain_mcp_adapters.client <span class="kw">import</span> (
+    <span class="cls">MultiServerMCPClient</span>
+)
+
+<span class="cm"># MCP types</span>
+types.<span class="cls">Tool</span>          <span class="cm"># tool definition</span>
+types.<span class="cls">TextContent</span>  <span class="cm"># text response</span>
+types.<span class="cls">ImageContent</span> <span class="cm"># image response</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Graph Building Recipe</h3>
+      <ol class="steps">
+        <li><p>Define <strong>State</strong> with <code>TypedDict</code>. Use <code>Annotated[list, add_messages]</code> for message lists.</p></li>
+        <li><p>Write <strong>Node functions</strong>: <code>def node(state: MyState) -> dict</code>. Return only the keys you want to update.</p></li>
+        <li><p>Create <code>StateGraph(MyState)</code> and <code>add_node(name, fn)</code> for each node.</p></li>
+        <li><p>Set entry point with <code>set_entry_point()</code>, add edges with <code>add_edge()</code> and <code>add_conditional_edges()</code>.</p></li>
+        <li><p><code>compile(checkpointer=...)</code> — add checkpointer for memory. Pass <code>interrupt_before</code> for human-in-the-loop.</p></li>
+        <li><p><code>app.invoke({...}, config={"configurable": {"thread_id": "..."}}) </code> to run.</p></li>
+      </ol>
+    </div>
+
+    <div class="subsection">
+      <h3>Common Patterns Reference</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Pattern</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td>Simple agent with tools</td><td><code>create_react_agent(llm, tools)</code></td></tr>
+            <tr><td>Tool execution node</td><td><code>ToolNode(tools)</code></td></tr>
+            <tr><td>Route on tool calls</td><td><code>tools_condition</code> (prebuilt)</td></tr>
+            <tr><td>Append to message list</td><td><code>Annotated[list, add_messages]</code></td></tr>
+            <tr><td>Multi-turn memory</td><td><code>MemorySaver()</code> + <code>thread_id</code></td></tr>
+            <tr><td>Pause for human</td><td><code>interrupt_before=["node"]</code></td></tr>
+            <tr><td>Resume after pause</td><td><code>app.invoke(None, config)</code></td></tr>
+            <tr><td>MCP tools in agent</td><td><code>client.get_tools()</code> then pass to agent</td></tr>
+            <tr><td>Stream tokens</td><td><code>app.astream(..., stream_mode="messages")</code></td></tr>
+            <tr><td>Time travel</td><td><code>app.get_state_history(config)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>State Reducer Reference</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Annotation</th><th>Behavior</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td>no annotation</td><td>Replace value</td><td>single values, flags, counters</td></tr>
+            <tr><td><code>Annotated[list, operator.add]</code></td><td>Append lists</td><td>logs, events, simple message lists</td></tr>
+            <tr><td><code>Annotated[list, add_messages]</code></td><td>Smart append (handles IDs)</td><td>LangChain message lists</td></tr>
+            <tr><td>Custom reducer function</td><td>Any merge logic</td><td>sets, dicts, custom dedup</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout callout-important">
+      <strong>🔑 Key Mental Model</strong>
+      <p>LangGraph = <strong>State Machine</strong> where nodes are states and edges are transitions. MCP = <strong>Tool Protocol</strong> where servers expose typed functions the LLM can discover and call. Together: the agent has state, memory, and access to any external system.</p>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+</body>
+</html>
