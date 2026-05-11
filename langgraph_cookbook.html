@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangGraph Cookbook — Building Reliable Agents</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00ff88;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --code-bg: #0d0d16;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 60px 0 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-glow {
+    position: absolute;
+    top: -80px; left: -100px;
+    width: 500px; height: 300px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -2px;
+  }
+
+  h1 .highlight {
+    color: var(--accent);
+    position: relative;
+  }
+
+  .subtitle {
+    margin-top: 16px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .toc-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 32px;
+  }
+
+  .toc-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .toc-pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,136,0.05);
+  }
+
+  /* SECTIONS */
+  section {
+    padding: 56px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .section-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 4px 8px;
+    border-radius: 2px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent3);
+    margin-bottom: 10px;
+    margin-top: 24px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  p {
+    color: #b0b0c0;
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 12px;
+  }
+
+  /* CODE BLOCKS */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    padding: 20px 24px;
+    overflow-x: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #c8c8e0;
+    border-radius: 0 4px 4px 0;
+    margin: 12px 0 20px;
+    position: relative;
+  }
+
+  pre .c { color: #4a4a60; } /* comment */
+  pre .k { color: #7c3aed; } /* keyword */
+  pre .kw { color: var(--accent2); } /* from/import */
+  pre .fn { color: #22d3ee; } /* function */
+  pre .s { color: #86efac; } /* string */
+  pre .n { color: var(--accent); } /* important name */
+  pre .t { color: var(--accent3); } /* type */
+  pre .d { color: #f9a8d4; } /* decorator */
+  pre .num { color: #fb923c; } /* number */
+
+  .lang-tag {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* CARDS GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(124,58,237,0.4); }
+  .card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .card p { font-size: 12px; margin: 0; }
+
+  /* CONCEPT DIAGRAM */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .node.start { border-color: var(--accent); color: var(--accent); }
+  .node.agent { border-color: var(--accent2); color: #a78bfa; }
+  .node.tool { border-color: var(--accent3); color: var(--accent3); }
+  .node.end { border-color: var(--accent4); color: #f87171; }
+
+  .arrow {
+    color: var(--muted);
+    font-size: 18px;
+    padding: 0 8px;
+    font-family: monospace;
+  }
+
+  .arrow.down {
+    display: block;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 14px;
+  }
+
+  /* TAGS */
+  .tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    margin: 2px;
+    text-transform: uppercase;
+  }
+  .tag.green { background: rgba(0,255,136,0.1); color: var(--accent); border: 1px solid rgba(0,255,136,0.2); }
+  .tag.purple { background: rgba(124,58,237,0.1); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+  .tag.amber { background: rgba(245,158,11,0.1); color: var(--accent3); border: 1px solid rgba(245,158,11,0.3); }
+  .tag.red { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+  /* CALLOUT */
+  .callout {
+    border-left: 3px solid var(--accent3);
+    background: rgba(245,158,11,0.05);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #d4b483;
+    font-family: 'Space Mono', monospace;
+    line-height: 1.6;
+  }
+  .callout.tip { border-color: var(--accent); background: rgba(0,255,136,0.04); color: #80d9a8; }
+  .callout.danger { border-color: var(--accent4); background: rgba(239,68,68,0.05); color: #f0a0a0; }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    margin: 16px 0;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--accent2);
+    color: #a78bfa;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #b0b0c0;
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(124,58,237,0.04); }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 6px 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #b0b0c0;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .checklist li::before { content: '◆'; color: var(--accent); font-size: 8px; margin-top: 4px; flex-shrink: 0; }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 0;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* PHASE FLOW */
+  .phase-flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .phase {
+    background: var(--surface);
+    padding: 16px;
+    text-align: center;
+  }
+  .phase .phase-num { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--accent2); }
+  .phase .phase-label { font-size: 11px; margin-top: 6px; color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+
+  @media (max-width: 600px) {
+    .phase-flow { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* scroll behavior */
+  html { scroll-behavior: smooth; }
+
+  /* section anchors offset */
+  section[id] { scroll-margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-glow"></div>
+    <div class="badge">// Cookbook v1.0 — 2025</div>
+    <h1>Lang<span class="highlight">Graph</span><br>Agent Cookbook</h1>
+    <p class="subtitle">// building reliable, stateful, production-grade agents</p>
+    <nav class="toc-strip">
+      <a class="toc-pill" href="#fundamentals">01 Fundamentals</a>
+      <a class="toc-pill" href="#state">02 State</a>
+      <a class="toc-pill" href="#nodes-edges">03 Nodes & Edges</a>
+      <a class="toc-pill" href="#patterns">04 Patterns</a>
+      <a class="toc-pill" href="#tools">05 Tools</a>
+      <a class="toc-pill" href="#memory">06 Memory</a>
+      <a class="toc-pill" href="#human-in-loop">07 Human-in-Loop</a>
+      <a class="toc-pill" href="#reliability">08 Reliability</a>
+      <a class="toc-pill" href="#cheatsheet">09 Cheatsheet</a>
+    </nav>
+  </header>
+
+  <!-- 01 FUNDAMENTALS -->
+  <section id="fundamentals">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Core Concepts & Mental Model</h2>
+    </div>
+
+    <p>LangGraph models your agent as a <strong>directed graph</strong> where nodes do work and edges control flow. Unlike chain-style frameworks, it gives you explicit control over loops, branches, state, and checkpoints — essential for reliable agents.</p>
+
+    <div class="diagram">
+      <div class="node start">START</div>
+      <span class="arrow">→</span>
+      <div class="node agent">agent<br><small style="color:#6b6b80;font-size:9px">LLM call</small></div>
+      <span class="arrow">→</span>
+      <div class="node tool">tools<br><small style="color:#6b6b80;font-size:9px">execute</small></div>
+      <span class="arrow">→</span>
+      <div class="node agent">agent<br><small style="color:#6b6b80;font-size:9px">loop</small></div>
+      <span class="arrow">→</span>
+      <div class="node end">END</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <h4 style="color:var(--accent)">StateGraph</h4>
+        <p>The core object. Takes a TypedDict schema defining what data flows through the graph. All nodes read from and write to this shared state.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:#a78bfa">Nodes</h4>
+        <p>Python functions (or runnables) that take state as input and return a partial state update. This is where your logic lives.</p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--accent3)">Edges</h4>
+        <p>Connections between nodes. Can be unconditional or conditional (branching logic based on state values).</p>
+      </div>
+    </div>
+
+    <h3>Install & Setup</h3>
+    <pre><span class="c"># Install LangGraph + LangChain core</span>
+pip install langgraph langchain-core langchain-openai
+
+<span class="c"># For async support</span>
+pip install langgraph[async]
+
+<span class="c"># LangGraph Studio (local dev UI)</span>
+pip install langgraph-cli</pre>
+
+    <h3>Boilerplate — Minimal Agent</h3>
+    <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="t">StateGraph</span>, START, END
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="t">TypedDict</span>, <span class="t">Annotated</span>
+<span class="kw">import</span> operator
+
+<span class="c"># 1. Define State Schema</span>
+<span class="k">class</span> <span class="t">AgentState</span>(<span class="t">TypedDict</span>):
+    messages: <span class="t">Annotated</span>[list, operator.add]   <span class="c"># list that appends</span>
+    next_step: str
+
+<span class="c"># 2. Define Nodes (functions)</span>
+<span class="k">def</span> <span class="fn">agent_node</span>(state: <span class="t">AgentState</span>) -> dict:
+    <span class="c"># do work, return partial state update</span>
+    <span class="k">return</span> {<span class="s">"messages"</span>: [<span class="s">"agent response here"</span>]}
+
+<span class="c"># 3. Build Graph</span>
+graph = <span class="t">StateGraph</span>(<span class="t">AgentState</span>)
+graph.add_node(<span class="s">"agent"</span>, agent_node)
+graph.add_edge(START, <span class="s">"agent"</span>)
+graph.add_edge(<span class="s">"agent"</span>, END)
+
+<span class="c"># 4. Compile</span>
+app = graph.<span class="fn">compile</span>()
+
+<span class="c"># 5. Invoke</span>
+result = app.<span class="fn">invoke</span>({<span class="s">"messages"</span>: [<span class="s">"hello"</span>], <span class="s">"next_step"</span>: <span class="s">""</span>})
+<span class="lang-tag">python</span></pre>
+  </section>
+
+  <!-- 02 STATE -->
+  <section id="state">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>State Design Patterns</h2>
+    </div>
+
+    <p>State is the single most important design decision. Get it wrong and your agent will be buggy and hard to debug. State travels through every node and persists across checkpoints.</p>
+
+    <div class="callout tip">// Rule of thumb: keep state minimal but complete. Every field should answer "do I need this to make routing decisions or for a node to do its job?"</div>
+
+    <h3>Reducer Annotations</h3>
+    <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="t">Annotated</span>
+<span class="kw">import</span> operator
+
+<span class="k">class</span> <span class="t">State</span>(<span class="t">TypedDict</span>):
+    <span class="c"># REPLACE (default) — last write wins</span>
+    status: str
+
+    <span class="c"># APPEND — uses operator.add reducer</span>
+    messages: <span class="t">Annotated</span>[list, operator.add]
+
+    <span class="c"># CUSTOM REDUCER — merge dicts</span>
+    metadata: <span class="t">Annotated</span>[dict, <span class="k">lambda</span> x, y: {**x, **y}]
+
+    <span class="c"># COUNTER — sum integers</span>
+    retry_count: <span class="t">Annotated</span>[int, operator.add]
+<span class="lang-tag">python</span></pre>
+
+    <h3>MessagesState Shortcut</h3>
+    <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="t">MessagesState</span>
+
+<span class="c"># Built-in state with Annotated messages list</span>
+<span class="c"># equivalent to TypedDict with operator.add on messages</span>
+<span class="k">class</span> <span class="t">MyState</span>(<span class="t">MessagesState</span>):
+    <span class="c"># Add your custom fields on top</span>
+    user_id: str
+    tool_calls_count: int
+<span class="lang-tag">python</span></pre>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>✓ Good State Fields</h4>
+        <p style="font-family:'Space Mono',monospace; font-size:11px; color:#80d9a8; line-height:2">
+          messages: list<br>
+          current_step: str<br>
+          tool_results: list<br>
+          error: str | None<br>
+          retry_count: int<br>
+          user_context: dict
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--accent4)">✗ Avoid in State</h4>
+        <p style="font-family:'Space Mono',monospace; font-size:11px; color:#f0a0a0; line-height:2">
+          large binary blobs<br>
+          full DB result sets<br>
+          unserializable objects<br>
+          deeply nested mutable<br>
+          circular references
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 NODES & EDGES -->
+  <section id="nodes-edges">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Nodes & Edges</h2>
+    </div>
+
+    <h3>Node Signatures</h3>
+    <pre><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> <span class="t">RunnableConfig</span>
+
+<span class="c"># Basic node</span>
+<span class="k">def</span> <span class="fn">my_node</span>(state: <span class="t">State</span>) -> dict:
+    <span class="k">return</span> {<span class="s">"key"</span>: <span class="s">"value"</span>}
+
+<span class="c"># Node with config (access thread_id, metadata, etc.)</span>
+<span class="k">def</span> <span class="fn">my_node</span>(state: <span class="t">State</span>, config: <span class="t">RunnableConfig</span>) -> dict:
+    thread_id = config[<span class="s">"configurable"</span>].get(<span class="s">"thread_id"</span>)
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"processed"</span>}
+
+<span class="c"># Async node</span>
+<span class="k">async</span> <span class="k">def</span> <span class="fn">async_node</span>(state: <span class="t">State</span>) -> dict:
+    result = <span class="k">await</span> some_async_call(state[<span class="s">"messages"</span>])
+    <span class="k">return</span> {<span class="s">"messages"</span>: [result]}
+<span class="lang-tag">python</span></pre>
+
+    <h3>Edge Types</h3>
+    <pre><span class="c"># Unconditional edge</span>
+graph.<span class="fn">add_edge</span>(<span class="s">"node_a"</span>, <span class="s">"node_b"</span>)
+
+<span class="c"># Conditional edge — router function returns next node name</span>
+<span class="k">def</span> <span class="fn">router</span>(state: <span class="t">State</span>) -> str:
+    <span class="k">if</span> state[<span class="s">"error"</span>]:
+        <span class="k">return</span> <span class="s">"handle_error"</span>
+    <span class="k">elif</span> state[<span class="s">"tool_calls"</span>]:
+        <span class="k">return</span> <span class="s">"tools"</span>
+    <span class="k">else</span>:
+        <span class="k">return</span> END
+
+graph.<span class="fn">add_conditional_edges</span>(<span class="s">"agent"</span>, router)
+
+<span class="c"># Conditional edge with explicit mapping</span>
+graph.<span class="fn">add_conditional_edges</span>(
+    <span class="s">"agent"</span>,
+    router,
+    {
+        <span class="s">"handle_error"</span>: <span class="s">"handle_error"</span>,
+        <span class="s">"tools"</span>:        <span class="s">"tools"</span>,
+        END:             END,
+    }
+)
+
+<span class="c"># Send to multiple nodes in parallel</span>
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> <span class="t">Send</span>
+
+<span class="k">def</span> <span class="fn">fan_out</span>(state: <span class="t">State</span>):
+    <span class="k">return</span> [<span class="t">Send</span>(<span class="s">"worker"</span>, {<span class="s">"task"</span>: t}) <span class="k">for</span> t <span class="k">in</span> state[<span class="s">"tasks"</span>]]
+
+graph.<span class="fn">add_conditional_edges</span>(<span class="s">"planner"</span>, fan_out)
+<span class="lang-tag">python</span></pre>
+  </section>
+
+  <!-- 04 PATTERNS -->
+  <section id="patterns">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Agent Patterns</h2>
+    </div>
+
+    <h3>ReAct Agent (Think → Act → Observe loop)</h3>
+    <pre><span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="t">ChatOpenAI</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="t">ToolMessage</span>
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="t">StateGraph</span>, <span class="t">MessagesState</span>, START, END
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="fn">ToolNode</span>
+
+model = <span class="t">ChatOpenAI</span>(model=<span class="s">"gpt-4o"</span>).bind_tools(tools)
+
+<span class="k">def</span> <span class="fn">agent</span>(state: <span class="t">MessagesState</span>):
+    response = model.<span class="fn">invoke</span>(state[<span class="s">"messages"</span>])
+    <span class="k">return</span> {<span class="s">"messages"</span>: [response]}
+
+<span class="k">def</span> <span class="fn">should_continue</span>(state: <span class="t">MessagesState</span>) -> str:
+    last = state[<span class="s">"messages"</span>][-<span class="num">1</span>]
+    <span class="k">return</span> <span class="s">"tools"</span> <span class="k">if</span> last.tool_calls <span class="k">else</span> END
+
+builder = <span class="t">StateGraph</span>(<span class="t">MessagesState</span>)
+builder.<span class="fn">add_node</span>(<span class="s">"agent"</span>, agent)
+builder.<span class="fn">add_node</span>(<span class="s">"tools"</span>, <span class="fn">ToolNode</span>(tools))
+builder.<span class="fn">add_edge</span>(START, <span class="s">"agent"</span>)
+builder.<span class="fn">add_conditional_edges</span>(<span class="s">"agent"</span>, should_continue)
+builder.<span class="fn">add_edge</span>(<span class="s">"tools"</span>, <span class="s">"agent"</span>)   <span class="c"># loop back</span>
+
+app = builder.<span class="fn">compile</span>()
+<span class="lang-tag">python</span></pre>
+
+    <h3>Plan-and-Execute Pattern</h3>
+    <pre><span class="k">class</span> <span class="t">PlanState</span>(<span class="t">TypedDict</span>):
+    task: str
+    plan: <span class="t">Annotated</span>[list[str], operator.add]
+    results: <span class="t">Annotated</span>[list, operator.add]
+    current_step: int
+
+<span class="k">def</span> <span class="fn">planner</span>(state):
+    plan = llm.<span class="fn">invoke</span>(<span class="s">f"Create a step-by-step plan for: {state['task']}"</span>)
+    <span class="k">return</span> {<span class="s">"plan"</span>: parse_plan(plan), <span class="s">"current_step"</span>: <span class="num">0</span>}
+
+<span class="k">def</span> <span class="fn">executor</span>(state):
+    step = state[<span class="s">"plan"</span>][state[<span class="s">"current_step"</span>]]
+    result = execute_step(step)
+    <span class="k">return</span> {<span class="s">"results"</span>: [result], <span class="s">"current_step"</span>: state[<span class="s">"current_step"</span>] + <span class="num">1</span>}
+
+<span class="k">def</span> <span class="fn">is_done</span>(state) -> str:
+    <span class="k">return</span> END <span class="k">if</span> state[<span class="s">"current_step"</span>] >= len(state[<span class="s">"plan"</span>]) <span class="k">else</span> <span class="s">"executor"</span>
+<span class="lang-tag">python</span></pre>
+
+    <h3>Multi-Agent Supervisor Pattern</h3>
+    <pre><span class="c"># Supervisor routes between specialized agents</span>
+AGENTS = [<span class="s">"researcher"</span>, <span class="s">"coder"</span>, <span class="s">"reviewer"</span>]
+
+<span class="k">def</span> <span class="fn">supervisor</span>(state):
+    prompt = supervisor_prompt + str(state[<span class="s">"messages"</span>])
+    decision = llm.<span class="fn">invoke</span>(prompt)   <span class="c"># returns {"next": "coder"}</span>
+    <span class="k">return</span> {<span class="s">"next"</span>: decision[<span class="s">"next"</span>]}
+
+<span class="k">def</span> <span class="fn">route_to_agent</span>(state) -> str:
+    <span class="k">return</span> state[<span class="s">"next"</span>]   <span class="c"># "researcher" | "coder" | "reviewer" | END</span>
+
+<span class="c"># Each agent is a subgraph compiled separately</span>
+graph.<span class="fn">add_node</span>(<span class="s">"supervisor"</span>, supervisor)
+<span class="k">for</span> name <span class="k">in</span> AGENTS:
+    graph.<span class="fn">add_node</span>(name, agent_factory(name))
+    graph.<span class="fn">add_edge</span>(name, <span class="s">"supervisor"</span>)   <span class="c"># all report back</span>
+
+graph.<span class="fn">add_conditional_edges</span>(<span class="s">"supervisor"</span>, route_to_agent)
+<span class="lang-tag">python</span></pre>
+  </section>
+
+  <!-- 05 TOOLS -->
+  <section id="tools">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Tools Integration</h2>
+    </div>
+
+    <h3>Define Tools</h3>
+    <pre><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="t">BaseModel</span>, <span class="t">Field</span>
+
+<span class="c"># Simple tool with decorator</span>
+<span class="d">@tool</span>
+<span class="k">def</span> <span class="fn">search_web</span>(query: str) -> str:
+    <span class="s">"""Search the web for current information."""</span>
+    <span class="k">return</span> web_search_api(query)
+
+<span class="c"># Typed tool with Pydantic schema</span>
+<span class="k">class</span> <span class="t">DatabaseQueryInput</span>(<span class="t">BaseModel</span>):
+    table: str = <span class="t">Field</span>(description=<span class="s">"Table name to query"</span>)
+    filter: str = <span class="t">Field</span>(description=<span class="s">"SQL WHERE clause"</span>)
+    limit: int = <span class="t">Field</span>(default=<span class="num">10</span>, description=<span class="s">"Max rows"</span>)
+
+<span class="d">@tool</span>(args_schema=<span class="t">DatabaseQueryInput</span>)
+<span class="k">def</span> <span class="fn">query_db</span>(table: str, filter: str, limit: int) -> list:
+    <span class="s">"""Query the database and return results."""</span>
+    <span class="k">return</span> db.<span class="fn">execute</span>(<span class="s">f"SELECT * FROM {table} WHERE {filter} LIMIT {limit}"</span>)
+<span class="lang-tag">python</span></pre>
+
+    <h3>ToolNode — Automatic Execution</h3>
+    <pre><span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="t">ToolNode</span>
+
+tools = [search_web, query_db, write_file]
+
+<span class="c"># ToolNode auto-executes all tool_calls in last message</span>
+tool_node = <span class="t">ToolNode</span>(tools)
+
+<span class="c"># Add to graph</span>
+graph.<span class="fn">add_node</span>(<span class="s">"tools"</span>, tool_node)
+
+<span class="c"># Manual tool execution (for custom error handling)</span>
+<span class="k">def</span> <span class="fn">execute_tools</span>(state: <span class="t">State</span>):
+    tool_calls = state[<span class="s">"messages"</span>][-<span class="num">1</span>].tool_calls
+    results = []
+    <span class="k">for</span> call <span class="k">in</span> tool_calls:
+        <span class="k">try</span>:
+            tool_fn = tool_map[call[<span class="s">"name"</span>]]
+            out = tool_fn.<span class="fn">invoke</span>(call[<span class="s">"args"</span>])
+            results.<span class="fn">append</span>(<span class="t">ToolMessage</span>(content=str(out), tool_call_id=call[<span class="s">"id"</span>]))
+        <span class="k">except</span> <span class="t">Exception</span> <span class="k">as</span> e:
+            results.<span class="fn">append</span>(<span class="t">ToolMessage</span>(content=<span class="s">f"Error: {e}"</span>, tool_call_id=call[<span class="s">"id"</span>]))
+    <span class="k">return</span> {<span class="s">"messages"</span>: results}
+<span class="lang-tag">python</span></pre>
+
+    <div class="callout danger">// Never let tool errors crash the graph. Always wrap tool execution in try/except and return error messages back into state — let the LLM decide how to handle them.</div>
+  </section>
+
+  <!-- 06 MEMORY & PERSISTENCE -->
+  <section id="memory">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Memory & Persistence</h2>
+    </div>
+
+    <div class="phase-flow">
+      <div class="phase"><div class="phase-num">①</div><div class="phase-label">In-Memory<br>MemorySaver</div></div>
+      <div class="phase"><div class="phase-num">②</div><div class="phase-label">SQLite<br>SqliteSaver</div></div>
+      <div class="phase"><div class="phase-num">③</div><div class="phase-label">Postgres<br>AsyncPg</div></div>
+      <div class="phase"><div class="phase-num">④</div><div class="phase-label">Redis<br>Custom</div></div>
+    </div>
+
+    <h3>Checkpointers</h3>
+    <pre><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> <span class="t">MemorySaver</span>
+<span class="kw">from</span> langgraph.checkpoint.sqlite <span class="kw">import</span> <span class="t">SqliteSaver</span>
+<span class="kw">from</span> langgraph.checkpoint.postgres <span class="kw">import</span> <span class="t">PostgresSaver</span>
+
+<span class="c"># Development: in-memory</span>
+memory = <span class="t">MemorySaver</span>()
+
+<span class="c"># Local persistence: SQLite</span>
+<span class="k">with</span> <span class="t">SqliteSaver</span>.<span class="fn">from_conn_string</span>(<span class="s">"./checkpoints.db"</span>) <span class="k">as</span> saver:
+    app = graph.<span class="fn">compile</span>(checkpointer=saver)
+
+<span class="c"># Production: Postgres</span>
+<span class="k">with</span> <span class="t">PostgresSaver</span>.<span class="fn">from_conn_string</span>(DB_URI) <span class="k">as</span> saver:
+    saver.<span class="fn">setup</span>()   <span class="c"># creates tables</span>
+    app = graph.<span class="fn">compile</span>(checkpointer=saver)
+
+<span class="c"># Invoke with thread_id for session persistence</span>
+config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"user-123-session-1"</span>}}
+result = app.<span class="fn">invoke</span>({<span class="s">"messages"</span>: [...]}, config=config)
+
+<span class="c"># Resume the same thread later</span>
+result2 = app.<span class="fn">invoke</span>({<span class="s">"messages"</span>: [<span class="s">"follow-up question"</span>]}, config=config)
+<span class="lang-tag">python</span></pre>
+
+    <h3>State Time-Travel & Replay</h3>
+    <pre><span class="c"># List all checkpoints for a thread</span>
+checkpoints = list(app.<span class="fn">get_state_history</span>(config))
+
+<span class="c"># Inspect a specific checkpoint</span>
+state_at_step_3 = checkpoints[<span class="num">3</span>]
+
+<span class="c"># Fork from a previous checkpoint</span>
+fork_config = {<span class="s">"configurable"</span>: {
+    <span class="s">"thread_id"</span>: <span class="s">"user-123-session-1"</span>,
+    <span class="s">"checkpoint_id"</span>: state_at_step_3.config[<span class="s">"configurable"</span>][<span class="s">"checkpoint_id"</span>]
+}}
+result = app.<span class="fn">invoke</span>(None, config=fork_config)   <span class="c"># resume from that point</span>
+<span class="lang-tag">python</span></pre>
+
+    <h3>Store — Long-Term Cross-Thread Memory</h3>
+    <pre><span class="kw">from</span> langgraph.store.memory <span class="kw">import</span> <span class="t">InMemoryStore</span>
+
+store = <span class="t">InMemoryStore</span>()
+
+<span class="c"># Write to store from a node</span>
+<span class="k">def</span> <span class="fn">save_memory</span>(state, config, *, store):
+    user_id = config[<span class="s">"configurable"</span>][<span class="s">"user_id"</span>]
+    store.<span class="fn">put</span>((<span class="s">"users"</span>, user_id), <span class="s">"preferences"</span>, {<span class="s">"tone"</span>: <span class="s">"formal"</span>})
+    <span class="k">return</span> {}
+
+<span class="c"># Read from store</span>
+prefs = store.<span class="fn">get</span>((<span class="s">"users"</span>, user_id), <span class="s">"preferences"</span>)
+<span class="lang-tag">python</span></pre>
+  </section>
+
+  <!-- 07 HUMAN IN THE LOOP -->
+  <section id="human-in-loop">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Human-in-the-Loop</h2>
+    </div>
+
+    <p>Interrupts pause execution at a node boundary and surface the current state for human review. The graph is resumed via <code style="color:var(--accent);font-family:'Space Mono',monospace">app.invoke(None, config)</code> after a human takes action.</p>
+
+    <h3>Interrupt Before / After</h3>
+    <pre><span class="c"># Compile with interrupt_before</span>
+app = graph.<span class="fn">compile</span>(
+    checkpointer=memory,
+    interrupt_before=[<span class="s">"tools"</span>],       <span class="c"># pause BEFORE executing tools</span>
+    interrupt_after=[<span class="s">"draft_response"</span>] <span class="c"># pause AFTER drafting</span>
+)
+
+config = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"t1"</span>}}
+
+<span class="c"># First call — pauses at interrupt</span>
+app.<span class="fn">invoke</span>({<span class="s">"messages"</span>: [<span class="s">"query"</span>]}, config)
+
+<span class="c"># Inspect the state</span>
+state = app.<span class="fn">get_state</span>(config)
+print(state.values)        <span class="c"># see what tools will be called</span>
+print(state.next)          <span class="c"># ['tools']</span>
+
+<span class="c"># Human approves — resume</span>
+app.<span class="fn">invoke</span>(None, config)
+
+<span class="c"># Human edits state before resuming</span>
+app.<span class="fn">update_state</span>(config, {<span class="s">"messages"</span>: [corrected_message]})
+app.<span class="fn">invoke</span>(None, config)
+<span class="lang-tag">python</span></pre>
+
+    <h3>Dynamic Interrupt (interrupt())</h3>
+    <pre><span class="kw">from</span> langgraph.types <span class="kw">import</span> <span class="fn">interrupt</span>
+
+<span class="k">def</span> <span class="fn">review_node</span>(state):
+    <span class="c"># Pauses here and surfaces value to human</span>
+    human_decision = <span class="fn">interrupt</span>({
+        <span class="s">"question"</span>: <span class="s">"Approve this action?"</span>,
+        <span class="s">"proposed_action"</span>: state[<span class="s">"action"</span>]
+    })
+    <span class="c"># human_decision is what the human provides on resume</span>
+    <span class="k">if</span> human_decision[<span class="s">"approved"</span>]:
+        <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"approved"</span>}
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"rejected"</span>}
+
+<span class="c"># Resume with human input</span>
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> <span class="t">Command</span>
+app.<span class="fn">invoke</span>(<span class="t">Command</span>(resume={<span class="s">"approved"</span>: <span class="k">True</span>}), config)
+<span class="lang-tag">python</span></pre>
+  </section>
+
+  <!-- 08 RELIABILITY -->
+  <section id="reliability">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Reliability Patterns</h2>
+    </div>
+
+    <h3>Retry Logic</h3>
+    <pre><span class="kw">from</span> langgraph.utils <span class="kw">import</span> <span class="t">RetryPolicy</span>
+
+<span class="c"># Add retry policy to a node</span>
+graph.<span class="fn">add_node</span>(
+    <span class="s">"flaky_api_node"</span>,
+    call_api,
+    retry=<span class="t">RetryPolicy</span>(
+        max_attempts=<span class="num">3</span>,
+        wait_random_min=<span class="num">1</span>,
+        wait_random_max=<span class="num">5</span>,
+        retry_on=<span class="t">Exception</span>,   <span class="c"># or specific exception types</span>
+    )
+)
+<span class="lang-tag">python</span></pre>
+
+    <h3>Recursion / Loop Protection</h3>
+    <pre><span class="c"># Set max recursion limit at compile time</span>
+app = graph.<span class="fn">compile</span>(checkpointer=memory)
+
+<span class="c"># Or per-invocation</span>
+result = app.<span class="fn">invoke</span>(
+    initial_state,
+    config={
+        <span class="s">"recursion_limit"</span>: <span class="num">25</span>,   <span class="c"># default is 25</span>
+        <span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"t1"</span>}
+    }
+)
+
+<span class="c"># Gracefully handle recursion limit</span>
+<span class="kw">from</span> langgraph.errors <span class="kw">import</span> <span class="t">GraphRecursionError</span>
+<span class="k">try</span>:
+    result = app.<span class="fn">invoke</span>(state, config)
+<span class="k">except</span> <span class="t">GraphRecursionError</span>:
+    <span class="c"># Log, alert, or return partial result</span>
+    result = app.<span class="fn">get_state</span>(config).values
+<span class="lang-tag">python</span></pre>
+
+    <h3>Streaming for Long Tasks</h3>
+    <pre><span class="c"># Stream events as they happen</span>
+<span class="k">for</span> event <span class="k">in</span> app.<span class="fn">stream</span>(initial_state, config, stream_mode=<span class="s">"updates"</span>):
+    <span class="k">for</span> node_name, node_output <span class="k">in</span> event.items():
+        print(<span class="s">f"[{node_name}] {node_output}"</span>)
+
+<span class="c"># Stream LLM token-by-token</span>
+<span class="k">for</span> chunk <span class="k">in</span> app.<span class="fn">stream</span>(state, config, stream_mode=<span class="s">"messages"</span>):
+    print(chunk.content, end=<span class="s">""</span>, flush=<span class="k">True</span>)
+
+<span class="c"># Multiple stream modes</span>
+<span class="k">for</span> event <span class="k">in</span> app.<span class="fn">stream</span>(state, stream_mode=[<span class="s">"updates"</span>, <span class="s">"debug"</span>]):
+    <span class="fn">handle</span>(event)
+<span class="lang-tag">python</span></pre>
+
+    <h3>Subgraphs for Modularity</h3>
+    <pre><span class="c"># Compile a subgraph</span>
+sub_builder = <span class="t">StateGraph</span>(<span class="t">SubState</span>)
+<span class="c"># ... add nodes/edges</span>
+sub_app = sub_builder.<span class="fn">compile</span>()
+
+<span class="c"># Add compiled subgraph as a node in parent</span>
+parent = <span class="t">StateGraph</span>(<span class="t">ParentState</span>)
+parent.<span class="fn">add_node</span>(<span class="s">"sub_workflow"</span>, sub_app)   <span class="c"># compiled graph IS a node</span>
+<span class="lang-tag">python</span></pre>
+
+    <table>
+      <thead>
+        <tr><th>Problem</th><th>Solution</th><th>API</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Infinite loops</td><td>Recursion limit</td><td><span class="tag purple">recursion_limit</span></td></tr>
+        <tr><td>Flaky tools/APIs</td><td>Retry policy</td><td><span class="tag green">RetryPolicy</span></td></tr>
+        <tr><td>State corruption</td><td>Checkpointing</td><td><span class="tag amber">checkpointer=</span></td></tr>
+        <tr><td>LLM hallucination</td><td>Human interrupt</td><td><span class="tag purple">interrupt_before</span></td></tr>
+        <tr><td>Debugging</td><td>Time travel</td><td><span class="tag green">get_state_history</span></td></tr>
+        <tr><td>Concurrency</td><td>Fan-out / Send</td><td><span class="tag amber">Send()</span></td></tr>
+        <tr><td>Token bloat</td><td>Trim messages</td><td><span class="tag red">trim_messages</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 09 CHEATSHEET -->
+  <section id="cheatsheet">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Quick Reference Cheatsheet</h2>
+    </div>
+
+    <h3>Essential Imports</h3>
+    <pre><span class="c"># Graph core</span>
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="t">StateGraph</span>, <span class="t">MessagesState</span>, START, END
+
+<span class="c"># Prebuilt</span>
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="fn">ToolNode</span>, <span class="fn">create_react_agent</span>
+
+<span class="c"># Persistence</span>
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> <span class="t">MemorySaver</span>
+<span class="kw">from</span> langgraph.checkpoint.sqlite <span class="kw">import</span> <span class="t">SqliteSaver</span>
+
+<span class="c"># Types</span>
+<span class="kw">from</span> langgraph.types <span class="kw">import</span> <span class="t">Send</span>, <span class="t">Command</span>, <span class="fn">interrupt</span>
+<span class="kw">from</span> langgraph.utils <span class="kw">import</span> <span class="t">RetryPolicy</span>
+
+<span class="c"># Messages</span>
+<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> <span class="t">HumanMessage</span>, <span class="t">AIMessage</span>, <span class="t">ToolMessage</span>, <span class="t">SystemMessage</span>
+<span class="lang-tag">python</span></pre>
+
+    <div class="grid-2">
+      <div>
+        <h3>Graph Lifecycle</h3>
+        <ul class="checklist">
+          <li>Define state schema (TypedDict)</li>
+          <li>Define node functions</li>
+          <li>Create StateGraph(State)</li>
+          <li>Add nodes with add_node()</li>
+          <li>Add edges (add_edge / add_conditional_edges)</li>
+          <li>Set entry with add_edge(START, ...)</li>
+          <li>Compile: graph.compile()</li>
+          <li>Invoke / stream with config</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Production Checklist</h3>
+        <ul class="checklist">
+          <li>Use Postgres checkpointer, not MemorySaver</li>
+          <li>Set recursion_limit per invocation</li>
+          <li>Add RetryPolicy to all external calls</li>
+          <li>Trim messages to avoid context overflow</li>
+          <li>Stream for long-running workflows</li>
+          <li>Add interrupt_before dangerous tool nodes</li>
+          <li>Use thread_id + user_id namespacing</li>
+          <li>Log checkpoint IDs for time-travel debugging</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>One-Liner Prebuilt Agent</h3>
+    <pre><span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> <span class="fn">create_react_agent</span>
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="t">ChatOpenAI</span>
+
+<span class="c"># Fastest way to a working ReAct agent</span>
+agent = <span class="fn">create_react_agent</span>(
+    model=<span class="t">ChatOpenAI</span>(model=<span class="s">"gpt-4o"</span>),
+    tools=[search_web, query_db],
+    checkpointer=<span class="t">MemorySaver</span>(),
+    state_modifier=<span class="s">"You are a helpful assistant. Be concise."</span>
+)
+
+result = agent.<span class="fn">invoke</span>(
+    {<span class="s">"messages"</span>: [<span class="t">HumanMessage</span>(<span class="s">"What's the weather in Tokyo?"</span>)]},
+    config={<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"u1"</span>}}
+)
+<span class="lang-tag">python</span></pre>
+
+    <h3>Common Gotchas</h3>
+    <div class="grid-2">
+      <div class="callout danger">// State reducers are additive — if you use operator.add on a list, returning an empty list [] still triggers concatenation. Return None or omit the key to leave a field unchanged.</div>
+      <div class="callout danger">// Nodes must return a dict, not the full state. Only include keys you want to update. Missing keys are left as-is by the state merge logic.</div>
+    </div>
+    <div class="grid-2">
+      <div class="callout tip">// Always give thread_id a stable, meaningful name (e.g. f"user-{user_id}-{session_id}"). This enables proper checkpointing, history, and time-travel.</div>
+      <div class="callout tip">// Use LangGraph Studio locally for visual debugging — you can see the graph, inspect state at each step, and replay runs without writing test code.</div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      LANGGRAPH COOKBOOK &nbsp;·&nbsp; ANTHROPIC CLAUDE &nbsp;·&nbsp; 2025<br>
+      <span style="color:rgba(107,107,128,0.5)">// build reliable agents, not fragile chains</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
