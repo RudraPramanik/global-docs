@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Cookbook — FastAPI · PostgreSQL · LangChain · Neo4j</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0b0e14;
+    --surface:  #12161f;
+    --surface2: #181d28;
+    --border:   #232a38;
+    --border2:  #2d3547;
+    --text:     #e2e8f0;
+    --muted:    #6b7a99;
+    --dim:      #3d4a62;
+    --accent:   #5b8af5;
+    --accent2:  #7c3aed;
+    --teal:     #14b8a6;
+    --amber:    #f59e0b;
+    --coral:    #f87171;
+    --green:    #4ade80;
+    --purple:   #a78bfa;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+    --display:  'Syne', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(11,14,20,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+  }
+  .header-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: flex; align-items: center; gap: 2rem;
+    height: 54px;
+  }
+  .logo {
+    font-family: var(--display); font-weight: 800; font-size: 15px;
+    color: var(--text); white-space: nowrap; letter-spacing: -.01em;
+  }
+  .logo span { color: var(--accent); }
+  nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+  nav::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    font-family: var(--display); letter-spacing: .02em; cursor: pointer;
+    white-space: nowrap; border: none; background: transparent;
+    color: var(--muted); transition: all .15s; user-select: none;
+  }
+  .tab:hover { color: var(--text); background: var(--surface); }
+  .tab.active { color: var(--accent); background: rgba(91,138,245,.1); }
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 10px; margin-left: 5px; vertical-align: middle;
+    font-family: var(--mono); letter-spacing: .03em;
+  }
+  .badge-blue   { background: rgba(91,138,245,.15); color: #7aa4f8; }
+  .badge-teal   { background: rgba(20,184,166,.15);  color: #2dd4bf; }
+  .badge-amber  { background: rgba(245,158,11,.15);  color: #fbbf24; }
+  .badge-coral  { background: rgba(248,113,113,.15); color: #f87171; }
+  .badge-purple { background: rgba(167,139,250,.15); color: #c4b5fd; }
+  .badge-green  { background: rgba(74,222,128,.15);  color: #86efac; }
+
+  /* ── LAYOUT ── */
+  main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+  .section { display: none; animation: fadeUp .2s ease; }
+  .section.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section-header { margin-bottom: 1.5rem; }
+  .section-header h1 {
+    font-family: var(--display); font-weight: 800; font-size: 26px;
+    letter-spacing: -.02em; margin-bottom: 4px;
+  }
+  .section-header p { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .col-span-2 { grid-column: span 2; }
+  @media (max-width: 900px) { .col-span-2 { grid-column: span 1; } }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(91,138,245,.4), transparent);
+    opacity: 0; transition: opacity .2s;
+  }
+  .card:hover::before { opacity: 1; }
+  .card-label {
+    font-family: var(--display); font-weight: 700; font-size: 11px;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .75rem;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-label-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .card-title {
+    font-family: var(--display); font-size: 15px; font-weight: 700;
+    margin-bottom: .75rem; color: var(--text);
+  }
+
+  /* ── CODE BLOCKS ── */
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .9rem 1rem;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+  pre:not(:last-child) { margin-bottom: .75rem; }
+  .kw  { color: #7aa4f8; }
+  .str { color: #86efac; }
+  .cm  { color: var(--dim); font-style: italic; }
+  .cmd { color: #fbbf24; }
+  .var { color: #f9a8d4; }
+  .num { color: #c4b5fd; }
+  .ok  { color: #4ade80; }
+  .err { color: #f87171; }
+  .hl  { background: rgba(91,138,245,.08); display: block; margin: 0 -1rem; padding: 0 1rem; }
+
+  /* ── TIPS ── */
+  .tip {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+    padding: .6rem .8rem; border-radius: 7px; margin-top: .75rem;
+    border-left: 2px solid var(--accent);
+    background: rgba(91,138,245,.05);
+  }
+  .tip.warn  { border-color: var(--amber); background: rgba(245,158,11,.05); }
+  .tip.good  { border-color: var(--teal);  background: rgba(20,184,166,.05); }
+  .tip.danger{ border-color: var(--coral); background: rgba(248,113,113,.05); }
+  .tip-icon  { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .tip code  { font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+  /* ── PIPELINE FLOW ── */
+  .pipeline {
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+    margin: .75rem 0; overflow-x: auto; padding-bottom: 4px;
+  }
+  .pipe-step {
+    display: flex; align-items: center;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 11px; font-weight: 600; font-family: var(--display);
+    letter-spacing: .02em; white-space: nowrap;
+  }
+  .pipe-arrow {
+    color: var(--dim); font-size: 14px; padding: 0 4px; flex-shrink: 0;
+  }
+  .pipe-step.blue   { border-color: rgba(91,138,245,.4);  color: #7aa4f8; }
+  .pipe-step.teal   { border-color: rgba(20,184,166,.4);  color: #2dd4bf; }
+  .pipe-step.amber  { border-color: rgba(245,158,11,.4);  color: #fbbf24; }
+  .pipe-step.green  { border-color: rgba(74,222,128,.4);  color: #86efac; }
+  .pipe-step.coral  { border-color: rgba(248,113,113,.4); color: #fca5a5; }
+  .pipe-step.purple { border-color: rgba(167,139,250,.4); color: #c4b5fd; }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    background: var(--surface2); padding: 8px 12px; text-align: left;
+    font-family: var(--display); font-weight: 700; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.015); }
+  td code { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+  /* ── DIVIDER ── */
+  .sep { height: 1px; background: var(--border); margin: 1rem 0; }
+
+  /* ── CMD LIST ── */
+  .cmd-list { list-style: none; }
+  .cmd-list li {
+    display: grid; grid-template-columns: auto 1fr;
+    align-items: baseline; gap: 10px;
+    padding: 5px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .cmd-list li:last-child { border-bottom: none; }
+  .cmd-list .k { font-family: var(--mono); font-size: 11px; color: var(--amber); white-space: nowrap; }
+  .cmd-list .v { color: var(--muted); }
+  .cmd-list .v code { font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+  /* ── STEP LIST ── */
+  .steps { counter-reset: step; list-style: none; }
+  .steps li {
+    counter-increment: step; position: relative;
+    padding: .6rem .6rem .6rem 2.2rem; margin-bottom: 6px;
+    background: var(--surface2); border-radius: 8px;
+    font-size: 12.5px; border: 1px solid var(--border);
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: .6rem; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(91,138,245,.15); color: var(--accent);
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── ENV VARS TABLE ── */
+  .env-row { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .env-row:last-child { border-bottom: none; }
+  .env-key  { font-family: var(--mono); font-size: 11px; color: var(--purple); min-width: 180px; flex-shrink: 0; }
+  .env-val  { font-family: var(--mono); font-size: 11px; color: var(--green); flex: 1; word-break: break-all; }
+  .env-desc { font-size: 11px; color: var(--muted); flex: 1.2; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Dev<span>Ops</span> Cookbook</div>
+    <nav id="nav">
+      <button class="tab active" onclick="show('docker')">🐳 Docker</button>
+      <button class="tab" onclick="show('compose')">🧩 Compose</button>
+      <button class="tab" onclick="show('cicd')">🔄 CI/CD</button>
+      <button class="tab" onclick="show('deploy')">🚀 Prod Deploy</button>
+      <button class="tab" onclick="show('postgres')">🐘 Postgres</button>
+      <button class="tab" onclick="show('neo4j')">🕸 Neo4j</button>
+      <button class="tab" onclick="show('langchain')">🔗 LangChain</button>
+      <button class="tab" onclick="show('secrets')">🔑 Secrets</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════ DOCKER ═══════════════════════════════ -->
+<section id="section-docker" class="section active">
+  <div class="section-header">
+    <h1>🐳 Docker — Fundamentals</h1>
+    <p>Containerization for FastAPI &amp; Python microservices. Build once, run anywhere.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Dockerfile — FastAPI (multi-stage)</div>
+<pre><span class="cm"># ── Stage 1: dependency builder ──</span>
+<span class="kw">FROM</span> python:3.12-slim <span class="kw">AS</span> builder
+<span class="kw">WORKDIR</span> /build
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir \
+    --prefix=/install -r requirements.txt
+
+<span class="cm"># ── Stage 2: slim runtime ──</span>
+<span class="kw">FROM</span> python:3.12-slim
+<span class="kw">WORKDIR</span> /app
+<span class="kw">COPY</span> --from=builder /install /usr/local
+<span class="kw">COPY</span> . .
+
+<span class="cm"># Security: non-root user</span>
+<span class="kw">RUN</span> useradd -m -u 1001 appuser
+<span class="kw">USER</span> appuser
+
+<span class="kw">EXPOSE</span> 8000
+<span class="kw">HEALTHCHECK</span> --interval=30s --timeout=10s \
+  <span class="kw">CMD</span> curl -f http://localhost:8000/health || exit 1
+<span class="kw">CMD</span> [<span class="str">"uvicorn"</span>, <span class="str">"app.main:app"</span>, \
+     <span class="str">"--host"</span>, <span class="str">"0.0.0.0"</span>, \
+     <span class="str">"--port"</span>, <span class="str">"8000"</span>, \
+     <span class="str">"--workers"</span>, <span class="str">"4"</span>]</pre>
+      <div class="tip good"><span class="tip-icon">✓</span> Multi-stage cuts image size by ~60%. <code>--prefix=/install</code> isolates deps for clean copy.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Essential commands</div>
+<pre><span class="cm"># Build</span>
+<span class="cmd">docker build</span> -t myapp:latest .
+<span class="cmd">docker build</span> -t myapp:<span class="var">$(git rev-parse --short HEAD)</span> .
+<span class="cmd">docker build</span> --no-cache --target builder -t myapp .
+
+<span class="cm"># Run</span>
+<span class="cmd">docker run</span> -d -p 8000:8000 \
+  --env-file .env \
+  --name myapp myapp:latest
+
+<span class="cm"># Debug</span>
+<span class="cmd">docker exec</span> -it myapp /bin/sh
+<span class="cmd">docker logs</span> -f --tail 100 myapp
+<span class="cmd">docker stats</span> myapp
+<span class="cmd">docker top</span>  myapp
+
+<span class="cm"># Cleanup</span>
+<span class="cmd">docker system prune</span> -af --volumes
+<span class="cmd">docker image prune</span> -f</pre>
+      <div class="tip warn"><span class="tip-icon">⚠</span> Always tag with git SHA in CI — <code>latest</code> is ambiguous in prod. Use <code>:sha-abc1234</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>.dockerignore — always include this</div>
+<pre><span class="str">.git</span>
+<span class="str">.github</span>
+<span class="str">.env</span>
+<span class="str">.env.*</span>
+<span class="str">*.env</span>
+<span class="str">**/__pycache__</span>
+<span class="str">**/*.pyc</span>
+<span class="str">**/*.pyo</span>
+<span class="str">.pytest_cache</span>
+<span class="str">.mypy_cache</span>
+<span class="str">.ruff_cache</span>
+<span class="str">*.egg-info</span>
+<span class="str">.venv</span>
+<span class="str">venv</span>
+<span class="str">node_modules</span>
+<span class="str">*.log</span>
+<span class="str">*.db</span>
+<span class="str">*.sqlite</span>
+<span class="str">tests/</span>
+<span class="str">docs/</span>
+<span class="str">README.md</span>
+<span class="str">docker-compose*.yml</span></pre>
+      <div class="tip danger"><span class="tip-icon">🚫</span> NEVER let <code>.env</code> slip into an image. Use <code>docker secret</code> or runtime env injection in prod.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>Layer caching — order matters</div>
+<pre><span class="cm"># ❌ WRONG — copies code before deps</span>
+<span class="kw">COPY</span> . .
+<span class="kw">RUN</span> pip install -r requirements.txt
+
+<span class="cm"># ✅ CORRECT — deps cached unless requirements.txt changes</span>
+<span class="kw">COPY</span> requirements.txt .
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.txt
+<span class="kw">COPY</span> . .
+
+<span class="cm"># Best: use pip-tools for deterministic builds</span>
+<span class="kw">COPY</span> pyproject.toml requirements.lock ./
+<span class="kw">RUN</span> pip install --no-cache-dir -r requirements.lock
+<span class="kw">COPY</span> src/ ./src/</pre>
+      <div class="tip"><span class="tip-icon">💡</span> Each <code>RUN</code>, <code>COPY</code>, <code>ADD</code> is a layer. Invalidating one busts all layers below it.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--coral)"></span>Image registry workflow</div>
+      <div class="pipeline">
+        <span class="pipe-step blue">Build</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step teal">Tag</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step amber">Login</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step green">Push</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step purple">Pull on server</span>
+      </div>
+<pre><span class="cm"># ECR example</span>
+<span class="cmd">aws ecr</span> get-login-password --region us-east-1 \
+  | docker login --username AWS \
+    --password-stdin <span class="var">$ECR_URL</span>
+
+<span class="cmd">docker tag</span> myapp:latest <span class="var">$ECR_URL</span>/myapp:latest
+<span class="cmd">docker push</span> <span class="var">$ECR_URL</span>/myapp:latest
+
+<span class="cm"># GHCR example</span>
+<span class="cmd">echo</span> <span class="var">$GITHUB_TOKEN</span> | docker login ghcr.io \
+  -u <span class="var">$GITHUB_ACTOR</span> --password-stdin
+<span class="cmd">docker push</span> ghcr.io/<span class="var">$OWNER</span>/myapp:latest</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--green)"></span>Quick reference cheatsheet</div>
+      <ul class="cmd-list">
+        <li><span class="k">docker ps -a</span><span class="v">all containers (running + stopped)</span></li>
+        <li><span class="k">docker images</span><span class="v">list local images</span></li>
+        <li><span class="k">docker inspect &lt;id&gt;</span><span class="v">full JSON metadata</span></li>
+        <li><span class="k">docker cp src container:/dst</span><span class="v">copy files into container</span></li>
+        <li><span class="k">docker commit &lt;id&gt; name</span><span class="v">snapshot container → image</span></li>
+        <li><span class="k">docker history &lt;img&gt;</span><span class="v">see layer sizes</span></li>
+        <li><span class="k">docker diff &lt;id&gt;</span><span class="v">filesystem changes in container</span></li>
+        <li><span class="k">docker pause / unpause</span><span class="v">freeze/resume processes</span></li>
+        <li><span class="k">docker network ls</span><span class="v">list networks</span></li>
+        <li><span class="k">docker volume ls</span><span class="v">list named volumes</span></li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ COMPOSE ═══════════════════════════════ -->
+<section id="section-compose" class="section">
+  <div class="section-header">
+    <h1>🧩 Docker Compose — Full Stack</h1>
+    <p>FastAPI + PostgreSQL + Neo4j + Redis + Nginx wired together locally and in prod.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card col-span-2">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>docker-compose.yml — complete stack</div>
+<pre><span class="kw">version</span>: <span class="str">"3.9"</span>
+
+<span class="kw">services</span>:
+  <span class="kw">api</span>:
+    <span class="kw">build</span>:
+      <span class="kw">context</span>: .
+      <span class="kw">dockerfile</span>: Dockerfile
+      <span class="kw">target</span>: <span class="str">runtime</span>
+    <span class="kw">image</span>: myapp:<span class="str">latest</span>
+    <span class="kw">ports</span>: [<span class="str">"8000:8000"</span>]
+    <span class="kw">env_file</span>: .env
+    <span class="kw">environment</span>:
+      DATABASE_URL: <span class="str">postgresql://user:pass@db:5432/mydb</span>
+      NEO4J_URI:    <span class="str">bolt://neo4j:7687</span>
+      REDIS_URL:    <span class="str">redis://redis:6379</span>
+    <span class="kw">depends_on</span>:
+      db:    { <span class="kw">condition</span>: service_healthy }
+      neo4j: { <span class="kw">condition</span>: service_healthy }
+    <span class="kw">volumes</span>:
+      - <span class="str">./app:/app/app:ro</span>   <span class="cm"># hot-reload in dev</span>
+    <span class="kw">restart</span>: unless-stopped
+
+  <span class="kw">db</span>:
+    <span class="kw">image</span>: postgres:16-alpine
+    <span class="kw">environment</span>:
+      POSTGRES_USER:     user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB:       mydb
+    <span class="kw">volumes</span>:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    <span class="kw">healthcheck</span>:
+      <span class="kw">test</span>: [<span class="str">"CMD"</span>, <span class="str">"pg_isready"</span>, <span class="str">"-U"</span>, <span class="str">"user"</span>, <span class="str">"-d"</span>, <span class="str">"mydb"</span>]
+      <span class="kw">interval</span>: 5s
+      <span class="kw">retries</span>: 5
+    <span class="kw">ports</span>: [<span class="str">"5432:5432"</span>]   <span class="cm"># remove in prod</span>
+
+  <span class="kw">neo4j</span>:
+    <span class="kw">image</span>: neo4j:5-community
+    <span class="kw">environment</span>:
+      NEO4J_AUTH: <span class="str">neo4j/password123</span>
+      NEO4J_PLUGINS: <span class="str">'["apoc", "graph-data-science"]'</span>
+      NEO4J_dbms_security_procedures_unrestricted: <span class="str">apoc.*,gds.*</span>
+    <span class="kw">volumes</span>:
+      - neo4jdata:/data
+    <span class="kw">ports</span>: [<span class="str">"7474:7474"</span>, <span class="str">"7687:7687"</span>]
+    <span class="kw">healthcheck</span>:
+      <span class="kw">test</span>: [<span class="str">"CMD"</span>, <span class="str">"neo4j"</span>, <span class="str">"status"</span>]
+      <span class="kw">interval</span>: 15s
+      <span class="kw">retries</span>: 10
+
+  <span class="kw">redis</span>:
+    <span class="kw">image</span>: redis:7-alpine
+    <span class="kw">command</span>: redis-server --requirepass <span class="var">${REDIS_PASSWORD}</span>
+    <span class="kw">volumes</span>: [redisdata:/data]
+
+  <span class="kw">nginx</span>:
+    <span class="kw">image</span>: nginx:alpine
+    <span class="kw">ports</span>: [<span class="str">"80:80"</span>, <span class="str">"443:443"</span>]
+    <span class="kw">volumes</span>:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certs:/etc/nginx/certs:ro
+    <span class="kw">depends_on</span>: [api]
+
+<span class="kw">volumes</span>:
+  pgdata:
+  neo4jdata:
+  redisdata:</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Override files — dev vs prod</div>
+<pre><span class="cm"># docker-compose.override.yml (dev, auto-loaded)</span>
+<span class="kw">services</span>:
+  <span class="kw">api</span>:
+    <span class="kw">command</span>: uvicorn app.main:app --reload \
+             --host 0.0.0.0 --port 8000
+    <span class="kw">volumes</span>:
+      - <span class="str">.:/app</span>
+    <span class="kw">environment</span>:
+      DEBUG: <span class="str">"true"</span>
+      LOG_LEVEL: <span class="str">"debug"</span>
+
+<span class="cm"># Production: docker-compose.prod.yml</span>
+<span class="kw">services</span>:
+  <span class="kw">api</span>:
+    <span class="kw">deploy</span>:
+      <span class="kw">replicas</span>: <span class="num">3</span>
+      <span class="kw">resources</span>:
+        <span class="kw">limits</span>: { cpus: <span class="str">"1.0"</span>, memory: 512M }
+
+<span class="cm"># Usage</span>
+<span class="cmd">docker compose</span> -f docker-compose.yml \
+  -f docker-compose.prod.yml up -d</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Compose commands</div>
+      <ul class="cmd-list">
+        <li><span class="k">docker compose up -d</span><span class="v">start all services detached</span></li>
+        <li><span class="k">docker compose up --build</span><span class="v">rebuild before starting</span></li>
+        <li><span class="k">docker compose down -v</span><span class="v">stop + remove volumes</span></li>
+        <li><span class="k">docker compose logs -f api</span><span class="v">tail api logs</span></li>
+        <li><span class="k">docker compose exec api sh</span><span class="v">shell into api container</span></li>
+        <li><span class="k">docker compose ps</span><span class="v">service status</span></li>
+        <li><span class="k">docker compose restart api</span><span class="v">restart one service</span></li>
+        <li><span class="k">docker compose scale api=3</span><span class="v">scale horizontally</span></li>
+        <li><span class="k">docker compose config</span><span class="v">validate &amp; print merged config</span></li>
+        <li><span class="k">docker compose pull</span><span class="v">pull latest images</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>nginx.conf for FastAPI</div>
+<pre><span class="kw">upstream</span> api {
+  server api:8000;
+}
+<span class="kw">server</span> {
+  listen 80;
+  server_name example.com;
+  <span class="kw">return</span> 301 https://<span class="var">$host$request_uri</span>;
+}
+<span class="kw">server</span> {
+  listen 443 ssl http2;
+  server_name example.com;
+
+  ssl_certificate     /etc/nginx/certs/fullchain.pem;
+  ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+  <span class="kw">location</span> / {
+    proxy_pass         http://api;
+    proxy_set_header   Host <span class="var">$host</span>;
+    proxy_set_header   X-Real-IP <span class="var">$remote_addr</span>;
+    proxy_set_header   X-Forwarded-For <span class="var">$proxy_add_x_forwarded_for</span>;
+    proxy_set_header   X-Forwarded-Proto https;
+    proxy_buffering    off;
+    <span class="cm"># WebSocket support</span>
+    proxy_http_version 1.1;
+    proxy_set_header   Upgrade <span class="var">$http_upgrade</span>;
+    proxy_set_header   Connection <span class="str">"upgrade"</span>;
+  }
+}</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ CI/CD ═══════════════════════════════ -->
+<section id="section-cicd" class="section">
+  <div class="section-header">
+    <h1>🔄 CI/CD — GitHub Actions</h1>
+    <p>Automated test → build → push → deploy pipeline for your stack.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card col-span-2">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Full pipeline — .github/workflows/deploy.yml</div>
+      <div class="pipeline">
+        <span class="pipe-step blue">push / PR</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step teal">lint + test</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step amber">docker build</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step green">push to ECR/GHCR</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step purple">SSH deploy</span><span class="pipe-arrow">→</span>
+        <span class="pipe-step coral">notify</span>
+      </div>
+<pre><span class="kw">name</span>: CI/CD Pipeline
+
+<span class="kw">on</span>:
+  <span class="kw">push</span>:
+    <span class="kw">branches</span>: [main, staging]
+  <span class="kw">pull_request</span>:
+    <span class="kw">branches</span>: [main]
+
+<span class="kw">env</span>:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: <span class="var">${{ github.repository }}</span>
+
+<span class="kw">jobs</span>:
+  <span class="kw">test</span>:
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">services</span>:
+      <span class="kw">postgres</span>:
+        <span class="kw">image</span>: postgres:16-alpine
+        <span class="kw">env</span>:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+        <span class="kw">options</span>: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-retries 5
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">uses</span>: actions/setup-python@v5
+        <span class="kw">with</span>: { python-version: <span class="str">"3.12"</span> }
+      - <span class="kw">name</span>: Cache pip
+        <span class="kw">uses</span>: actions/cache@v4
+        <span class="kw">with</span>:
+          path: ~/.cache/pip
+          key: pip-<span class="var">${{ hashFiles('requirements*.txt') }}</span>
+      - <span class="kw">run</span>: pip install -r requirements.txt -r requirements-dev.txt
+      - <span class="kw">run</span>: ruff check .
+      - <span class="kw">run</span>: mypy app/
+      - <span class="kw">run</span>: pytest --cov=app --cov-report=xml -x
+        <span class="kw">env</span>:
+          DATABASE_URL: postgresql://test:test@localhost:5432/testdb
+
+  <span class="kw">build-push</span>:
+    <span class="kw">needs</span>: test
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">if</span>: github.ref == <span class="str">'refs/heads/main'</span>
+    <span class="kw">permissions</span>:
+      contents: read
+      packages: write
+    <span class="kw">outputs</span>:
+      image-tag: <span class="var">${{ steps.meta.outputs.tags }}</span>
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">name</span>: Login to GHCR
+        <span class="kw">uses</span>: docker/login-action@v3
+        <span class="kw">with</span>:
+          registry: <span class="var">${{ env.REGISTRY }}</span>
+          username: <span class="var">${{ github.actor }}</span>
+          password: <span class="var">${{ secrets.GITHUB_TOKEN }}</span>
+      - <span class="kw">name</span>: Extract metadata
+        <span class="kw">id</span>: meta
+        <span class="kw">uses</span>: docker/metadata-action@v5
+        <span class="kw">with</span>:
+          images: <span class="var">${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}</span>
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+      - <span class="kw">name</span>: Build and push
+        <span class="kw">uses</span>: docker/build-push-action@v5
+        <span class="kw">with</span>:
+          push: true
+          tags: <span class="var">${{ steps.meta.outputs.tags }}</span>
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  <span class="kw">deploy</span>:
+    <span class="kw">needs</span>: build-push
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">steps</span>:
+      - <span class="kw">name</span>: Deploy via SSH
+        <span class="kw">uses</span>: appleboy/ssh-action@v1
+        <span class="kw">with</span>:
+          host:     <span class="var">${{ secrets.SERVER_HOST }}</span>
+          username: <span class="var">${{ secrets.SERVER_USER }}</span>
+          key:      <span class="var">${{ secrets.SSH_PRIVATE_KEY }}</span>
+          script: |
+            cd /opt/myapp
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Required GitHub Secrets</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Secret</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td><code>SERVER_HOST</code></td><td>IP or hostname of production server</td></tr>
+            <tr><td><code>SERVER_USER</code></td><td>SSH username (e.g. <code>ubuntu</code>)</td></tr>
+            <tr><td><code>SSH_PRIVATE_KEY</code></td><td>Private key matching server's authorized_keys</td></tr>
+            <tr><td><code>DATABASE_URL</code></td><td>Full postgres connection string (prod)</td></tr>
+            <tr><td><code>NEO4J_PASSWORD</code></td><td>Neo4j auth password</td></tr>
+            <tr><td><code>SECRET_KEY</code></td><td>FastAPI JWT / session secret</td></tr>
+            <tr><td><code>OPENAI_API_KEY</code></td><td>LangChain LLM key</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip warn"><span class="tip-icon">⚠</span> Never log secrets. Use <code>secrets.GITHUB_TOKEN</code> (auto-provided) for GHCR — don't create a PAT unless necessary.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Useful CI patterns</div>
+<pre><span class="cm"># Run only when Python files change</span>
+<span class="kw">on</span>:
+  push:
+    paths: [<span class="str">'app/**'</span>, <span class="str">'requirements*.txt'</span>]
+
+<span class="cm"># Matrix test: multiple Python versions</span>
+<span class="kw">strategy</span>:
+  <span class="kw">matrix</span>:
+    python-version: [<span class="str">"3.11"</span>, <span class="str">"3.12"</span>]
+
+<span class="cm"># Reusable docker build job</span>
+<span class="kw">uses</span>: ./.github/workflows/build.yml
+<span class="kw">with</span>:
+  tag: <span class="var">${{ github.sha }}</span>
+
+<span class="cm"># Manual deploy trigger</span>
+<span class="kw">on</span>:
+  workflow_dispatch:
+    <span class="kw">inputs</span>:
+      environment:
+        <span class="kw">type</span>: choice
+        <span class="kw">options</span>: [staging, production]</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ DEPLOY ═══════════════════════════════ -->
+<section id="section-deploy" class="section">
+  <div class="section-header">
+    <h1>🚀 Production Deployment</h1>
+    <p>Zero-downtime deploys, health checks, rollbacks, and monitoring.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Zero-downtime deploy script</div>
+<pre><span class="cm">#!/bin/bash — deploy.sh</span>
+<span class="kw">set</span> -euo pipefail
+
+IMAGE=<span class="var">$1</span>  <span class="cm"># e.g. ghcr.io/user/app:sha-abc123</span>
+echo <span class="str">"→ Pulling image: $IMAGE"</span>
+<span class="cmd">docker pull</span> <span class="var">$IMAGE</span>
+
+echo <span class="str">"→ Running DB migrations"</span>
+<span class="cmd">docker run</span> --rm --env-file /opt/myapp/.env \
+  <span class="var">$IMAGE</span> alembic upgrade head
+
+echo <span class="str">"→ Blue/green swap"</span>
+<span class="kw">export</span> APP_IMAGE=<span class="var">$IMAGE</span>
+<span class="cmd">docker compose</span> -f docker-compose.prod.yml \
+  up -d --no-deps --remove-orphans api
+
+echo <span class="str">"→ Health check"</span>
+<span class="kw">for</span> i in {1..15}; <span class="kw">do</span>
+  STATUS=$(<span class="cmd">curl</span> -s -o /dev/null -w "%{http_code}" \
+    http://localhost:8000/health)
+  [ <span class="str">"$STATUS"</span> = <span class="str">"200"</span> ] && { echo <span class="ok">"✓ Healthy"</span>; exit 0; }
+  sleep 3
+<span class="kw">done</span>
+echo <span class="err">"✗ Health check failed — rolling back"</span>
+<span class="cmd">docker compose</span> up -d --no-deps api  <span class="cm"># prev image</span>
+exit 1</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>FastAPI health endpoint</div>
+<pre><span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, status
+<span class="kw">from</span> sqlalchemy <span class="kw">import</span> text
+<span class="kw">from</span> neo4j <span class="kw">import</span> AsyncGraphDatabase
+
+<span class="kw">@app.get</span>(<span class="str">"/health"</span>, status_code=status.HTTP_200_OK)
+<span class="kw">async def</span> <span class="cmd">health</span>(db: AsyncSession = Depends(get_db)):
+    checks = {}
+    <span class="kw">try</span>:
+        <span class="kw">await</span> db.execute(text(<span class="str">"SELECT 1"</span>))
+        checks[<span class="str">"postgres"</span>] = <span class="str">"ok"</span>
+    <span class="kw">except</span> Exception <span class="kw">as</span> e:
+        checks[<span class="str">"postgres"</span>] = <span class="str">f"error: {e}"</span>
+    <span class="kw">try</span>:
+        <span class="kw">async with</span> neo4j_driver.session() <span class="kw">as</span> s:
+            <span class="kw">await</span> s.run(<span class="str">"RETURN 1"</span>)
+        checks[<span class="str">"neo4j"</span>] = <span class="str">"ok"</span>
+    <span class="kw">except</span> Exception <span class="kw">as</span> e:
+        checks[<span class="str">"neo4j"</span>] = <span class="str">f"error: {e}"</span>
+    all_ok = <span class="kw">all</span>(v == <span class="str">"ok"</span> <span class="kw">for</span> v <span class="kw">in</span> checks.values())
+    <span class="kw">return</span> {<span class="str">"status"</span>: <span class="str">"ok"</span> <span class="kw">if</span> all_ok <span class="kw">else</span> <span class="str">"degraded"</span>,
+            <span class="str">"checks"</span>: checks}</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Alembic — DB migrations</div>
+<pre><span class="cm"># Setup</span>
+alembic init alembic
+<span class="cm"># alembic.ini → set sqlalchemy.url</span>
+
+<span class="cm"># Generate migration from model changes</span>
+alembic revision --autogenerate -m <span class="str">"add user table"</span>
+
+<span class="cm"># Apply migrations</span>
+alembic upgrade head
+
+<span class="cm"># Rollback 1 step</span>
+alembic downgrade -1
+
+<span class="cm"># Show current revision</span>
+alembic current
+
+<span class="cm"># Run in Docker before app starts</span>
+<span class="kw">CMD</span> sh -c <span class="str">"alembic upgrade head &amp;&amp; \
+    uvicorn app.main:app --host 0.0.0.0"</span></pre>
+      <div class="tip warn"><span class="tip-icon">⚠</span> Run migrations before new app version starts. Never run them inside app startup — race condition with multiple replicas.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>Production checklist</div>
+      <ol class="steps">
+        <li>Non-root user in Dockerfile (<code>USER appuser</code>)</li>
+        <li>HEALTHCHECK defined in Dockerfile or compose</li>
+        <li>Resource limits set (<code>mem_limit</code>, <code>cpus</code>)</li>
+        <li>Secrets injected at runtime, not baked into image</li>
+        <li>DB migrations run before app scales up</li>
+        <li>Nginx / load balancer in front of uvicorn</li>
+        <li>TLS termination + HTTPS redirect</li>
+        <li>Log aggregation (stdout → journald/CloudWatch/Loki)</li>
+        <li>Readiness + liveness probes configured</li>
+        <li>Image tagged with git SHA, not <code>latest</code></li>
+        <li>Rollback tested and documented</li>
+        <li>Rate limiting on public API endpoints</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--coral)"></span>Logging — structured JSON</div>
+<pre><span class="kw">import</span> logging, structlog
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.add_logger_name,
+        structlog.processors.TimeStamper(fmt=<span class="str">"iso"</span>),
+        structlog.processors.JSONRenderer(),
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(
+        logging.INFO
+    ),
+)
+logger = structlog.get_logger()
+
+<span class="cm"># Usage</span>
+logger.info(<span class="str">"request_processed"</span>,
+            path=<span class="str">"/api/chat"</span>,
+            user_id=user.id,
+            latency_ms=<span class="num">124</span>)</pre>
+      <div class="tip good"><span class="tip-icon">✓</span> Structured JSON logs work seamlessly with CloudWatch Insights, Grafana Loki, and Datadog — easy to query and alert on.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ POSTGRES ═══════════════════════════════ -->
+<section id="section-postgres" class="section">
+  <div class="section-header">
+    <h1>🐘 PostgreSQL — FastAPI / SQLAlchemy</h1>
+    <p>Async ORM patterns, connection pooling, migrations, and query best practices.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Async SQLAlchemy setup</div>
+<pre><span class="kw">from</span> sqlalchemy.ext.asyncio <span class="kw">import</span> (
+    create_async_engine, AsyncSession, async_sessionmaker
+)
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> DeclarativeBase
+
+DATABASE_URL = <span class="str">"postgresql+asyncpg://user:pass@db/mydb"</span>
+
+engine = create_async_engine(
+    DATABASE_URL,
+    pool_size=<span class="num">20</span>,        <span class="cm"># connections to keep open</span>
+    max_overflow=<span class="num">10</span>,    <span class="cm"># extra burst connections</span>
+    pool_timeout=<span class="num">30</span>,
+    pool_recycle=<span class="num">1800</span>,  <span class="cm"># recycle every 30 min</span>
+    pool_pre_ping=<span class="kw">True</span>, <span class="cm"># check before use</span>
+    echo=<span class="kw">False</span>,
+)
+AsyncSessionLocal = async_sessionmaker(
+    engine, expire_on_commit=<span class="kw">False</span>
+)
+
+<span class="kw">class</span> <span class="cmd">Base</span>(DeclarativeBase): <span class="kw">pass</span>
+
+<span class="cm"># FastAPI dependency</span>
+<span class="kw">async def</span> <span class="cmd">get_db</span>():
+    <span class="kw">async with</span> AsyncSessionLocal() <span class="kw">as</span> session:
+        <span class="kw">yield</span> session</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Model + relationship example</div>
+<pre><span class="kw">from</span> sqlalchemy <span class="kw">import</span> String, ForeignKey, DateTime
+<span class="kw">from</span> sqlalchemy.orm <span class="kw">import</span> Mapped, mapped_column, relationship
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+<span class="kw">import</span> uuid
+
+<span class="kw">class</span> <span class="cmd">User</span>(Base):
+    __tablename__ = <span class="str">"users"</span>
+    id:         Mapped[uuid.UUID] = mapped_column(
+                    primary_key=<span class="kw">True</span>, default=uuid.uuid4)
+    email:      Mapped[str]  = mapped_column(String(255), unique=<span class="kw">True</span>)
+    created_at: Mapped[datetime] = mapped_column(
+                    DateTime, default=datetime.utcnow)
+    documents:  Mapped[list[<span class="str">"Document"</span>]] = relationship(back_populates=<span class="str">"user"</span>)
+
+<span class="kw">class</span> <span class="cmd">Document</span>(Base):
+    __tablename__ = <span class="str">"documents"</span>
+    id:      Mapped[uuid.UUID] = mapped_column(primary_key=<span class="kw">True</span>)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(<span class="str">"users.id"</span>))
+    content: Mapped[str]
+    user:    Mapped[<span class="str">"User"</span>] = relationship(back_populates=<span class="str">"documents"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Common async queries</div>
+<pre><span class="kw">from</span> sqlalchemy <span class="kw">import</span> select, update, delete, func
+
+<span class="cm"># Fetch by id</span>
+user = <span class="kw">await</span> db.get(User, user_id)
+
+<span class="cm"># Filter + pagination</span>
+stmt = (select(User)
+        .where(User.email.like(<span class="str">"%@gmail.com"</span>))
+        .order_by(User.created_at.desc())
+        .limit(<span class="num">20</span>).offset(page * <span class="num">20</span>))
+result = <span class="kw">await</span> db.execute(stmt)
+users = result.scalars().all()
+
+<span class="cm"># Eager load relationships</span>
+stmt = (select(User)
+        .options(selectinload(User.documents))
+        .where(User.id == user_id))
+
+<span class="cm"># Count</span>
+count = <span class="kw">await</span> db.scalar(
+    select(func.count()).where(User.email != <span class="kw">None</span>)
+)
+
+<span class="cm"># Bulk upsert</span>
+<span class="kw">from</span> sqlalchemy.dialects.postgresql <span class="kw">import</span> insert
+stmt = insert(User).values(users_data)
+stmt = stmt.on_conflict_do_update(
+    index_elements=[<span class="str">"email"</span>],
+    set_=dict(updated_at=func.now())
+)
+<span class="kw">await</span> db.execute(stmt)
+<span class="kw">await</span> db.commit()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>pgvector — embeddings for LangChain</div>
+<pre><span class="cm"># Install: pip install pgvector sqlalchemy</span>
+<span class="kw">from</span> pgvector.sqlalchemy <span class="kw">import</span> Vector
+<span class="kw">from</span> sqlalchemy <span class="kw">import</span> Index
+
+<span class="kw">class</span> <span class="cmd">Embedding</span>(Base):
+    __tablename__ = <span class="str">"embeddings"</span>
+    id:        Mapped[uuid.UUID] = mapped_column(primary_key=<span class="kw">True</span>)
+    content:   Mapped[str]
+    embedding: Mapped[list[float]] = mapped_column(Vector(<span class="num">1536</span>))
+    metadata:  Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        Index(<span class="str">"ix_emb_ivfflat"</span>, <span class="str">"embedding"</span>,
+              postgresql_using=<span class="str">"ivfflat"</span>,
+              postgresql_ops={<span class="str">"embedding"</span>: <span class="str">"vector_cosine_ops"</span>},
+              postgresql_with={<span class="str">"lists"</span>: <span class="num">100</span>}),
+    )
+
+<span class="cm"># Similarity search (cosine)</span>
+nearest = <span class="kw">await</span> db.execute(
+    select(Embedding)
+    .order_by(Embedding.embedding.cosine_distance(query_vec))
+    .limit(<span class="num">5</span>)
+)</pre>
+      <div class="tip good"><span class="tip-icon">✓</span> Enable extension: <code>CREATE EXTENSION vector;</code> Run this in your Alembic migration or <code>init.sql</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--green)"></span>Quick psql commands</div>
+      <ul class="cmd-list">
+        <li><span class="k">\l</span><span class="v">list databases</span></li>
+        <li><span class="k">\c mydb</span><span class="v">connect to database</span></li>
+        <li><span class="k">\dt</span><span class="v">list tables</span></li>
+        <li><span class="k">\d tablename</span><span class="v">describe table</span></li>
+        <li><span class="k">\di</span><span class="v">list indexes</span></li>
+        <li><span class="k">EXPLAIN ANALYZE ...</span><span class="v">query execution plan</span></li>
+        <li><span class="k">pg_dump -Fc mydb > bak</span><span class="v">custom format backup</span></li>
+        <li><span class="k">pg_restore -d mydb bak</span><span class="v">restore from backup</span></li>
+        <li><span class="k">SELECT pg_size_pretty(pg_database_size('mydb'))</span><span class="v">DB size</span></li>
+        <li><span class="k">VACUUM ANALYZE tablename</span><span class="v">update stats + reclaim space</span></li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ NEO4J ═══════════════════════════════ -->
+<section id="section-neo4j" class="section">
+  <div class="section-header">
+    <h1>🕸 Neo4j — Graph Database</h1>
+    <p>Cypher queries, Python driver, async patterns, and LangChain integration.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Python async driver setup</div>
+<pre><span class="kw">from</span> neo4j <span class="kw">import</span> AsyncGraphDatabase
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+
+NEO4J_URI  = <span class="str">"bolt://neo4j:7687"</span>
+NEO4J_AUTH = (<span class="str">"neo4j"</span>, <span class="str">"password"</span>)
+
+driver = AsyncGraphDatabase.driver(
+    NEO4J_URI,
+    auth=NEO4J_AUTH,
+    max_connection_pool_size=<span class="num">50</span>,
+)
+
+<span class="cm"># FastAPI lifespan</span>
+<span class="kw">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="cmd">lifespan</span>(app):
+    <span class="kw">await</span> driver.verify_connectivity()
+    <span class="kw">yield</span>
+    <span class="kw">await</span> driver.close()
+
+<span class="cm"># Dependency</span>
+<span class="kw">async def</span> <span class="cmd">get_neo4j</span>():
+    <span class="kw">async with</span> driver.session(
+        database=<span class="str">"neo4j"</span>
+    ) <span class="kw">as</span> session:
+        <span class="kw">yield</span> session</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Essential Cypher patterns</div>
+<pre><span class="cm">// CREATE node</span>
+<span class="kw">CREATE</span> (u:User {id: <span class="var">$id</span>, email: <span class="var">$email</span>, createdAt: datetime()})
+
+<span class="cm">// MERGE (upsert)</span>
+<span class="kw">MERGE</span> (u:User {id: <span class="var">$id</span>})
+<span class="kw">ON CREATE SET</span> u.email = <span class="var">$email</span>, u.createdAt = datetime()
+<span class="kw">ON MATCH  SET</span> u.updatedAt = datetime()
+
+<span class="cm">// Create relationship</span>
+<span class="kw">MATCH</span> (u:User {id: <span class="var">$userId</span>}), (d:Document {id: <span class="var">$docId</span>})
+<span class="kw">MERGE</span> (u)-[:AUTHORED {at: datetime()}]->(d)
+
+<span class="cm">// Traverse 2 hops</span>
+<span class="kw">MATCH</span> (u:User {id: <span class="var">$id</span>})-[:KNOWS*1..2]->(friend)
+<span class="kw">RETURN</span> DISTINCT friend.email
+
+<span class="cm">// Shortest path</span>
+<span class="kw">MATCH</span> p=shortestPath(
+  (a:User {id: <span class="var">$a</span>})-[*]-(b:User {id: <span class="var">$b</span>})
+)
+<span class="kw">RETURN</span> p, length(p)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Async query execution</div>
+<pre><span class="kw">async def</span> <span class="cmd">find_related</span>(
+    session, user_id: str, depth: int = 2
+) -> list[dict]:
+    result = <span class="kw">await</span> session.run(
+        <span class="str">"""
+        MATCH (u:User {id: $uid})
+              -[:KNOWS*1..$depth]->(friend:User)
+        RETURN friend.id AS id,
+               friend.email AS email,
+               count(*) AS connections
+        ORDER BY connections DESC
+        LIMIT 20
+        """</span>,
+        uid=user_id, depth=depth
+    )
+    <span class="kw">return</span> [dict(r) <span class="kw">async for</span> r <span class="kw">in</span> result]
+
+<span class="cm"># Write transaction (for consistency)</span>
+<span class="kw">async def</span> <span class="cmd">create_user_tx</span>(tx, data: dict):
+    <span class="kw">await</span> tx.run(
+        <span class="str">"MERGE (u:User {id: $id}) SET u += $props"</span>,
+        id=data[<span class="str">"id"</span>], props=data
+    )
+
+<span class="kw">await</span> session.execute_write(create_user_tx, data)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>Schema &amp; indexes</div>
+<pre><span class="cm">// Constraints (unique + index)</span>
+<span class="kw">CREATE CONSTRAINT</span> user_id_unique
+  <span class="kw">IF NOT EXISTS FOR</span> (u:User)
+  <span class="kw">REQUIRE</span> u.id <span class="kw">IS UNIQUE</span>;
+
+<span class="kw">CREATE CONSTRAINT</span> doc_id_unique
+  <span class="kw">IF NOT EXISTS FOR</span> (d:Document)
+  <span class="kw">REQUIRE</span> d.id <span class="kw">IS UNIQUE</span>;
+
+<span class="cm">// Full-text search index</span>
+<span class="kw">CREATE FULLTEXT INDEX</span> docSearch
+  <span class="kw">IF NOT EXISTS FOR</span> (d:Document)
+  <span class="kw">ON EACH</span> [d.content, d.title];
+
+<span class="cm">// Use full-text</span>
+<span class="kw">CALL</span> db.index.fulltext.queryNodes(
+  <span class="str">"docSearch"</span>, <span class="var">$query</span>
+) <span class="kw">YIELD</span> node, score
+<span class="kw">RETURN</span> node.id, score
+<span class="kw">ORDER BY</span> score <span class="kw">DESC LIMIT</span> 10;
+
+<span class="cm">// Vector index (Neo4j 5.11+)</span>
+<span class="kw">CREATE VECTOR INDEX</span> embIdx
+  <span class="kw">IF NOT EXISTS FOR</span> (d:Document)
+  <span class="kw">ON</span> d.embedding
+  <span class="kw">OPTIONS</span> {indexConfig: {
+    `vector.dimensions`: <span class="num">1536</span>,
+    `vector.similarity_function`: <span class="str">"cosine"</span>
+  }};</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--coral)"></span>LangChain + Neo4j graph RAG</div>
+<pre><span class="kw">from</span> langchain_community.vectorstores <span class="kw">import</span> Neo4jVector
+<span class="kw">from</span> langchain_openai <span class="kw">import</span> OpenAIEmbeddings
+<span class="kw">from</span> langchain_community.graphs <span class="kw">import</span> Neo4jGraph
+
+<span class="cm"># Vector store (semantic search)</span>
+vectorstore = Neo4jVector.from_existing_graph(
+    embedding=OpenAIEmbeddings(),
+    url=<span class="str">"bolt://localhost:7687"</span>,
+    username=<span class="str">"neo4j"</span>, password=<span class="str">"pass"</span>,
+    index_name=<span class="str">"embIdx"</span>,
+    node_label=<span class="str">"Document"</span>,
+    text_node_properties=[<span class="str">"content"</span>],
+    embedding_node_property=<span class="str">"embedding"</span>,
+)
+retriever = vectorstore.as_retriever(search_kwargs={<span class="str">"k"</span>: 5})
+
+<span class="cm"># Graph QA chain</span>
+graph = Neo4jGraph(url=<span class="str">"bolt://localhost:7687"</span>,
+                   username=<span class="str">"neo4j"</span>, password=<span class="str">"pass"</span>)
+<span class="kw">from</span> langchain.chains <span class="kw">import</span> GraphCypherQAChain
+chain = GraphCypherQAChain.from_llm(
+    llm=ChatOpenAI(model=<span class="str">"gpt-4o"</span>),
+    graph=graph, verbose=<span class="kw">True</span>
+)</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ LANGCHAIN ═══════════════════════════════ -->
+<section id="section-langchain" class="section">
+  <div class="section-header">
+    <h1>🔗 LangChain — Production Patterns</h1>
+    <p>RAG pipelines, agents, streaming, memory, and observability.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>RAG pipeline — full setup</div>
+<pre><span class="kw">from</span> langchain_openai <span class="kw">import</span> ChatOpenAI, OpenAIEmbeddings
+<span class="kw">from</span> langchain_postgres <span class="kw">import</span> PGVector
+<span class="kw">from</span> langchain.chains <span class="kw">import</span> create_retrieval_chain
+<span class="kw">from</span> langchain.chains.combine_documents <span class="kw">import</span> (
+    create_stuff_documents_chain
+)
+<span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> ChatPromptTemplate
+
+embeddings = OpenAIEmbeddings(model=<span class="str">"text-embedding-3-small"</span>)
+
+vectorstore = PGVector(
+    embeddings=embeddings,
+    collection_name=<span class="str">"docs"</span>,
+    connection=DATABASE_URL,
+)
+retriever = vectorstore.as_retriever(
+    search_type=<span class="str">"mmr"</span>,           <span class="cm"># diversity-aware</span>
+    search_kwargs={<span class="str">"k"</span>: 5, <span class="str">"fetch_k"</span>: 20}
+)
+prompt = ChatPromptTemplate.from_messages([
+    (<span class="str">"system"</span>, <span class="str">"Answer using context:\n\n{context}"</span>),
+    (<span class="str">"human"</span>, <span class="str">"{input}"</span>),
+])
+llm = ChatOpenAI(model=<span class="str">"gpt-4o-mini"</span>, temperature=<span class="num">0</span>)
+rag_chain = create_retrieval_chain(
+    retriever,
+    create_stuff_documents_chain(llm, prompt)
+)
+result = <span class="kw">await</span> rag_chain.ainvoke({<span class="str">"input"</span>: question})</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>FastAPI streaming endpoint</div>
+<pre><span class="kw">from</span> fastapi.responses <span class="kw">import</span> StreamingResponse
+<span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> StrOutputParser
+
+chain = prompt | llm | StrOutputParser()
+
+<span class="kw">@app.post</span>(<span class="str">"/chat/stream"</span>)
+<span class="kw">async def</span> <span class="cmd">chat_stream</span>(body: ChatRequest):
+    <span class="kw">async def</span> <span class="cmd">token_gen</span>():
+        <span class="kw">async for</span> chunk <span class="kw">in</span> chain.astream({
+            <span class="str">"input"</span>: body.message
+        }):
+            <span class="kw">yield</span> <span class="str">f"data: {chunk}\n\n"</span>
+        <span class="kw">yield</span> <span class="str">"data: [DONE]\n\n"</span>
+
+    <span class="kw">return</span> StreamingResponse(
+        token_gen(),
+        media_type=<span class="str">"text/event-stream"</span>,
+        headers={
+            <span class="str">"Cache-Control"</span>: <span class="str">"no-cache"</span>,
+            <span class="str">"X-Accel-Buffering"</span>: <span class="str">"no"</span>,
+        }
+    )</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>Agent with tools</div>
+<pre><span class="kw">from</span> langchain.agents <span class="kw">import</span> AgentExecutor, create_openai_tools_agent
+<span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+
+<span class="kw">@tool</span>
+<span class="kw">async def</span> <span class="cmd">search_docs</span>(query: str) -> str:
+    <span class="str">"""Search the document knowledge base."""</span>
+    docs = <span class="kw">await</span> retriever.ainvoke(query)
+    <span class="kw">return</span> <span class="str">"\n\n"</span>.join(d.page_content <span class="kw">for</span> d <span class="kw">in</span> docs)
+
+<span class="kw">@tool</span>
+<span class="kw">async def</span> <span class="cmd">query_graph</span>(cypher: str) -> str:
+    <span class="str">"""Run a Cypher query against Neo4j."""</span>
+    result = <span class="kw">await</span> neo4j_session.run(cypher)
+    records = [dict(r) <span class="kw">async for</span> r <span class="kw">in</span> result]
+    <span class="kw">return</span> str(records)
+
+tools = [search_docs, query_graph]
+agent = create_openai_tools_agent(llm, tools, prompt)
+executor = AgentExecutor(
+    agent=agent, tools=tools,
+    max_iterations=<span class="num">5</span>, verbose=<span class="kw">True</span>
+)
+result = <span class="kw">await</span> executor.ainvoke({<span class="str">"input"</span>: query})</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>Chat memory with Postgres</div>
+<pre><span class="kw">from</span> langchain_postgres <span class="kw">import</span> PostgresChatMessageHistory
+<span class="kw">from</span> langchain_core.runnables.history <span class="kw">import</span> RunnableWithMessageHistory
+
+history_store = {}
+
+<span class="kw">def</span> <span class="cmd">get_session_history</span>(session_id: str):
+    <span class="kw">if</span> session_id <span class="kw">not in</span> history_store:
+        history_store[session_id] = (
+            PostgresChatMessageHistory(
+                session_id=session_id,
+                connection_string=DATABASE_URL,
+                table_name=<span class="str">"chat_history"</span>,
+            )
+        )
+    <span class="kw">return</span> history_store[session_id]
+
+chain_with_history = RunnableWithMessageHistory(
+    chain,
+    get_session_history,
+    input_messages_key=<span class="str">"input"</span>,
+    history_messages_key=<span class="str">"chat_history"</span>,
+)
+result = <span class="kw">await</span> chain_with_history.ainvoke(
+    {<span class="str">"input"</span>: question},
+    config={<span class="str">"configurable"</span>: {<span class="str">"session_id"</span>: session_id}}
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--green)"></span>Ingestion pipeline — documents</div>
+<pre><span class="kw">from</span> langchain_community.document_loaders <span class="kw">import</span> (
+    DirectoryLoader, PyPDFLoader
+)
+<span class="kw">from</span> langchain.text_splitter <span class="kw">import</span> RecursiveCharacterTextSplitter
+
+loader = DirectoryLoader(<span class="str">"./docs"</span>, glob=<span class="str">"**/*.pdf"</span>,
+                         loader_cls=PyPDFLoader)
+docs = loader.load()
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=<span class="num">1000</span>,
+    chunk_overlap=<span class="num">200</span>,
+    separators=[<span class="str">"\n\n"</span>, <span class="str">"\n"</span>, <span class="str">" "</span>, <span class="str">""</span>],
+)
+chunks = splitter.split_documents(docs)
+
+<span class="cm"># Add metadata for filtering</span>
+<span class="kw">for</span> chunk <span class="kw">in</span> chunks:
+    chunk.metadata[<span class="str">"indexed_at"</span>] = datetime.utcnow().isoformat()
+
+<span class="cm"># Batch upsert to pgvector</span>
+<span class="kw">await</span> vectorstore.aadd_documents(chunks, batch_size=<span class="num">100</span>)
+print(<span class="str">f"Indexed {len(chunks)} chunks"</span>)</pre>
+      <div class="tip good"><span class="tip-icon">✓</span> Use <code>chunk_overlap=200</code> to avoid losing context at boundaries. Run ingestion in a background task, not in the request cycle.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--coral)"></span>LangSmith observability</div>
+<pre><span class="cm"># .env</span>
+<span class="var">LANGCHAIN_TRACING_V2</span>=<span class="str">"true"</span>
+<span class="var">LANGCHAIN_API_KEY</span>=<span class="str">"lsv2_..."</span>
+<span class="var">LANGCHAIN_PROJECT</span>=<span class="str">"my-rag-app"</span>
+
+<span class="cm"># Decorating any function for tracing</span>
+<span class="kw">from</span> langsmith <span class="kw">import</span> traceable
+
+<span class="kw">@traceable</span>(run_type=<span class="str">"chain"</span>, name=<span class="str">"RAG Pipeline"</span>)
+<span class="kw">async def</span> <span class="cmd">rag_answer</span>(question: str, user_id: str):
+    result = <span class="kw">await</span> rag_chain.ainvoke({<span class="str">"input"</span>: question})
+    <span class="kw">return</span> result[<span class="str">"answer"</span>]
+
+<span class="cm"># Tag runs for filtering in dashboard</span>
+<span class="kw">from</span> langsmith.run_helpers <span class="kw">import</span> get_current_run_tree
+rt = get_current_run_tree()
+<span class="kw">if</span> rt: rt.add_tags([<span class="str">"prod"</span>, f<span class="str">"user:{user_id}"</span>])</pre>
+      <div class="tip"><span class="tip-icon">💡</span> LangSmith auto-traces all LangChain calls when env vars are set — no code changes needed for basic tracing.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ SECRETS ═══════════════════════════════ -->
+<section id="section-secrets" class="section">
+  <div class="section-header">
+    <h1>🔑 Secrets &amp; Config Management</h1>
+    <p>Pydantic settings, .env files, Docker secrets, and production secret stores.</p>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Pydantic Settings — config.py</div>
+<pre><span class="kw">from</span> pydantic_settings <span class="kw">import</span> BaseSettings, SettingsConfigDict
+<span class="kw">from</span> pydantic <span class="kw">import</span> PostgresDsn, SecretStr, AnyHttpUrl
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="kw">class</span> <span class="cmd">Settings</span>(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=<span class="str">".env"</span>,
+        env_file_encoding=<span class="str">"utf-8"</span>,
+        case_sensitive=<span class="kw">False</span>,
+    )
+    <span class="cm"># App</span>
+    app_env:   str       = <span class="str">"development"</span>
+    debug:     bool      = <span class="kw">False</span>
+    secret_key: SecretStr
+
+    <span class="cm"># Database</span>
+    database_url: PostgresDsn
+    db_pool_size: int = <span class="num">20</span>
+
+    <span class="cm"># Neo4j</span>
+    neo4j_uri:      str = <span class="str">"bolt://localhost:7687"</span>
+    neo4j_user:     str = <span class="str">"neo4j"</span>
+    neo4j_password: SecretStr
+
+    <span class="cm"># LLM</span>
+    openai_api_key: SecretStr
+    openai_model:   str = <span class="str">"gpt-4o-mini"</span>
+
+    <span class="kw">@property</span>
+    <span class="kw">def</span> <span class="cmd">is_prod</span>(self) -> bool:
+        <span class="kw">return</span> self.app_env == <span class="str">"production"</span>
+
+<span class="kw">@lru_cache</span>
+<span class="kw">def</span> <span class="cmd">get_settings</span>() -> Settings:
+    <span class="kw">return</span> Settings()
+
+settings = get_settings()</pre>
+      <div class="tip good"><span class="tip-icon">✓</span> <code>SecretStr</code> masks values in logs/repr. Access real value with <code>settings.secret_key.get_secret_value()</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>.env template — .env.example</div>
+<pre><span class="cm"># ─── App ──────────────────────────</span>
+<span class="var">APP_ENV</span>=development
+<span class="var">DEBUG</span>=true
+<span class="var">SECRET_KEY</span>=changeme-use-secrets-manager-in-prod
+
+<span class="cm"># ─── PostgreSQL ───────────────────</span>
+<span class="var">DATABASE_URL</span>=postgresql+asyncpg://user:pass@localhost:5432/mydb
+
+<span class="cm"># ─── Neo4j ────────────────────────</span>
+<span class="var">NEO4J_URI</span>=bolt://localhost:7687
+<span class="var">NEO4J_USER</span>=neo4j
+<span class="var">NEO4J_PASSWORD</span>=changeme
+
+<span class="cm"># ─── LangChain / OpenAI ───────────</span>
+<span class="var">OPENAI_API_KEY</span>=sk-...
+<span class="var">OPENAI_MODEL</span>=gpt-4o-mini
+<span class="var">LANGCHAIN_TRACING_V2</span>=true
+<span class="var">LANGCHAIN_API_KEY</span>=lsv2_...
+<span class="var">LANGCHAIN_PROJECT</span>=my-app
+
+<span class="cm"># ─── Redis ────────────────────────</span>
+<span class="var">REDIS_URL</span>=redis://localhost:6379
+<span class="var">REDIS_PASSWORD</span>=changeme</pre>
+      <div class="tip danger"><span class="tip-icon">🚫</span> Commit <code>.env.example</code> with fake values. Add <code>.env</code> to <code>.gitignore</code>. Never commit real secrets — use pre-commit hooks with <code>detect-secrets</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--amber)"></span>AWS Secrets Manager — prod pattern</div>
+<pre><span class="kw">import</span> boto3, json
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+<span class="kw">@lru_cache</span>
+<span class="kw">def</span> <span class="cmd">get_secret</span>(secret_name: str) -> dict:
+    client = boto3.client(
+        <span class="str">"secretsmanager"</span>, region_name=<span class="str">"us-east-1"</span>
+    )
+    resp = client.get_secret_value(SecretId=secret_name)
+    <span class="kw">return</span> json.loads(resp[<span class="str">"SecretString"</span>])
+
+<span class="cm"># Usage in Settings</span>
+<span class="kw">class</span> <span class="cmd">ProdSettings</span>(BaseSettings):
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="cmd">from_aws</span>(cls):
+        secrets = get_secret(<span class="str">"myapp/production"</span>)
+        <span class="kw">return</span> cls(**secrets)
+
+<span class="cm"># GitHub Actions: inject at deploy time</span>
+<span class="cm"># aws secretsmanager get-secret-value \</span>
+<span class="cm">#   --secret-id myapp/production \</span>
+<span class="cm">#   --query SecretString --output text \</span>
+<span class="cm">#   | docker run --env-file /dev/stdin ...</span></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>Docker Compose secrets (prod)</div>
+<pre><span class="cm"># docker-compose.prod.yml</span>
+<span class="kw">services</span>:
+  <span class="kw">api</span>:
+    <span class="kw">secrets</span>:
+      - db_password
+      - openai_key
+    <span class="kw">environment</span>:
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      OPENAI_KEY_FILE:  /run/secrets/openai_key
+
+<span class="kw">secrets</span>:
+  <span class="kw">db_password</span>:
+    file: ./secrets/db_password.txt
+  <span class="kw">openai_key</span>:
+    file: ./secrets/openai_key.txt
+
+<span class="cm"># Read secret files in Python</span>
+<span class="kw">def</span> <span class="cmd">read_secret</span>(env_var: str) -> str:
+    file_path = os.getenv(<span class="str">f"{env_var}_FILE"</span>)
+    <span class="kw">if</span> file_path <span class="kw">and</span> os.path.exists(file_path):
+        <span class="kw">with</span> open(file_path) <span class="kw">as</span> f:
+            <span class="kw">return</span> f.read().strip()
+    <span class="kw">return</span> os.getenv(env_var, <span class="str">""</span>)</pre>
+      <div class="tip"><span class="tip-icon">💡</span> Docker secrets mount files at <code>/run/secrets/</code> — never exposed as env vars, so they won't appear in <code>docker inspect</code>.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><span class="card-label-dot" style="background:var(--green)"></span>Secret rotation + pre-commit hooks</div>
+<pre><span class="cm"># Install detect-secrets</span>
+pip install detect-secrets pre-commit
+
+<span class="cm"># .pre-commit-config.yaml</span>
+<span class="kw">repos</span>:
+  - <span class="kw">repo</span>: https://github.com/Yelp/detect-secrets
+    <span class="kw">rev</span>: v1.4.0
+    <span class="kw">hooks</span>:
+      - <span class="kw">id</span>: detect-secrets
+        <span class="kw">args</span>: [<span class="str">"--baseline"</span>, <span class="str">".secrets.baseline"</span>]
+
+<span class="cm"># Initialize baseline (allowlist known safe patterns)</span>
+detect-secrets scan > .secrets.baseline
+pre-commit install
+
+<span class="cm"># Rotate a leaked secret:</span>
+<span class="cm"># 1. Revoke in provider dashboard immediately</span>
+<span class="cm"># 2. Generate new secret</span>
+<span class="cm"># 3. Update in secret manager</span>
+<span class="cm"># 4. Redeploy (zero-downtime with rolling restart)</span>
+<span class="cm"># 5. git filter-repo to scrub history if committed</span></pre>
+      <div class="tip danger"><span class="tip-icon">🚫</span> If a secret is ever committed — rotate it immediately. Assume it's compromised even if the commit was "private." Use <code>git filter-repo</code> to purge history.</div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
