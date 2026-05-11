@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostgreSQL Schema & Migrations Cookbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1d28;
+    --bg4: #22263a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #7b7f94;
+    --dim: #4a4e63;
+    --accent: #4af0c4;
+    --accent2: #7b6ff0;
+    --accent3: #f06b4a;
+    --accent4: #f0c44a;
+    --good: #3ddc97;
+    --bad: #f06060;
+    --warn: #f0b84a;
+    --info: #4aa8f0;
+    --code-bg: #0a0c12;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* LAYOUT */
+  .shell { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 28px 22px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #000;
+    font-weight: 500;
+  }
+
+  .sidebar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .sidebar-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .nav-group { padding: 14px 14px 0; }
+
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--muted);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+
+  .nav-item.active {
+    background: var(--bg3);
+    color: var(--accent);
+    border-color: rgba(74,240,196,0.15);
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .page { display: none; padding: 48px 52px; max-width: 900px; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 36px; }
+
+  .page-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .page-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .page-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 620px;
+  }
+
+  /* SECTION HEADINGS */
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 36px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 20px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.75;
+    margin-bottom: 14px;
+  }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .code-lang {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .code-dots { display: flex; gap: 5px; }
+  .code-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .code-dot:nth-child(1) { background: #ff5f56; }
+  .code-dot:nth-child(2) { background: #ffbd2e; }
+  .code-dot:nth-child(3) { background: #27c93f; }
+
+  pre {
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #c9d1e0;
+    tab-size: 2;
+  }
+
+  .kw { color: #7b6ff0; }
+  .fn { color: #4af0c4; }
+  .str { color: #a8e66e; }
+  .num { color: #f0c44a; }
+  .cm { color: #3d4560; font-style: italic; }
+  .type { color: #f06b4a; }
+  .op { color: #7b8ab8; }
+
+  /* CARDS */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 16px 0; }
+
+  /* COMPARISON */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .compare-card {
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .compare-label {
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compare-card.good .compare-label { background: rgba(61,220,151,0.12); color: var(--good); }
+  .compare-card.bad .compare-label { background: rgba(240,96,96,0.12); color: var(--bad); }
+  .compare-card.good .code-block { border-color: rgba(61,220,151,0.2); }
+  .compare-card.bad .code-block { border-color: rgba(240,96,96,0.2); }
+
+  .compare-card .code-block { margin: 0; border-radius: 0; border-top: none; border-left: none; border-right: none; border-bottom: none; }
+
+  /* CALLOUTS */
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    margin: 16px 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .callout-body { color: var(--muted); }
+  .callout-body strong { font-weight: 500; }
+
+  .callout.tip { background: rgba(74,168,240,0.08); border: 1px solid rgba(74,168,240,0.18); }
+  .callout.tip .callout-icon, .callout.tip strong { color: var(--info); }
+  .callout.warn { background: rgba(240,184,74,0.08); border: 1px solid rgba(240,184,74,0.18); }
+  .callout.warn .callout-icon, .callout.warn strong { color: var(--warn); }
+  .callout.danger { background: rgba(240,96,96,0.08); border: 1px solid rgba(240,96,96,0.18); }
+  .callout.danger .callout-icon, .callout.danger strong { color: var(--bad); }
+  .callout.good { background: rgba(61,220,151,0.08); border: 1px solid rgba(61,220,151,0.18); }
+  .callout.good .callout-icon, .callout.good strong { color: var(--good); }
+
+  /* TABLE */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .ref-table th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ref-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: top;
+    line-height: 1.55;
+  }
+
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .ref-table td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); white-space: nowrap; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-green { background: rgba(61,220,151,0.12); color: var(--good); border: 1px solid rgba(61,220,151,0.2); }
+  .badge-red { background: rgba(240,96,96,0.12); color: var(--bad); border: 1px solid rgba(240,96,96,0.2); }
+  .badge-amber { background: rgba(240,184,74,0.12); color: var(--warn); border: 1px solid rgba(240,184,74,0.2); }
+  .badge-blue { background: rgba(74,168,240,0.12); color: var(--info); border: 1px solid rgba(74,168,240,0.2); }
+  .badge-purple { background: rgba(123,111,240,0.12); color: var(--accent2); border: 1px solid rgba(123,111,240,0.2); }
+
+  /* STEPS */
+  .steps { margin: 16px 0; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 38px;
+    bottom: -12px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .step-num {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .step-content { flex: 1; padding-top: 5px; }
+  .step-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* RULE ROWS */
+  .rule { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .rule:last-child { border-bottom: none; }
+  .rule-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .rule-icon.green { background: rgba(61,220,151,0.1); }
+  .rule-icon.red { background: rgba(240,96,96,0.1); }
+  .rule-icon.amber { background: rgba(240,184,74,0.1); }
+  .rule-icon.blue { background: rgba(74,168,240,0.1); }
+  .rule-body { flex: 1; }
+  .rule-title { font-size: 13.5px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .rule-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* INLINE CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg3);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+  /* TAG ROW */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+
+  /* TIMELINE (migration lifecycle) */
+  .timeline { margin: 20px 0; }
+  .tl-item { display: flex; gap: 0; margin-bottom: 0; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+  .tl-circle { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg); flex-shrink: 0; }
+  .tl-line { flex: 1; width: 2px; background: var(--border); min-height: 32px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { padding: 0 0 28px 4px; flex: 1; }
+  .tl-phase { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 3px; }
+  .tl-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .tl-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* HERO INDEX PAGE */
+  .hero { padding: 64px 52px 0; max-width: 900px; }
+  .hero-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 span { color: var(--accent); }
+  .hero-sub { font-size: 16px; color: var(--muted); max-width: 540px; line-height: 1.75; margin-bottom: 36px; }
+
+  .chapter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 0 52px 60px; }
+
+  .chapter-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+
+  .chapter-card:hover {
+    border-color: rgba(74,240,196,0.25);
+    background: var(--bg3);
+    transform: translateY(-2px);
+  }
+
+  .chapter-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  .chapter-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .chapter-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* HIGHLIGHT ROW */
+  .hl { background: rgba(74,240,196,0.04); border-left: 2px solid var(--accent); margin-left: -20px; padding-left: 18px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .page { padding: 28px 20px; }
+    .hero { padding: 36px 20px 0; }
+    .chapter-grid { padding: 0 20px 40px; }
+    .hero h1 { font-size: 28px; }
+    .compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">pg</div>
+        <div>
+          <div class="sidebar-title">Schema & Migrations</div>
+          <div class="sidebar-sub">PostgreSQL Cookbook</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Getting Started</div>
+      <a class="nav-item active" onclick="show('home')">
+        <span class="nav-dot"></span> Overview
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Schema Design</div>
+      <a class="nav-item" onclick="show('types')">
+        <span class="nav-dot"></span> Data Types
+      </a>
+      <a class="nav-item" onclick="show('tables')">
+        <span class="nav-dot"></span> Table Design
+      </a>
+      <a class="nav-item" onclick="show('constraints')">
+        <span class="nav-dot"></span> Constraints
+      </a>
+      <a class="nav-item" onclick="show('indexes')">
+        <span class="nav-dot"></span> Indexes
+      </a>
+      <a class="nav-item" onclick="show('relations')">
+        <span class="nav-dot"></span> Relationships
+      </a>
+      <a class="nav-item" onclick="show('normalization')">
+        <span class="nav-dot"></span> Normalization
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Migrations</div>
+      <a class="nav-item" onclick="show('migration-basics')">
+        <span class="nav-dot"></span> Migration Basics
+      </a>
+      <a class="nav-item" onclick="show('safe-patterns')">
+        <span class="nav-dot"></span> Safe Patterns
+      </a>
+      <a class="nav-item" onclick="show('dangerous')">
+        <span class="nav-dot"></span> Danger Zones
+      </a>
+      <a class="nav-item" onclick="show('zero-downtime')">
+        <span class="nav-dot"></span> Zero-Downtime
+      </a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">Reference</div>
+      <a class="nav-item" onclick="show('cheatsheet')">
+        <span class="nav-dot"></span> Cheatsheet
+      </a>
+      <a class="nav-item" onclick="show('checklist')">
+        <span class="nav-dot"></span> Pre-Deploy Checklist
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      For PostgreSQL 14+ · Backend Dev Guide
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- HOME -->
+    <div id="page-home" class="page active" style="padding: 0; max-width: 100%;">
+      <div class="hero">
+        <div class="hero-eyebrow">▸ Backend Developer Cookbook</div>
+        <h1>PostgreSQL<br><span>Schema & Migrations</span></h1>
+        <p class="hero-sub">Everything you need to design solid database schemas and ship migrations safely — from data types to zero-downtime deploys.</p>
+      </div>
+
+      <div class="chapter-grid">
+        <a class="chapter-card" onclick="show('types')">
+          <div class="chapter-num">01 — Schema</div>
+          <div class="chapter-name">Data Types</div>
+          <div class="chapter-desc">Choose the right type. Avoid common pitfalls.</div>
+        </a>
+        <a class="chapter-card" onclick="show('tables')">
+          <div class="chapter-num">02 — Schema</div>
+          <div class="chapter-name">Table Design</div>
+          <div class="chapter-desc">Anatomy of a well-formed table with PKs & audit columns.</div>
+        </a>
+        <a class="chapter-card" onclick="show('constraints')">
+          <div class="chapter-num">03 — Schema</div>
+          <div class="chapter-name">Constraints</div>
+          <div class="chapter-desc">NOT NULL, UNIQUE, CHECK, FK — enforce data at the DB layer.</div>
+        </a>
+        <a class="chapter-card" onclick="show('indexes')">
+          <div class="chapter-num">04 — Schema</div>
+          <div class="chapter-name">Indexes</div>
+          <div class="chapter-desc">When to add, what type, and what to avoid.</div>
+        </a>
+        <a class="chapter-card" onclick="show('relations')">
+          <div class="chapter-num">05 — Schema</div>
+          <div class="chapter-name">Relationships</div>
+          <div class="chapter-desc">FKs, ON DELETE behaviors, junction tables.</div>
+        </a>
+        <a class="chapter-card" onclick="show('normalization')">
+          <div class="chapter-num">06 — Schema</div>
+          <div class="chapter-name">Normalization</div>
+          <div class="chapter-desc">1NF → 3NF explained practically with examples.</div>
+        </a>
+        <a class="chapter-card" onclick="show('migration-basics')">
+          <div class="chapter-num">07 — Migrations</div>
+          <div class="chapter-name">Migration Basics</div>
+          <div class="chapter-desc">Files, versioning, up/down, tooling comparison.</div>
+        </a>
+        <a class="chapter-card" onclick="show('safe-patterns')">
+          <div class="chapter-num">08 — Migrations</div>
+          <div class="chapter-name">Safe Patterns</div>
+          <div class="chapter-desc">Expand/contract, backfill strategy, column renames.</div>
+        </a>
+        <a class="chapter-card" onclick="show('dangerous')">
+          <div class="chapter-num">09 — Migrations</div>
+          <div class="chapter-name">Danger Zones</div>
+          <div class="chapter-desc">Locks, table rewrites, and what will kill production.</div>
+        </a>
+        <a class="chapter-card" onclick="show('zero-downtime')">
+          <div class="chapter-num">10 — Migrations</div>
+          <div class="chapter-name">Zero-Downtime</div>
+          <div class="chapter-desc">Ship schema changes without interrupting live traffic.</div>
+        </a>
+        <a class="chapter-card" onclick="show('cheatsheet')">
+          <div class="chapter-num">11 — Reference</div>
+          <div class="chapter-name">Cheatsheet</div>
+          <div class="chapter-desc">Quick-reference SQL snippets for everyday tasks.</div>
+        </a>
+        <a class="chapter-card" onclick="show('checklist')">
+          <div class="chapter-num">12 — Reference</div>
+          <div class="chapter-name">Pre-Deploy Checklist</div>
+          <div class="chapter-desc">Run through this before every migration goes to prod.</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- DATA TYPES -->
+    <div id="page-types" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 01 · Schema Design</div>
+        <h1>Data Types</h1>
+        <p class="page-desc">Choosing the correct type isn't just academic — it affects storage, query performance, and correctness. Wrong types cause silent bugs that are expensive to fix later.</p>
+      </div>
+
+      <h2>The Core Type Reference</h2>
+
+      <table class="ref-table">
+        <tr><th>Type</th><th>When to Use</th><th>Notes</th></tr>
+        <tr>
+          <td>BIGINT</td>
+          <td>Primary keys, counters, IDs</td>
+          <td>8 bytes. Always use for PKs — never regret the headroom. INT maxes at ~2.1B rows.</td>
+        </tr>
+        <tr>
+          <td>INTEGER</td>
+          <td>Bounded quantities, foreign counts</td>
+          <td>4 bytes. Fine when the value will never exceed ~2.1 billion.</td>
+        </tr>
+        <tr>
+          <td>NUMERIC(p,s)</td>
+          <td>Money, exact decimals</td>
+          <td><strong>Never FLOAT for currency.</strong> Floating point accumulates errors. Use NUMERIC(12,2).</td>
+        </tr>
+        <tr>
+          <td>TEXT</td>
+          <td>All variable-length strings</td>
+          <td>No performance penalty over VARCHAR(n). Prefer TEXT + CHECK over VARCHAR(255).</td>
+        </tr>
+        <tr>
+          <td>BOOLEAN</td>
+          <td>True/false flags</td>
+          <td>1 byte. Be careful with NULL — tri-state booleans (T/F/NULL) confuse everything.</td>
+        </tr>
+        <tr>
+          <td>TIMESTAMPTZ</td>
+          <td>All timestamps — always</td>
+          <td>Stores in UTC, displays in session TZ. Almost always correct over plain TIMESTAMP.</td>
+        </tr>
+        <tr>
+          <td>DATE</td>
+          <td>Calendar dates without time</td>
+          <td>Birthdates, expiry dates, scheduling by day.</td>
+        </tr>
+        <tr>
+          <td>UUID</td>
+          <td>Distributed IDs, public-facing IDs</td>
+          <td>Use gen_random_uuid(). Consider UUIDv7 or ULID for time-ordered generation.</td>
+        </tr>
+        <tr>
+          <td>JSONB</td>
+          <td>Semi-structured queryable data</td>
+          <td>Binary storage, indexable with GIN. Use for flexible attributes — not as a "schema escape hatch."</td>
+        </tr>
+        <tr>
+          <td>ARRAY</td>
+          <td>Small uniform sets (tags, flags)</td>
+          <td>Good for small, primitive lists. Use a junction table for anything relational.</td>
+        </tr>
+        <tr>
+          <td>ENUM</td>
+          <td>Fixed value sets</td>
+          <td>Compact and fast, but adding values requires a migration. TEXT + CHECK is more flexible.</td>
+        </tr>
+        <tr>
+          <td>INET / CIDR</td>
+          <td>IP addresses</td>
+          <td>Supports subnet operators. Always better than storing as TEXT.</td>
+        </tr>
+        <tr>
+          <td>TSVECTOR</td>
+          <td>Full-text search</td>
+          <td>Store pre-computed vectors; pair with GIN indexes. Never store raw text + re-parse on query.</td>
+        </tr>
+      </table>
+
+      <h2>Type Anti-Patterns</h2>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Avoid</div>
+          <div class="code-block">
+<pre><span class="cm">-- Floats for money (silent precision loss)</span>
+price         <span class="type">FLOAT</span>
+
+<span class="cm">-- Magic-length VARCHAR</span>
+name          <span class="type">VARCHAR</span>(<span class="num">255</span>)
+
+<span class="cm">-- Timestamp without timezone</span>
+created_at    <span class="type">TIMESTAMP</span>
+
+<span class="cm">-- Status as unconstrained string</span>
+status        <span class="type">VARCHAR</span>(<span class="num">50</span>)
+
+<span class="cm">-- Storing IPs as text</span>
+ip_address    <span class="type">TEXT</span>
+
+<span class="cm">-- SERIAL (old, deprecated style)</span>
+id            <span class="type">SERIAL PRIMARY KEY</span></pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ Prefer</div>
+          <div class="code-block">
+<pre><span class="cm">-- Exact decimal — no surprises</span>
+price         <span class="type">NUMERIC</span>(<span class="num">12</span>,<span class="num">2</span>)
+
+<span class="cm">-- Unbounded; validate in app layer</span>
+name          <span class="type">TEXT</span>
+
+<span class="cm">-- Always timezone-aware</span>
+created_at    <span class="type">TIMESTAMPTZ DEFAULT NOW</span>()
+
+<span class="cm">-- Constrained set with CHECK</span>
+status        <span class="type">TEXT CHECK</span> (status <span class="kw">IN</span> (<span class="str">'active'</span>,<span class="str">'paused'</span>))
+
+<span class="cm">-- Native IP type with operators</span>
+ip_address    <span class="type">INET</span>
+
+<span class="cm">-- Modern identity column</span>
+id            <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body"><strong>Rule of thumb:</strong> Store money in cents (INTEGER or BIGINT) or use NUMERIC(12,2). Never FLOAT or DOUBLE PRECISION for anything involving currency.</div>
+      </div>
+    </div>
+
+    <!-- TABLE DESIGN -->
+    <div id="page-tables" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 02 · Schema Design</div>
+        <h1>Table Design</h1>
+        <p class="page-desc">A well-structured table is self-documenting, enforces its own integrity, and stays maintainable as your app evolves. These patterns apply to virtually every table you'll create.</p>
+      </div>
+
+      <h2>Anatomy of a Well-Formed Table</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <div class="code-lang">SQL · orders table example</div>
+        </div>
+<pre><span class="kw">CREATE TABLE</span> orders (
+
+  <span class="cm">-- ① Surrogate primary key — always BIGINT IDENTITY, never SERIAL</span>
+  id              <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+
+  <span class="cm">-- ② Foreign keys — always explicit ON DELETE behavior</span>
+  user_id         <span class="type">BIGINT NOT NULL REFERENCES</span> users(id) <span class="kw">ON DELETE RESTRICT</span>,
+  store_id        <span class="type">BIGINT NOT NULL REFERENCES</span> stores(id) <span class="kw">ON DELETE RESTRICT</span>,
+
+  <span class="cm">-- ③ Constrained status — prevents invalid state at DB level</span>
+  status          <span class="type">TEXT NOT NULL</span>
+                    <span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="str">'pending'</span>,<span class="str">'paid'</span>,<span class="str">'shipped'</span>,<span class="str">'cancelled'</span>))
+                    <span class="kw">DEFAULT</span> <span class="str">'pending'</span>,
+
+  <span class="cm">-- ④ Money in cents — zero floating point ambiguity</span>
+  total_cents     <span class="type">BIGINT NOT NULL CHECK</span> (total_cents >= <span class="num">0</span>),
+  currency        <span class="type">TEXT NOT NULL DEFAULT</span> <span class="str">'USD'</span>,
+
+  <span class="cm">-- ⑤ Business data</span>
+  notes           <span class="type">TEXT</span>,
+  metadata        <span class="type">JSONB DEFAULT</span> <span class="str">'{}'</span>,
+
+  <span class="cm">-- ⑥ Audit columns — on EVERY table, without exception</span>
+  created_at      <span class="type">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+  updated_at      <span class="type">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+  deleted_at      <span class="type">TIMESTAMPTZ</span>  <span class="cm">-- NULL = active (soft delete)</span>
+);
+
+<span class="cm">-- Index FKs so JOINs are fast</span>
+<span class="kw">CREATE INDEX ON</span> orders (user_id);
+<span class="kw">CREATE INDEX ON</span> orders (store_id);
+<span class="kw">CREATE INDEX ON</span> orders (status) <span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;
+
+<span class="cm">-- Auto-update updated_at via trigger</span>
+<span class="kw">CREATE TRIGGER</span> orders_updated_at
+  <span class="kw">BEFORE UPDATE ON</span> orders
+  <span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> <span class="fn">update_updated_at</span>();</pre>
+      </div>
+
+      <h2>The 6 Rules of Table Design</h2>
+
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon green">①</div>
+          <div class="rule-body">
+            <div class="rule-title">Always use a surrogate primary key</div>
+            <div class="rule-desc">Use <code>BIGINT GENERATED ALWAYS AS IDENTITY</code>. Never composite PKs on business columns — they change. Never SERIAL (deprecated). Use UUID when you need globally unique or public-facing IDs.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">②</div>
+          <div class="rule-body">
+            <div class="rule-title">Every column should be NOT NULL unless absence is meaningful</div>
+            <div class="rule-desc">NULLs in the wrong places cause subtle query bugs. Make columns NOT NULL and use sentinel values or separate tables for "optional" relationships.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">③</div>
+          <div class="rule-body">
+            <div class="rule-title">Include created_at, updated_at on every table</div>
+            <div class="rule-desc">Always TIMESTAMPTZ, always DEFAULT NOW(). updated_at should be maintained by a trigger. You will always need these for debugging and auditing — without them you're flying blind.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon amber">④</div>
+          <div class="rule-body">
+            <div class="rule-title">Explicit ON DELETE on every foreign key</div>
+            <div class="rule-desc">Never rely on the default (RESTRICT). Choose deliberately: RESTRICT (safe default), CASCADE (delete children), SET NULL (orphan gracefully), SET DEFAULT. The wrong behavior silently corrupts data.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon amber">⑤</div>
+          <div class="rule-body">
+            <div class="rule-title">Constrain at the database layer, not just the application</div>
+            <div class="rule-desc">Apps have bugs. Migrations bypass the app. Multiple services write to the same DB. Only database constraints are guaranteed to run on every write.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon blue">⑥</div>
+          <div class="rule-body">
+            <div class="rule-title">Use soft deletes thoughtfully</div>
+            <div class="rule-desc">A <code>deleted_at TIMESTAMPTZ</code> column enables recovery and auditing. But always add a partial index <code>WHERE deleted_at IS NULL</code> to every query index, or all queries scan deleted rows.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>The updated_at Trigger</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <div class="code-lang">SQL · reusable trigger function</div>
+        </div>
+<pre><span class="cm">-- Create this ONCE, reuse it on every table</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">update_updated_at</span>()
+<span class="kw">RETURNS TRIGGER AS</span> $$
+<span class="kw">BEGIN</span>
+  NEW.updated_at = <span class="fn">NOW</span>();
+  <span class="kw">RETURN NEW</span>;
+<span class="kw">END</span>;
+$$ <span class="kw">LANGUAGE</span> plpgsql;
+
+<span class="cm">-- Attach to any table with:</span>
+<span class="kw">CREATE TRIGGER</span> &lt;table&gt;_updated_at
+  <span class="kw">BEFORE UPDATE ON</span> &lt;table&gt;
+  <span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> <span class="fn">update_updated_at</span>();</pre>
+      </div>
+    </div>
+
+    <!-- CONSTRAINTS -->
+    <div id="page-constraints" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 03 · Schema Design</div>
+        <h1>Constraints</h1>
+        <p class="page-desc">Constraints are your last line of defense against bad data. Apps have bugs. Scripts bypass the ORM. Only the database runs constraints on every single write, no matter where it comes from.</p>
+      </div>
+
+      <h2>Constraint Types</h2>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">NOT NULL</div>
+          <div class="card-desc">Column must always have a value. The most commonly under-used constraint. Default to NOT NULL unless absence is explicitly meaningful.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">UNIQUE</div>
+          <div class="card-desc">One or more columns must be unique across rows. Creates an implicit B-tree index. Can be partial: <code>UNIQUE WHERE deleted_at IS NULL</code>.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">CHECK</div>
+          <div class="card-desc">Any boolean expression. Use for enums, ranges, email format, positive values, cross-column rules. Far more flexible than it looks.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">FOREIGN KEY</div>
+          <div class="card-desc">Ensures referenced row exists. Always specify ON DELETE and ON UPDATE behavior explicitly. Never omit these.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">PRIMARY KEY</div>
+          <div class="card-desc">NOT NULL + UNIQUE on the identifier column(s). Always use a surrogate bigint identity or UUID.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">EXCLUSION</div>
+          <div class="card-desc">Advanced: no two rows can satisfy a condition together. Classic use: no overlapping date ranges for the same resource.</div>
+        </div>
+      </div>
+
+      <h2>CHECK Constraint Patterns</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <div class="code-lang">SQL · CHECK constraint examples</div>
+        </div>
+<pre><span class="cm">-- Enum-like constraint (flexible, easy to extend)</span>
+status <span class="type">TEXT NOT NULL CHECK</span> (status <span class="kw">IN</span> (<span class="str">'draft'</span>, <span class="str">'published'</span>, <span class="str">'archived'</span>))
+
+<span class="cm">-- Non-negative amount</span>
+quantity <span class="type">INTEGER NOT NULL CHECK</span> (quantity > <span class="num">0</span>)
+
+<span class="cm">-- Valid percentage range</span>
+discount_pct <span class="type">NUMERIC</span>(<span class="num">5</span>,<span class="num">2</span>) <span class="kw">CHECK</span> (discount_pct <span class="kw">BETWEEN</span> <span class="num">0</span> <span class="kw">AND</span> <span class="num">100</span>)
+
+<span class="cm">-- Cross-column constraint: end must be after start</span>
+<span class="kw">CONSTRAINT</span> valid_dates <span class="kw">CHECK</span> (ends_at > starts_at)
+
+<span class="cm">-- Basic email format check</span>
+email <span class="type">TEXT NOT NULL CHECK</span> (email ~* <span class="str">'^[^@]+@[^@]+\.[^@]+$'</span>)
+
+<span class="cm">-- Conditional: discount only if published</span>
+<span class="kw">CONSTRAINT</span> discount_only_when_published
+  <span class="kw">CHECK</span> (discount_pct <span class="kw">IS NULL OR</span> status = <span class="str">'published'</span>)
+
+<span class="cm">-- Add constraint to existing table (VALID = checks new rows only,
+-- use NOT VALID + VALIDATE CONSTRAINT for large tables)</span>
+<span class="kw">ALTER TABLE</span> products
+  <span class="kw">ADD CONSTRAINT</span> positive_price
+  <span class="kw">CHECK</span> (price_cents > <span class="num">0</span>) <span class="kw">NOT VALID</span>;
+
+<span class="kw">ALTER TABLE</span> products
+  <span class="kw">VALIDATE CONSTRAINT</span> positive_price;</pre>
+      </div>
+
+      <h2>ON DELETE Behaviors</h2>
+
+      <table class="ref-table">
+        <tr><th>Behavior</th><th>What Happens</th><th>When to Use</th></tr>
+        <tr>
+          <td>RESTRICT</td>
+          <td>Error if referenced row has children</td>
+          <td>Safe default. Prevents accidental orphan creation. Use when deletion must be explicit.</td>
+        </tr>
+        <tr>
+          <td>CASCADE</td>
+          <td>Delete children when parent deleted</td>
+          <td>Dependent data (order → order_items). Be careful — cascades can propagate deeper than expected.</td>
+        </tr>
+        <tr>
+          <td>SET NULL</td>
+          <td>FK column set to NULL on parent delete</td>
+          <td>Optional relationships. Column must allow NULL. Useful for soft references.</td>
+        </tr>
+        <tr>
+          <td>SET DEFAULT</td>
+          <td>FK set to column's DEFAULT value</td>
+          <td>Rare. Useful for "unknown" or placeholder parent rows.</td>
+        </tr>
+        <tr>
+          <td>NO ACTION</td>
+          <td>Like RESTRICT but deferred</td>
+          <td>Used with DEFERRABLE constraints for within-transaction reordering.</td>
+        </tr>
+      </table>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body"><strong>Adding constraints to large tables:</strong> Use <code>NOT VALID</code> to skip existing rows (no lock on full scan), then run <code>VALIDATE CONSTRAINT</code> separately which only takes a ShareUpdateExclusiveLock. Never add a plain CHECK to a big table in a single migration.</div>
+      </div>
+    </div>
+
+    <!-- INDEXES -->
+    <div id="page-indexes" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 04 · Schema Design</div>
+        <h1>Indexes</h1>
+        <p class="page-desc">Indexes are the single biggest lever for query performance. But every index has a write cost. Here's how to think about when to add them, which type to use, and what to avoid.</p>
+      </div>
+
+      <h2>Index Types</h2>
+
+      <table class="ref-table">
+        <tr><th>Type</th><th>Best For</th><th>Example</th></tr>
+        <tr>
+          <td>B-Tree</td>
+          <td>Default. Equality, range queries, ORDER BY, LIKE 'foo%'</td>
+          <td>id, status, created_at, email</td>
+        </tr>
+        <tr>
+          <td>GIN</td>
+          <td>JSONB containment (@>), arrays, full-text search (@@)</td>
+          <td>metadata JSONB, tags TEXT[], tsvector columns</td>
+        </tr>
+        <tr>
+          <td>GiST</td>
+          <td>Geometric data, ranges (&&, @>, <@), PostGIS</td>
+          <td>daterange, tsrange, geometry columns</td>
+        </tr>
+        <tr>
+          <td>HASH</td>
+          <td>Equality-only lookups on very large values</td>
+          <td>Rarely needed; B-Tree is usually better</td>
+        </tr>
+        <tr>
+          <td>BRIN</td>
+          <td>Very large tables with natural physical ordering (time-series, IoT)</td>
+          <td>sensor_readings.recorded_at on append-only tables</td>
+        </tr>
+      </table>
+
+      <h2>Index Patterns</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <div class="code-lang">SQL · index examples</div>
+        </div>
+<pre><span class="cm">-- ① Always index foreign keys</span>
+<span class="kw">CREATE INDEX</span> idx_orders_user_id <span class="kw">ON</span> orders (user_id);
+
+<span class="cm">-- ② Partial index — only index the rows you query</span>
+<span class="cm">--   (far smaller and faster than indexing all rows)</span>
+<span class="kw">CREATE INDEX</span> idx_orders_pending
+  <span class="kw">ON</span> orders (created_at)
+  <span class="kw">WHERE</span> status = <span class="str">'pending'</span>;
+
+<span class="cm">-- ③ Composite index — column order matters!</span>
+<span class="cm">--   Covers: (user_id), (user_id, status), but NOT (status) alone</span>
+<span class="kw">CREATE INDEX</span> idx_orders_user_status
+  <span class="kw">ON</span> orders (user_id, status);
+
+<span class="cm">-- ④ Covering index (INCLUDE) — index-only scan, no heap fetch</span>
+<span class="kw">CREATE INDEX</span> idx_orders_user_covering
+  <span class="kw">ON</span> orders (user_id)
+  <span class="kw">INCLUDE</span> (status, total_cents, created_at);
+
+<span class="cm">-- ⑤ Expression index — index the result of a function</span>
+<span class="kw">CREATE INDEX</span> idx_users_email_lower
+  <span class="kw">ON</span> users (<span class="fn">lower</span>(email));
+<span class="cm">-- Query must use the same expression: WHERE lower(email) = ...</span>
+
+<span class="cm">-- ⑥ GIN for JSONB queries</span>
+<span class="kw">CREATE INDEX</span> idx_products_metadata
+  <span class="kw">ON</span> products <span class="kw">USING GIN</span> (metadata);
+
+<span class="cm">-- ⑦ CONCURRENTLY — never blocks reads/writes (use in migrations!)</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_events_user_id
+  <span class="kw">ON</span> events (user_id);
+<span class="cm">-- Cannot be run inside a transaction block</span></pre>
+      </div>
+
+      <h2>Composite Index Column Order</h2>
+
+      <p>Put the most selective, equality-tested column first. Range-tested columns go last.</p>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Wrong order</div>
+          <div class="code-block">
+<pre><span class="cm">-- Query: WHERE user_id = 5 AND status = 'paid'
+-- This index won't help for user_id alone</span>
+
+<span class="kw">CREATE INDEX ON</span> orders (status, user_id);
+
+<span class="cm">-- status has low cardinality (few distinct values)
+-- Postgres may skip this index entirely</span></pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ Right order</div>
+          <div class="code-block">
+<pre><span class="cm">-- High-cardinality (user_id) goes first
+-- Also works for queries on user_id alone</span>
+
+<span class="kw">CREATE INDEX ON</span> orders (user_id, status);
+
+<span class="cm">-- Rule: equality columns first,
+-- range columns (created_at) last</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        <div class="callout-icon">🚫</div>
+        <div class="callout-body"><strong>Never add indexes blindly.</strong> Each index adds ~20-30% write overhead. Over-indexing tables with heavy INSERT/UPDATE/DELETE is worse than no index. Profile with <code>EXPLAIN ANALYZE</code> first, then add the minimal index that fixes it.</div>
+      </div>
+
+      <h2>Find Slow Queries & Unused Indexes</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <div class="code-lang">SQL · diagnostics</div>
+        </div>
+<pre><span class="cm">-- Indexes never used (safe to drop candidates)</span>
+<span class="kw">SELECT</span> schemaname, tablename, indexname, idx_scan
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">WHERE</span> idx_scan = <span class="num">0</span>
+<span class="kw">ORDER BY</span> pg_relation_size(indexrelid) <span class="kw">DESC</span>;
+
+<span class="cm">-- Tables missing indexes on FK columns (sequential scans)</span>
+<span class="kw">SELECT</span> relname, seq_scan, seq_tup_read, idx_scan
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> seq_scan > <span class="num">50</span>
+<span class="kw">ORDER BY</span> seq_scan <span class="kw">DESC</span>;
+
+<span class="cm">-- Bloated indexes (fragmented, needs REINDEX)</span>
+<span class="kw">SELECT</span> indexrelname,
+       <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(indexrelid)) <span class="kw">AS</span> size
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">ORDER BY</span> <span class="fn">pg_relation_size</span>(indexrelid) <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">10</span>;</pre>
+      </div>
+    </div>
+
+    <!-- RELATIONSHIPS -->
+    <div id="page-relations" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 05 · Schema Design</div>
+        <h1>Relationships</h1>
+        <p class="page-desc">How you model relationships between entities is the core of relational database design. Get these patterns right and everything else becomes easier.</p>
+      </div>
+
+      <h2>One-to-Many (Most Common)</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- One user → many posts</span>
+<span class="kw">CREATE TABLE</span> posts (
+  id         <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+  user_id    <span class="type">BIGINT NOT NULL REFERENCES</span> users(id) <span class="kw">ON DELETE CASCADE</span>,
+  title      <span class="type">TEXT NOT NULL</span>,
+  created_at <span class="type">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>()
+);
+
+<span class="cm">-- Index the FK — always</span>
+<span class="kw">CREATE INDEX ON</span> posts (user_id);</pre>
+      </div>
+
+      <h2>Many-to-Many (Junction Table)</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Many posts ↔ many tags</span>
+<span class="kw">CREATE TABLE</span> post_tags (
+  post_id    <span class="type">BIGINT NOT NULL REFERENCES</span> posts(id) <span class="kw">ON DELETE CASCADE</span>,
+  tag_id     <span class="type">BIGINT NOT NULL REFERENCES</span> tags(id)  <span class="kw">ON DELETE CASCADE</span>,
+
+  <span class="cm">-- Composite PK prevents duplicates</span>
+  <span class="kw">PRIMARY KEY</span> (post_id, tag_id),
+
+  <span class="cm">-- Junction tables can have their own data</span>
+  added_at   <span class="type">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+  added_by   <span class="type">BIGINT REFERENCES</span> users(id)
+);
+
+<span class="cm">-- Index the reverse direction for tag → posts lookups</span>
+<span class="kw">CREATE INDEX ON</span> post_tags (tag_id);</pre>
+      </div>
+
+      <h2>One-to-One</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- User profile is 1-to-1 with user</span>
+<span class="cm">-- Use UNIQUE on the FK to enforce the "one" side</span>
+<span class="kw">CREATE TABLE</span> user_profiles (
+  id          <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+  user_id     <span class="type">BIGINT NOT NULL UNIQUE REFERENCES</span> users(id) <span class="kw">ON DELETE CASCADE</span>,
+  bio         <span class="type">TEXT</span>,
+  avatar_url  <span class="type">TEXT</span>
+);</pre>
+      </div>
+
+      <h2>Self-Referential (Hierarchies)</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Categories with parent categories (tree structure)</span>
+<span class="kw">CREATE TABLE</span> categories (
+  id         <span class="type">BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+  parent_id  <span class="type">BIGINT REFERENCES</span> categories(id) <span class="kw">ON DELETE RESTRICT</span>,
+  name       <span class="type">TEXT NOT NULL</span>
+);
+
+<span class="kw">CREATE INDEX ON</span> categories (parent_id);
+
+<span class="cm">-- Query full hierarchy with recursive CTE</span>
+<span class="kw">WITH RECURSIVE</span> tree <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> categories <span class="kw">WHERE</span> id = <span class="num">1</span>
+  <span class="kw">UNION ALL</span>
+  <span class="kw">SELECT</span> c.* <span class="kw">FROM</span> categories c
+  <span class="kw">JOIN</span> tree t <span class="kw">ON</span> c.parent_id = t.id
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> tree;</pre>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body"><strong>Always index FK columns.</strong> PostgreSQL does NOT automatically create indexes on foreign key columns (only on the PK side). An un-indexed FK causes a full sequential scan every time you JOIN or do a cascade check.</div>
+      </div>
+    </div>
+
+    <!-- NORMALIZATION -->
+    <div id="page-normalization" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 06 · Schema Design</div>
+        <h1>Normalization</h1>
+        <p class="page-desc">Normalization is the process of organizing data to reduce redundancy and prevent update anomalies. Here's a practical, pattern-based understanding — not just theory.</p>
+      </div>
+
+      <h2>Why Normalize?</h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">No Data Duplication</div>
+          <div class="card-desc">Each piece of information lives in exactly one place. Update it once, consistent everywhere.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">No Update Anomalies</div>
+          <div class="card-desc">Changing a customer's name doesn't require updating 50 order rows — just one users row.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Referential Integrity</div>
+          <div class="card-desc">FK constraints only work when related data is in separate tables. Embedded data can't be constrained.</div>
+        </div>
+      </div>
+
+      <h2>First Normal Form (1NF) — Atomic Values</h2>
+      <p>Every column stores one value. No comma-separated lists, no repeating groups.</p>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Violates 1NF</div>
+          <div class="code-block">
+<pre><span class="cm">-- Multiple phones in one column</span>
+users
+┌─────┬──────────────────────────┐
+│ id  │ phone_numbers            │
+├─────┼──────────────────────────┤
+│  1  │ '555-1234, 555-5678'    │
+│  2  │ '555-9999'              │
+└─────┴──────────────────────────┘
+
+<span class="cm">-- Can't query individual phone numbers
+-- Can't index them
+-- Impossible to FK-constrain</span></pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ 1NF Compliant</div>
+          <div class="code-block">
+<pre><span class="cm">-- Each phone in its own row</span>
+user_phones
+┌─────┬─────────┬────────────┐
+│ id  │ user_id │ phone      │
+├─────┼─────────┼────────────┤
+│  1  │    1    │ 555-1234   │
+│  2  │    1    │ 555-5678   │
+│  3  │    2    │ 555-9999   │
+└─────┴─────────┴────────────┘
+
+<span class="cm">-- Queryable, indexable, constrained</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Second Normal Form (2NF) — No Partial Dependencies</h2>
+      <p>Every non-key column must depend on the <em>whole</em> primary key. Applies when you have composite PKs.</p>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Violates 2NF</div>
+          <div class="code-block">
+<pre><span class="cm">-- PK is (order_id, product_id)
+-- product_name depends only on product_id
+-- → updating a product name requires
+--   updating every order row</span>
+
+order_items
+┌──────────┬────────────┬──────────────┬───────┐
+│ order_id │ product_id │ product_name │  qty  │
+├──────────┼────────────┼──────────────┼───────┤
+│    1     │    42      │   Widget X   │   3   │
+│    2     │    42      │   Widget X   │   1   │
+└──────────┴────────────┴──────────────┴───────┘</pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ 2NF Compliant</div>
+          <div class="code-block">
+<pre><span class="cm">-- product_name lives in products table
+-- order_items only has order-specific data</span>
+
+products            order_items
+┌─────┬──────────┐  ┌──────────┬────────────┬─────┐
+│ id  │ name     │  │ order_id │ product_id │ qty │
+├─────┼──────────┤  ├──────────┼────────────┼─────┤
+│ 42  │ Widget X │  │    1     │     42     │  3  │
+└─────┴──────────┘  │    2     │     42     │  1  │
+                    └──────────┴────────────┴─────┘</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Third Normal Form (3NF) — No Transitive Dependencies</h2>
+      <p>Non-key columns must depend only on the PK, not on other non-key columns.</p>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Violates 3NF</div>
+          <div class="code-block">
+<pre><span class="cm">-- zip_code → city → state (transitive chain)
+-- Changing a zip code's city means
+-- scanning the entire users table</span>
+
+users
+┌─────┬──────┬──────────┬─────────┐
+│ id  │ name │ zip_code │  city   │
+├─────┼──────┼──────────┼─────────┤
+│  1  │ Ali  │  10001   │ New York│
+│  2  │ Sara │  10001   │ New York│
+└─────┴──────┴──────────┴─────────┘</pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ 3NF Compliant</div>
+          <div class="code-block">
+<pre><span class="cm">-- city is a property of zip_code, not user</span>
+
+zip_codes           users
+┌──────────┬──────────┐  ┌─────┬──────┬──────────┐
+│ zip_code │ city     │  │ id  │ name │ zip_code │
+├──────────┼──────────┤  ├─────┼──────┼──────────┤
+│  10001   │ New York │  │  1  │ Ali  │  10001   │
+└──────────┴──────────┘  │  2  │ Sara │  10001   │
+                         └─────┴──────┴──────────┘</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body"><strong>When to denormalize:</strong> For read-heavy analytics or reporting, controlled denormalization (storing pre-computed values) is a valid trade-off. Use materialized views or separate reporting tables — not your core transactional schema.</div>
+      </div>
+    </div>
+
+    <!-- MIGRATION BASICS -->
+    <div id="page-migration-basics" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 07 · Migrations</div>
+        <h1>Migration Basics</h1>
+        <p class="page-desc">Migrations are versioned, reproducible scripts that evolve your database schema alongside your code. Never change a database schema manually in production.</p>
+      </div>
+
+      <h2>What Is a Migration?</h2>
+      <p>A migration is a file that contains SQL (or ORM code) to move the database from state A to state B. It always has two operations: <strong>up</strong> (apply the change) and <strong>down</strong> (roll it back).</p>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL · migration file example</div></div>
+<pre><span class="cm">-- migrations/20240315120000_add_phone_to_users.sql</span>
+
+<span class="cm">-- ── UP ─────────────────────────────────────────</span>
+<span class="kw">ALTER TABLE</span> users
+  <span class="kw">ADD COLUMN</span> phone <span class="type">TEXT</span>,
+  <span class="kw">ADD COLUMN</span> phone_verified_at <span class="type">TIMESTAMPTZ</span>;
+
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_users_phone <span class="kw">ON</span> users(phone)
+  <span class="kw">WHERE</span> phone <span class="kw">IS NOT NULL</span>;
+
+<span class="cm">-- ── DOWN ───────────────────────────────────────</span>
+<span class="cm">-- (in separate down file or section)</span>
+<span class="kw">DROP INDEX CONCURRENTLY IF EXISTS</span> idx_users_phone;
+<span class="kw">ALTER TABLE</span> users
+  <span class="kw">DROP COLUMN IF EXISTS</span> phone,
+  <span class="kw">DROP COLUMN IF EXISTS</span> phone_verified_at;</pre>
+      </div>
+
+      <h2>Migration File Naming</h2>
+
+      <div class="card">
+        <div class="card-desc">
+          Use a timestamp prefix so files sort chronologically and avoid conflicts in team environments:<br><br>
+          <code>20240315120000_add_phone_to_users.sql</code><br>
+          <code>20240316083000_create_notifications_table.sql</code><br>
+          <code>20240320140000_add_index_orders_status.sql</code><br><br>
+          Format: <code>YYYYMMDDHHMMSS_descriptive_snake_case_name</code>
+        </div>
+      </div>
+
+      <h2>Migration Tooling</h2>
+
+      <table class="ref-table">
+        <tr><th>Tool</th><th>Language</th><th>Best For</th></tr>
+        <tr><td>Flyway</td><td>Any (SQL files)</td><td>Simple, reliable, SQL-first. Great for any backend language.</td></tr>
+        <tr><td>Liquibase</td><td>Any (XML/YAML/SQL)</td><td>Enterprise features, complex change tracking, multi-DB.</td></tr>
+        <tr><td>golang-migrate</td><td>Go</td><td>Lightweight Go projects. Pure SQL files.</td></tr>
+        <tr><td>Alembic</td><td>Python</td><td>SQLAlchemy projects. Supports auto-generation from models.</td></tr>
+        <tr><td>Prisma Migrate</td><td>Node.js</td><td>TypeScript/Node projects. Auto-generates from schema file.</td></tr>
+        <tr><td>ActiveRecord</td><td>Ruby</td><td>Rails apps. Ruby DSL + rollback support built-in.</td></tr>
+        <tr><td>Knex / Umzug</td><td>Node.js</td><td>Node apps without a full ORM. SQL or JS-based migrations.</td></tr>
+      </table>
+
+      <h2>The Golden Rules of Migrations</h2>
+
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon red">✗</div>
+          <div class="rule-body">
+            <div class="rule-title">Never edit a migration that has run in any environment</div>
+            <div class="rule-desc">Create a new migration to fix or revert a previous one. Other developers and environments have already run the original — editing it creates inconsistency.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon red">✗</div>
+          <div class="rule-body">
+            <div class="rule-title">Never make schema changes directly in production</div>
+            <div class="rule-desc">No psql sessions, no manual ALTERs "just this once." Schema must flow through version control → migration tool → production. Always.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">One migration = one logical change</div>
+            <div class="rule-desc">Keep migrations focused. "Add phone column" and "add notification table" should be separate files. Easier to review, easier to roll back individually.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">Test migrations on a production-sized data copy</div>
+            <div class="rule-desc">A migration that takes 10ms on a dev database with 100 rows may take 45 minutes and lock the table on 50 million rows in production.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAFE PATTERNS -->
+    <div id="page-safe-patterns" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 08 · Migrations</div>
+        <h1>Safe Migration Patterns</h1>
+        <p class="page-desc">These patterns let you evolve your schema without breaking running application code or causing downtime.</p>
+      </div>
+
+      <h2>The Expand/Contract Pattern</h2>
+      <p>The safest way to rename columns, change types, or restructure tables. Split into phases deployed separately.</p>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-circle"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 1 — Expand</div>
+            <div class="tl-title">Add the new column alongside the old one</div>
+            <div class="tl-desc">Add the new column (nullable). Both old and new app code still work because nothing is removed yet.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-circle"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 2 — Backfill</div>
+            <div class="tl-title">Populate the new column from the old one</div>
+            <div class="tl-desc">Run a backfill query in batches. New writes should write to both columns (dual-write in app code or via trigger).</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-circle"></div><div class="tl-line"></div></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 3 — Switch</div>
+            <div class="tl-title">Deploy app code reading from the new column</div>
+            <div class="tl-desc">Update app to read from the new column. Add NOT NULL constraint to new column. Monitor for errors.</div>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-left"><div class="tl-circle"></div></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 4 — Contract</div>
+            <div class="tl-title">Drop the old column</div>
+            <div class="tl-desc">Once all app code is off the old column, drop it in a separate deployment. Safe because no code references it anymore.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Renaming a Column Safely</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL + pseudocode</div></div>
+<pre><span class="cm">-- GOAL: rename users.name → users.full_name</span>
+
+<span class="cm">-- Migration 1: Add new column (nullable)</span>
+<span class="kw">ALTER TABLE</span> users <span class="kw">ADD COLUMN</span> full_name <span class="type">TEXT</span>;
+
+<span class="cm">-- Migration 2: Backfill in batches</span>
+<span class="kw">UPDATE</span> users <span class="kw">SET</span> full_name = name
+<span class="kw">WHERE</span> full_name <span class="kw">IS NULL</span>
+  <span class="kw">AND</span> id <span class="kw">BETWEEN</span> <span class="num">1</span> <span class="kw">AND</span> <span class="num">10000</span>; <span class="cm">-- repeat in chunks</span>
+
+<span class="cm">-- App code: dual-write to both columns during transition</span>
+
+<span class="cm">-- Migration 3: Add NOT NULL after backfill is complete</span>
+<span class="kw">ALTER TABLE</span> users
+  <span class="kw">ALTER COLUMN</span> full_name <span class="kw">SET NOT NULL</span>;
+
+<span class="cm">-- Migration 4: Drop old column (after app reads only full_name)</span>
+<span class="kw">ALTER TABLE</span> users <span class="kw">DROP COLUMN</span> name;</pre>
+      </div>
+
+      <h2>Adding NOT NULL to an Existing Column</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL · safe approach for large tables</div></div>
+<pre><span class="cm">-- WRONG: locks entire table while scanning all rows</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">ALTER COLUMN</span> status <span class="kw">SET NOT NULL</span>; <span class="cm">-- ✗</span>
+
+<span class="cm">-- RIGHT: use a CHECK constraint with NOT VALID first</span>
+
+<span class="cm">-- Step 1: Add constraint without scanning existing rows (instant)</span>
+<span class="kw">ALTER TABLE</span> orders
+  <span class="kw">ADD CONSTRAINT</span> orders_status_not_null
+  <span class="kw">CHECK</span> (status <span class="kw">IS NOT NULL</span>) <span class="kw">NOT VALID</span>;
+
+<span class="cm">-- Step 2: Backfill nulls if any exist</span>
+<span class="kw">UPDATE</span> orders <span class="kw">SET</span> status = <span class="str">'pending'</span> <span class="kw">WHERE</span> status <span class="kw">IS NULL</span>;
+
+<span class="cm">-- Step 3: Validate constraint (ShareUpdateExclusiveLock — does NOT block reads/writes)</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">VALIDATE CONSTRAINT</span> orders_status_not_null;
+
+<span class="cm">-- Step 4: Postgres 12+ recognizes validated CHECK → can now use ALTER NOT NULL cheaply</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">ALTER COLUMN</span> status <span class="kw">SET NOT NULL</span>;</pre>
+      </div>
+
+      <h2>Backfill Strategy for Large Tables</h2>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL · batch backfill</div></div>
+<pre><span class="cm">-- Never UPDATE the entire table at once — it locks rows for too long
+-- Batch by PK range, with a small sleep between batches</span>
+
+<span class="kw">DO</span> $$
+<span class="kw">DECLARE</span>
+  batch_size  <span class="type">INT</span> := <span class="num">5000</span>;
+  last_id     <span class="type">BIGINT</span> := <span class="num">0</span>;
+  max_id      <span class="type">BIGINT</span>;
+<span class="kw">BEGIN</span>
+  <span class="kw">SELECT MAX</span>(id) <span class="kw">INTO</span> max_id <span class="kw">FROM</span> orders;
+
+  <span class="kw">WHILE</span> last_id < max_id <span class="kw">LOOP</span>
+    <span class="kw">UPDATE</span> orders
+    <span class="kw">SET</span> full_status = status
+    <span class="kw">WHERE</span> id > last_id
+      <span class="kw">AND</span> id <= last_id + batch_size
+      <span class="kw">AND</span> full_status <span class="kw">IS NULL</span>;
+
+    last_id := last_id + batch_size;
+    <span class="kw">PERFORM</span> <span class="fn">pg_sleep</span>(<span class="num">0.05</span>); <span class="cm">-- 50ms pause between batches</span>
+  <span class="kw">END LOOP</span>;
+<span class="kw">END</span>; $$;</pre>
+      </div>
+    </div>
+
+    <!-- DANGEROUS -->
+    <div id="page-dangerous" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 09 · Migrations</div>
+        <h1>Danger Zones</h1>
+        <p class="page-desc">These operations can lock your tables, rewrite all rows, or take down production. Know them. Fear them appropriately.</p>
+      </div>
+
+      <h2>Locking Levels</h2>
+      <p>Every DDL statement acquires a lock. Most destructive operations take an <strong>AccessExclusiveLock</strong> — this blocks ALL reads and writes until the operation completes.</p>
+
+      <table class="ref-table">
+        <tr><th>Lock Level</th><th>Blocks</th><th>Typical Operations</th></tr>
+        <tr>
+          <td>AccessExclusiveLock</td>
+          <td>Everything — reads, writes, vacuums</td>
+          <td>DROP TABLE, TRUNCATE, most ALTER TABLE operations</td>
+        </tr>
+        <tr>
+          <td>ShareRowExclusiveLock</td>
+          <td>Writes, other DDL</td>
+          <td>CREATE TRIGGER, some FK operations</td>
+        </tr>
+        <tr>
+          <td>ShareUpdateExclusiveLock</td>
+          <td>Other DDL only, NOT reads/writes</td>
+          <td>CREATE INDEX CONCURRENTLY, VALIDATE CONSTRAINT, VACUUM</td>
+        </tr>
+        <tr>
+          <td>ShareLock</td>
+          <td>Writes only</td>
+          <td>CREATE INDEX (non-concurrent)</td>
+        </tr>
+      </table>
+
+      <div class="callout danger">
+        <div class="callout-icon">🔥</div>
+        <div class="callout-body"><strong>The queue problem:</strong> Even if your ALTER TABLE finishes in 2 seconds, if there's a long-running query when it starts, the ALTER waits behind it. And every new query waits behind the ALTER. A 30-second idle transaction can cause a 5-minute production outage.</div>
+      </div>
+
+      <h2>Operations That Rewrite the Entire Table</h2>
+
+      <p>These operations copy every row to a new heap, holding an AccessExclusiveLock the entire time. On a 100GB table, that could be hours.</p>
+
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon red">!</div>
+          <div class="rule-body">
+            <div class="rule-title">ALTER COLUMN … TYPE (type change)</div>
+            <div class="rule-desc">Changing <code>INTEGER → BIGINT</code>, <code>VARCHAR(50) → TEXT</code>, etc. Full table rewrite. Use the expand/contract pattern instead.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon red">!</div>
+          <div class="rule-body">
+            <div class="rule-title">ADD COLUMN with a volatile DEFAULT</div>
+            <div class="rule-desc">In PostgreSQL &lt; 11: adding a column with DEFAULT rewrites every row. PostgreSQL 11+ handles constant defaults without rewrite — but avoid <code>DEFAULT NOW()</code> (volatile) on large tables.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon red">!</div>
+          <div class="rule-body">
+            <div class="rule-title">CREATE INDEX (without CONCURRENTLY)</div>
+            <div class="rule-desc">Blocks writes for the entire index build. Always use <code>CREATE INDEX CONCURRENTLY</code>. Cannot run inside a transaction block.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon red">!</div>
+          <div class="rule-body">
+            <div class="rule-title">ALTER TABLE … SET NOT NULL (pre-PG12 or unvalidated)</div>
+            <div class="rule-desc">Full table scan + lock to verify no NULLs exist. Use the NOT VALID → VALIDATE CONSTRAINT pattern instead (see Chapter 08).</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon red">!</div>
+          <div class="rule-body">
+            <div class="rule-title">Adding a FOREIGN KEY without NOT VALID</div>
+            <div class="rule-desc">Scans the entire child table to validate every row. Use <code>NOT VALID</code> first, then <code>VALIDATE CONSTRAINT</code> separately.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Safe vs Dangerous Side-by-Side</h2>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-label">✗ Dangerous</div>
+          <div class="code-block">
+<pre><span class="cm">-- Locks table, rewrites rows (type change)</span>
+<span class="kw">ALTER TABLE</span> users
+  <span class="kw">ALTER COLUMN</span> age <span class="kw">TYPE BIGINT</span>;
+
+<span class="cm">-- Blocks all writes during build</span>
+<span class="kw">CREATE INDEX</span> idx_orders_user_id
+  <span class="kw">ON</span> orders (user_id);
+
+<span class="cm">-- Full scan + lock on large table</span>
+<span class="kw">ALTER TABLE</span> orders
+  <span class="kw">ADD CONSTRAINT</span> fk_user
+  <span class="kw">FOREIGN KEY</span> (user_id) <span class="kw">REFERENCES</span> users(id);
+
+<span class="cm">-- Drops all rows, no recovery</span>
+<span class="kw">TRUNCATE TABLE</span> events;</pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-label">✓ Safe</div>
+          <div class="code-block">
+<pre><span class="cm">-- Use expand/contract instead of type change
+-- Add new BIGINT column, backfill, swap, drop old</span>
+<span class="kw">ALTER TABLE</span> users <span class="kw">ADD COLUMN</span> age_v2 <span class="type">BIGINT</span>;
+
+<span class="cm">-- CONCURRENTLY — no write locks</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_orders_user_id
+  <span class="kw">ON</span> orders (user_id);
+
+<span class="cm">-- NOT VALID skips full scan</span>
+<span class="kw">ALTER TABLE</span> orders
+  <span class="kw">ADD CONSTRAINT</span> fk_user
+  <span class="kw">FOREIGN KEY</span> (user_id) <span class="kw">REFERENCES</span> users(id)
+  <span class="kw">NOT VALID</span>;
+<span class="kw">ALTER TABLE</span> orders <span class="kw">VALIDATE CONSTRAINT</span> fk_user;
+
+<span class="cm">-- Use soft delete + periodic cleanup job</span>
+<span class="kw">UPDATE</span> events <span class="kw">SET</span> deleted_at = <span class="fn">NOW</span>() <span class="kw">WHERE</span> ...</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Setting a Statement Timeout</h2>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Set a timeout so a stuck migration aborts instead of blocking forever</span>
+<span class="cm">-- Run this at the START of every migration script</span>
+
+<span class="kw">SET</span> lock_timeout = <span class="str">'2s'</span>;      <span class="cm">-- abort if can't get lock in 2s</span>
+<span class="kw">SET</span> statement_timeout = <span class="str">'60s'</span>; <span class="cm">-- abort if statement runs > 60s</span>
+
+<span class="cm">-- Then your ALTER TABLE / CREATE INDEX here</span></pre>
+      </div>
+    </div>
+
+    <!-- ZERO DOWNTIME -->
+    <div id="page-zero-downtime" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 10 · Migrations</div>
+        <h1>Zero-Downtime Migrations</h1>
+        <p class="page-desc">Ship schema changes to production while handling live traffic. This requires coordination between database changes and application deployments.</p>
+      </div>
+
+      <h2>The Core Principle</h2>
+      <div class="callout good">
+        <div class="callout-icon">✅</div>
+        <div class="callout-body"><strong>Database changes must be backward-compatible with both the old and new version of your app code.</strong> Because during a rolling deploy, both versions are running simultaneously against the same database.</div>
+      </div>
+
+      <h2>What Is and Isn't Safe in a Live Deploy</h2>
+
+      <table class="ref-table">
+        <tr><th>Operation</th><th>Safe?</th><th>Reason</th></tr>
+        <tr>
+          <td>ADD COLUMN (nullable, no default)</td>
+          <td><span class="badge badge-green">✓ Safe</span></td>
+          <td>Old code ignores new column. No rewrite. Instant in PG 11+.</td>
+        </tr>
+        <tr>
+          <td>ADD COLUMN with constant DEFAULT</td>
+          <td><span class="badge badge-green">✓ Safe (PG11+)</span></td>
+          <td>PG11+ stores the default in catalog without rewriting rows.</td>
+        </tr>
+        <tr>
+          <td>ADD COLUMN with volatile DEFAULT (NOW())</td>
+          <td><span class="badge badge-amber">⚠ Careful</span></td>
+          <td>Forces a table rewrite in all versions. Use nullable first, backfill separately.</td>
+        </tr>
+        <tr>
+          <td>CREATE INDEX CONCURRENTLY</td>
+          <td><span class="badge badge-green">✓ Safe</span></td>
+          <td>Builds in background. No write locks. Cannot be inside a transaction.</td>
+        </tr>
+        <tr>
+          <td>DROP COLUMN</td>
+          <td><span class="badge badge-red">✗ Only after deploy</span></td>
+          <td>Old code will error if it references the dropped column. Deploy app change first.</td>
+        </tr>
+        <tr>
+          <td>RENAME COLUMN</td>
+          <td><span class="badge badge-red">✗ Never directly</span></td>
+          <td>Old code breaks immediately. Use expand/contract pattern across multiple deploys.</td>
+        </tr>
+        <tr>
+          <td>ALTER COLUMN TYPE</td>
+          <td><span class="badge badge-red">✗ Never directly</span></td>
+          <td>Table rewrite + type change can break existing app queries. Use expand/contract.</td>
+        </tr>
+        <tr>
+          <td>DROP TABLE</td>
+          <td><span class="badge badge-red">✗ Only after deploy</span></td>
+          <td>Must ensure zero code references the table before dropping.</td>
+        </tr>
+        <tr>
+          <td>ADD NOT NULL constraint</td>
+          <td><span class="badge badge-amber">⚠ Use NOT VALID</span></td>
+          <td>Use the CHECK NOT NULL / VALIDATE pattern from Chapter 08.</td>
+        </tr>
+      </table>
+
+      <h2>Full Example: Add a Required Column</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Migration: Add nullable column</div>
+            <div class="step-desc">Deploy this before any app code. Old app works fine — ignores the new column.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">App deploy: Write to both old + new column</div>
+            <div class="step-desc">Dual-write. New rows populate the new column. Old rows are still null.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Migration: Backfill existing rows</div>
+            <div class="step-desc">Batch-update existing rows in chunks. After this, all rows have the new value.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Migration: Add NOT NULL constraint (NOT VALID → VALIDATE)</div>
+            <div class="step-desc">Enforce the constraint without a full table lock.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">App deploy: Read from new column, stop dual-write</div>
+            <div class="step-desc">App is now fully on the new column. Old column no longer written.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Migration: Drop old column</div>
+            <div class="step-desc">Safe to drop now — no code references it. The final cleanup step.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body"><strong>Use lock_timeout in every migration:</strong> Add <code>SET lock_timeout = '3s';</code> at the top of each migration script. If the migration can't acquire a lock within 3 seconds, it aborts instead of queueing all subsequent queries behind it.</div>
+      </div>
+    </div>
+
+    <!-- CHEATSHEET -->
+    <div id="page-cheatsheet" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 11 · Reference</div>
+        <h1>SQL Cheatsheet</h1>
+        <p class="page-desc">Quick-reference snippets for the operations you'll need on any PostgreSQL project.</p>
+      </div>
+
+      <h2>Schema Operations</h2>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Add column (safe, nullable first)</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD COLUMN</span> col <span class="type">TEXT</span>;
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD COLUMN</span> col <span class="type">TEXT NOT NULL DEFAULT</span> <span class="str">''</span>; <span class="cm">-- PG11+</span>
+
+<span class="cm">-- Drop column</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">DROP COLUMN IF EXISTS</span> col;
+
+<span class="cm">-- Rename column</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">RENAME COLUMN</span> old_name <span class="kw">TO</span> new_name;
+
+<span class="cm">-- Rename table</span>
+<span class="kw">ALTER TABLE</span> old_name <span class="kw">RENAME TO</span> new_name;
+
+<span class="cm">-- Change type (CAREFUL — may rewrite table)</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">ALTER COLUMN</span> col <span class="kw">TYPE</span> <span class="type">BIGINT</span>
+  <span class="kw">USING</span> col::<span class="type">BIGINT</span>;
+
+<span class="cm">-- Set default</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">ALTER COLUMN</span> col <span class="kw">SET DEFAULT</span> <span class="str">'active'</span>;
+<span class="kw">ALTER TABLE</span> t <span class="kw">ALTER COLUMN</span> col <span class="kw">DROP DEFAULT</span>;
+
+<span class="cm">-- Set / drop NOT NULL</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">ALTER COLUMN</span> col <span class="kw">SET NOT NULL</span>;
+<span class="kw">ALTER TABLE</span> t <span class="kw">ALTER COLUMN</span> col <span class="kw">DROP NOT NULL</span>;</pre>
+      </div>
+
+      <h2>Constraints</h2>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Add named constraint</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD CONSTRAINT</span> name <span class="kw">CHECK</span> (col > <span class="num">0</span>);
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD CONSTRAINT</span> name <span class="kw">UNIQUE</span> (col);
+<span class="kw">ALTER TABLE</span> t <span class="kw">ADD CONSTRAINT</span> name
+  <span class="kw">FOREIGN KEY</span> (col) <span class="kw">REFERENCES</span> other(id) <span class="kw">NOT VALID</span>;
+
+<span class="cm">-- Validate deferred constraint</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">VALIDATE CONSTRAINT</span> name;
+
+<span class="cm">-- Drop constraint</span>
+<span class="kw">ALTER TABLE</span> t <span class="kw">DROP CONSTRAINT IF EXISTS</span> name;
+
+<span class="cm">-- Partial unique constraint (unique among active rows)</span>
+<span class="kw">CREATE UNIQUE INDEX</span> idx_t_col_active
+  <span class="kw">ON</span> t (col) <span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;</pre>
+      </div>
+
+      <h2>Indexes</h2>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL</div></div>
+<pre><span class="cm">-- Standard B-tree index</span>
+<span class="kw">CREATE INDEX</span> idx_t_col <span class="kw">ON</span> t (col);
+
+<span class="cm">-- Non-blocking (CONCURRENTLY)</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_t_col <span class="kw">ON</span> t (col);
+
+<span class="cm">-- Partial index</span>
+<span class="kw">CREATE INDEX</span> idx_t_col_active <span class="kw">ON</span> t (col) <span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;
+
+<span class="cm">-- GIN for JSONB</span>
+<span class="kw">CREATE INDEX</span> idx_t_meta <span class="kw">ON</span> t <span class="kw">USING GIN</span> (metadata);
+
+<span class="cm">-- Covering index</span>
+<span class="kw">CREATE INDEX</span> idx_t_col_cover <span class="kw">ON</span> t (col) <span class="kw">INCLUDE</span> (a, b, c);
+
+<span class="cm">-- Drop index</span>
+<span class="kw">DROP INDEX CONCURRENTLY IF EXISTS</span> idx_t_col;
+
+<span class="cm">-- Rebuild bloated index (non-blocking PG12+)</span>
+<span class="kw">REINDEX INDEX CONCURRENTLY</span> idx_t_col;</pre>
+      </div>
+
+      <h2>Useful Diagnostic Queries</h2>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div><div class="code-lang">SQL · diagnostics</div></div>
+<pre><span class="cm">-- Table sizes</span>
+<span class="kw">SELECT</span> relname, <span class="fn">pg_size_pretty</span>(<span class="fn">pg_total_relation_size</span>(oid)) <span class="kw">AS</span> total
+<span class="kw">FROM</span> pg_class <span class="kw">WHERE</span> relkind = <span class="str">'r'</span>
+<span class="kw">ORDER BY</span> <span class="fn">pg_total_relation_size</span>(oid) <span class="kw">DESC LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- Active locks (spot blocking queries)</span>
+<span class="kw">SELECT</span> pid, now() - pg_stat_activity.query_start <span class="kw">AS</span> duration,
+       query, state
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> state != <span class="str">'idle'</span>
+<span class="kw">ORDER BY</span> duration <span class="kw">DESC</span>;
+
+<span class="cm">-- Missing FK indexes</span>
+<span class="kw">SELECT</span> c.conrelid::regclass, a.attname
+<span class="kw">FROM</span> pg_constraint c
+<span class="kw">JOIN</span> pg_attribute a <span class="kw">ON</span> a.attnum = c.conkey[<span class="num">1</span>] <span class="kw">AND</span> a.attrelid = c.conrelid
+<span class="kw">WHERE</span> c.contype = <span class="str">'f'</span>
+  <span class="kw">AND NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> pg_index i
+    <span class="kw">WHERE</span> i.indrelid = c.conrelid <span class="kw">AND</span> c.conkey[<span class="num">1</span>] = <span class="kw">ANY</span>(i.indkey)
+  );
+
+<span class="cm">-- Explain analyze (always use BUFFERS)</span>
+<span class="kw">EXPLAIN</span> (ANALYZE, BUFFERS, FORMAT TEXT)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> user_id = <span class="num">42</span>;</pre>
+      </div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div id="page-checklist" class="page">
+      <div class="page-header">
+        <div class="page-tag"><span class="page-tag-dot"></span> Chapter 12 · Reference</div>
+        <h1>Pre-Deploy Checklist</h1>
+        <p class="page-desc">Run through every item before pushing a migration to production. This checklist has prevented countless production incidents.</p>
+      </div>
+
+      <h2>Before Writing the Migration</h2>
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">Can this be split into smaller migrations?</div>
+            <div class="rule-desc">Prefer multiple small, focused migrations over one large combined one. Easier to test, easier to roll back.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">Is the database change backward-compatible with the current app?</div>
+            <div class="rule-desc">The migration may run while the old app version is still live. Adding columns = safe. Dropping columns = needs app deploy first.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon amber">⚠</div>
+          <div class="rule-body">
+            <div class="rule-title">Does any step involve a table with &gt;1M rows?</div>
+            <div class="rule-desc">Flag immediately. Every operation needs to use CONCURRENTLY or NOT VALID patterns. Test on a copy of production data.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Writing the Migration</h2>
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">lock_timeout and statement_timeout are set at the top</div>
+            <div class="rule-desc"><code>SET lock_timeout = '3s'; SET statement_timeout = '120s';</code> — never let a migration queue the entire database.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">All new indexes use CONCURRENTLY</div>
+            <div class="rule-desc">Every CREATE INDEX in a migration uses CREATE INDEX CONCURRENTLY. No exceptions on any table with live traffic.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">New FK constraints use NOT VALID → VALIDATE pattern</div>
+            <div class="rule-desc">Adding a FK with NOT VALID is instant. VALIDATE CONSTRAINT only needs ShareUpdateExclusiveLock — won't block queries.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">New non-nullable columns have a DEFAULT or are nullable</div>
+            <div class="rule-desc">Never add a NOT NULL column without a DEFAULT to an existing table. New rows will fail until the app is deployed.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">A down/rollback migration exists and is tested</div>
+            <div class="rule-desc">Can you roll back this migration in under 30 seconds? If not, your rollback strategy is "fix it forward" — document that explicitly.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Before Running on Production</h2>
+      <div class="card">
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">Tested on a production data snapshot</div>
+            <div class="rule-desc">Ran the migration against a recent production dump. You know the actual runtime, not an estimate from a dev database.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">Checked for long-running transactions before running</div>
+            <div class="rule-desc">Run <code>SELECT pid, now() - query_start AS age, query FROM pg_stat_activity WHERE state != 'idle' ORDER BY age DESC;</code> and wait for or kill any long blockers.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon green">✓</div>
+          <div class="rule-body">
+            <div class="rule-title">EXPLAIN ANALYZE run on affected queries</div>
+            <div class="rule-desc">Verified that queries using the new schema/index are using the expected query plan. No accidental seq scans.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon amber">⚠</div>
+          <div class="rule-body">
+            <div class="rule-title">Someone is on-call to monitor during the migration</div>
+            <div class="rule-desc">Never run a production migration unattended. Have error logs, application metrics, and database monitoring visible. Have rollback steps ready to execute.</div>
+          </div>
+        </div>
+        <div class="rule">
+          <div class="rule-icon amber">⚠</div>
+          <div class="rule-body">
+            <div class="rule-title">Off-peak window chosen for risky migrations</div>
+            <div class="rule-desc">Even "safe" migrations can have unexpected edge cases. Schedule large migrations during low-traffic periods. Never on a Friday.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        <div class="callout-icon">🚫</div>
+        <div class="callout-body"><strong>Never run migrations on a Friday afternoon.</strong> If something goes wrong, you want your full team available to respond — not heading into the weekend.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const pages = ['home','types','tables','constraints','indexes','relations','normalization','migration-basics','safe-patterns','dangerous','zero-downtime','cheatsheet','checklist'];
+
+  function show(id) {
+    pages.forEach(p => {
+      document.getElementById('page-' + p).classList.remove('active');
+    });
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const page = document.getElementById('page-' + id);
+    if (page) {
+      page.classList.add('active');
+      page.scrollIntoView ? null : null;
+      document.querySelector('.main').scrollTop = 0;
+    }
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+        n.classList.add('active');
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
