@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Context Guidebook — FastAPI · React · LangGraph</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #16161a;
+    --surface2: #1c1c22;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --text3: #5a5a72;
+    --purple: #a78bfa;
+    --purple-dim: #3b2f6e;
+    --teal: #34d399;
+    --teal-dim: #0d3d2e;
+    --coral: #f87171;
+    --coral-dim: #3d1818;
+    --amber: #fbbf24;
+    --amber-dim: #3d2e0a;
+    --blue: #60a5fa;
+    --blue-dim: #1a2d4d;
+    --green: #86efac;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── LAYOUT ─────────────────────────────── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ─── SIDEBAR ────────────────────────────── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 0 0 24px;
+  }
+
+  .brand {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .brand-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 3px;
+    font-family: var(--font-mono);
+  }
+
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 12px 18px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    font-family: var(--font-body);
+    text-decoration: none;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+
+  .nav-item.active {
+    background: var(--surface2);
+    color: var(--text);
+    border-left-color: var(--purple);
+  }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── MAIN CONTENT ───────────────────────── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .page { display: none; padding: 32px 36px; max-width: 820px; }
+  .page.active { display: block; }
+
+  .page-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .page-sub {
+    font-size: 13px;
+    color: var(--text2);
+    font-family: var(--font-mono);
+  }
+
+  /* ─── COMPONENTS ─────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .card-body {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+  .callout {
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+    border-left: 3px solid;
+  }
+
+  .callout-purple { background: var(--purple-dim); border-color: var(--purple); color: #c4b5fd; }
+  .callout-teal   { background: var(--teal-dim);   border-color: var(--teal);   color: #6ee7b7; }
+  .callout-coral  { background: var(--coral-dim);  border-color: var(--coral);  color: #fca5a5; }
+  .callout-amber  { background: var(--amber-dim);  border-color: var(--amber);  color: #fcd34d; }
+  .callout-blue   { background: var(--blue-dim);   border-color: var(--blue);   color: #93c5fd; }
+
+  .code {
+    background: #0a0a0e;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #b0b0d0;
+    line-height: 1.8;
+    margin: 10px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .code .c-green  { color: #86efac; }
+  .code .c-purple { color: #c4b5fd; }
+  .code .c-amber  { color: #fcd34d; }
+  .code .c-teal   { color: #6ee7b7; }
+  .code .c-coral  { color: #fca5a5; }
+  .code .c-blue   { color: #93c5fd; }
+  .code .c-gray   { color: #64748b; }
+
+  .tag {
+    display: inline-block;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    margin-right: 4px;
+    margin-bottom: 3px;
+  }
+
+  .tag-do    { background: var(--teal-dim);   color: var(--teal);   border: 1px solid rgba(52,211,153,.25); }
+  .tag-dont  { background: var(--coral-dim);  color: var(--coral);  border: 1px solid rgba(248,113,113,.25); }
+  .tag-tip   { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(167,139,250,.25); }
+  .tag-opt   { background: var(--amber-dim);  color: var(--amber);  border: 1px solid rgba(251,191,36,.25); }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    margin-left: 6px;
+    vertical-align: middle;
+    font-family: var(--font-mono);
+  }
+
+  .badge-core { background: var(--purple-dim); color: var(--purple); }
+  .badge-opt  { background: var(--teal-dim);   color: var(--teal); }
+  .badge-warn { background: var(--coral-dim);  color: var(--coral); }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin: 20px 0 8px;
+    font-family: var(--font-mono);
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+
+  .pill {
+    font-size: 11.5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-mono);
+  }
+
+  .tree {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 2;
+    color: var(--text2);
+    background: #0a0a0e;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 10px 0;
+  }
+
+  .tree .dir  { color: var(--teal); }
+  .tree .file { color: var(--purple); }
+  .tree .note { color: var(--text3); }
+  .tree .core { color: var(--amber); }
+
+  .checklist { list-style: none; margin: 8px 0; }
+  .checklist li {
+    font-size: 13px;
+    color: var(--text2);
+    padding: 5px 0;
+    padding-left: 22px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .checklist li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+    font-size: 12px;
+  }
+  .checklist li.no::before { content: '✕'; color: var(--coral); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+
+  .flow-step {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: var(--font-mono);
+  }
+
+  .flow-arrow { color: var(--text3); font-size: 16px; }
+
+  .inline-code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--purple);
+  }
+
+  strong { font-weight: 500; color: var(--text); }
+
+  /* ─── COPY BUTTON ────────────────────────── */
+  .code-wrap { position: relative; }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+
+  /* ─── TABS ───────────────────────────────── */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all .15s;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .tab-content { display: none; padding-top: 14px; }
+  .tab-content.active { display: block; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-title">AI Context<br>Guidebook</div>
+    <div class="brand-sub">FastAPI · React · LangGraph</div>
+  </div>
+
+  <div class="nav-group-label">Foundations</div>
+  <div class="nav-item active" onclick="show('overview',this)">
+    <span class="nav-dot" style="background:var(--purple)"></span>Overview
+  </div>
+  <div class="nav-item" onclick="show('tree',this)">
+    <span class="nav-dot" style="background:var(--teal)"></span>MD File Tree
+  </div>
+
+  <div class="nav-group-label">The Files</div>
+  <div class="nav-item" onclick="show('main',this)">
+    <span class="nav-dot" style="background:var(--amber)"></span>CLAUDE.md — root
+  </div>
+  <div class="nav-item" onclick="show('arch',this)">
+    <span class="nav-dot" style="background:var(--teal)"></span>architecture.md
+  </div>
+  <div class="nav-item" onclick="show('api',this)">
+    <span class="nav-dot" style="background:var(--blue)"></span>api-schema.md
+  </div>
+  <div class="nav-item" onclick="show('tasks',this)">
+    <span class="nav-dot" style="background:var(--coral)"></span>tasks.md
+  </div>
+  <div class="nav-item" onclick="show('rules',this)">
+    <span class="nav-dot" style="background:var(--amber)"></span>conventions.md
+  </div>
+
+  <div class="nav-group-label">Anti-patterns</div>
+  <div class="nav-item" onclick="show('antipatterns',this)">
+    <span class="nav-dot" style="background:var(--coral)"></span>What NOT to put
+  </div>
+
+  <div class="nav-group-label">Workflow</div>
+  <div class="nav-item" onclick="show('workflow',this)">
+    <span class="nav-dot" style="background:var(--green)"></span>AI session workflow
+  </div>
+  <div class="nav-item" onclick="show('template',this)">
+    <span class="nav-dot" style="background:var(--purple)"></span>Copy-paste templates
+  </div>
+</nav>
+
+<!-- ═══════════════ PAGES ═══════════════ -->
+<main class="main">
+
+<!-- ── OVERVIEW ─────────────────────────── -->
+<div id="overview" class="page active">
+  <div class="page-header">
+    <div class="page-title">The context-efficient AI dev system</div>
+    <div class="page-sub">minimum tokens · maximum accuracy · zero context explosion</div>
+  </div>
+
+  <div class="callout callout-purple">
+    <strong>Core idea:</strong> AI coding tools (Cursor, Claude, Copilot) read your MD files as context. Fat, unstructured docs = token waste + hallucinations. Lean, layered docs = precise answers, faster, cheaper.
+  </div>
+
+  <div class="section-label">The problem</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="color:var(--coral)">Without this system</div>
+      <div class="card-body">
+        AI reads nothing or everything, guesses conventions, breaks existing patterns, re-asks obvious questions, hallucinates imports and function signatures.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--teal)">With this system</div>
+      <div class="card-body">
+        AI knows stack, patterns, file structure, what not to touch. Answers are precise on first attempt. Token usage drops 40–70%.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">The 3-layer model</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="flow">
+        <div class="flow-step" style="border-color:rgba(251,191,36,.3);color:var(--amber)">CLAUDE.md<br><span style="font-size:10px;color:var(--text3)">always loaded</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step" style="border-color:rgba(52,211,153,.3);color:var(--teal)">docs/*.md<br><span style="font-size:10px;color:var(--text3)">on demand</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step" style="border-color:rgba(167,139,250,.3);color:var(--purple)">inline comments<br><span style="font-size:10px;color:var(--text3)">local context</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Guiding principles</div>
+  <ul class="checklist">
+    <li>Every line in an MD file costs tokens — write only what the AI needs to do its job</li>
+    <li>Never duplicate info — reference other files instead of copy-pasting</li>
+    <li>Keep CLAUDE.md under 150 lines — it's a map, not an encyclopedia</li>
+    <li>Domain-specific detail lives in separate docs, loaded only when relevant</li>
+    <li>Update docs after every major refactor — stale context is worse than no context</li>
+    <li class="no">Never paste full code examples into MD files</li>
+    <li class="no">Never describe how something works if the code is self-documenting</li>
+    <li class="no">Never list every file — only document non-obvious structure</li>
+  </ul>
+</div>
+
+<!-- ── MD FILE TREE ──────────────────────── -->
+<div id="tree" class="page">
+  <div class="page-header">
+    <div class="page-title">MD file tree</div>
+    <div class="page-sub">how to organize context documents in your project</div>
+  </div>
+
+  <div class="callout callout-amber">
+    Rule: one file per concern. Never one giant file. Load depth increases linearly — the AI can always ask for more context from a linked file, but it can't un-read bloat.
+  </div>
+
+  <div class="tree">
+<span class="dir">project-root/</span>
+├── <span class="core">CLAUDE.md</span>            <span class="note"># ← always loaded · root map (≤150 lines)</span>
+│
+├── <span class="dir">docs/</span>
+│   ├── <span class="file">architecture.md</span>   <span class="note"># stack, layers, data flow</span>
+│   ├── <span class="file">api-schema.md</span>     <span class="note"># endpoints, request/response shapes</span>
+│   ├── <span class="file">db-schema.md</span>      <span class="note"># models, relationships, migrations</span>
+│   ├── <span class="file">conventions.md</span>    <span class="note"># naming, patterns, style rules</span>
+│   ├── <span class="file">tasks.md</span>          <span class="note"># current sprint / active work</span>
+│   ├── <span class="file">langgraph.md</span>      <span class="note"># graph topology, node contracts</span>
+│   └── <span class="file">env.md</span>            <span class="note"># env vars, secrets structure (NO values)</span>
+│
+├── <span class="dir">backend/</span>
+│   └── <span class="note"># FastAPI source — no MD needed if conventions.md exists</span>
+│
+├── <span class="dir">frontend/</span>
+│   └── <span class="note"># React source</span>
+│
+└── <span class="dir">agents/</span>
+    └── <span class="note"># LangGraph graphs &amp; nodes</span></div>
+
+  <div class="section-label">File loading strategy</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Always loaded <span class="badge badge-core">auto</span></div>
+      <div class="card-body">
+        <span class="inline-code">CLAUDE.md</span> — Cursor/Claude reads this on every session. Keep it as a pointer map. Reference the other files; don't inline their content.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">On-demand <span class="badge badge-opt">manual / @mention</span></div>
+      <div class="card-body">
+        <span class="inline-code">docs/*.md</span> — Load these via <span class="inline-code">@docs/architecture.md</span> in Cursor or include in prompt context for Claude. Only load what's relevant to the task.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-teal">
+    <strong>LangGraph projects:</strong> add <span class="inline-code">docs/langgraph.md</span> specifically for graph topology. AI hallucinates node/edge contracts without it. This single file prevents 80% of agent bugs.
+  </div>
+</div>
+
+<!-- ── CLAUDE.md / ROOT ──────────────────── -->
+<div id="main" class="page">
+  <div class="page-header">
+    <div class="page-title">CLAUDE.md — the root file</div>
+    <div class="page-sub">always loaded · kept under 150 lines · no prose essays</div>
+  </div>
+
+  <div class="callout callout-amber">
+    This is the AI's first impression of your project. It must answer: what is this? what stack? where are things? what are the hard rules? Then stop. Everything else belongs in linked docs.
+  </div>
+
+  <div class="section-label">Required sections (in order)</div>
+
+  <div class="card">
+    <div class="card-title">1. Project identity <span class="badge badge-core">required</span></div>
+    <div class="card-body">1–3 lines. Name, purpose, what it is NOT. This prevents the AI from solving the wrong problem.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2. Stack declaration <span class="badge badge-core">required</span></div>
+    <div class="card-body">Exact versions matter. AI uses version-specific syntax. Ambiguity here = wrong imports, deprecated APIs.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3. Directory map <span class="badge badge-core">required</span></div>
+    <div class="card-body">Only non-obvious structure. Don't list <span class="inline-code">node_modules/</span> or <span class="inline-code">__pycache__/</span>. 5–10 lines max.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4. Hard rules <span class="badge badge-core">required</span></div>
+    <div class="card-body">Short bullets. What the AI must never do. E.g. "never edit migrations directly", "always use the repo pattern for DB access".</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">5. Docs map <span class="badge badge-opt">recommended</span></div>
+    <div class="card-body">A list of your docs/ files with one-line descriptions. Tells the AI where to look for deeper context.</div>
+  </div>
+
+  <div class="section-label">Annotated template</div>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-gray"># Project: YourAppName</span>
+
+<span class="c-teal">## What this is</span>
+<span class="c-gray"># A task management API + React frontend with AI agent workflows.</span>
+<span class="c-gray"># NOT: a general-purpose chatbot or CMS.</span>
+
+<span class="c-teal">## Stack</span>
+- Python 3.12 / FastAPI 0.111 / SQLAlchemy 2.0 (async)
+- PostgreSQL 16 (Alembic migrations)
+- React 18 / TypeScript 5 / Vite / TanStack Query v5
+- LangGraph 0.2 / LangChain 0.2 / OpenAI GPT-4o
+
+<span class="c-teal">## Directory structure</span>
+<span class="c-gray"># Only non-obvious paths</span>
+backend/app/
+  api/          <span class="c-gray"># route handlers only — no business logic</span>
+  services/     <span class="c-gray"># business logic layer</span>
+  repositories/ <span class="c-gray"># all DB queries live here</span>
+  agents/       <span class="c-gray"># LangGraph graphs and nodes</span>
+frontend/src/
+  features/     <span class="c-gray"># feature-sliced: each feature owns components + hooks</span>
+  lib/          <span class="c-gray"># shared utilities, api client</span>
+
+<span class="c-teal">## Hard rules</span>
+- NEVER write raw SQL — use repository layer only
+- NEVER import DB session in route handlers — use Depends()
+- NEVER mutate state directly in React — use TanStack Query mutations
+- NEVER add logic to LangGraph nodes — keep nodes thin, logic in services
+- ALWAYS run `alembic revision --autogenerate` for schema changes
+
+<span class="c-teal">## Docs index</span>
+- @docs/architecture.md  — system layers and data flow
+- @docs/api-schema.md    — all endpoints and response shapes
+- @docs/db-schema.md     — models and relationships
+- @docs/conventions.md   — naming, error handling, patterns
+- @docs/langgraph.md     — graph topology and node contracts
+- @docs/tasks.md         — current sprint work</div>
+  </div>
+</div>
+
+<!-- ── ARCHITECTURE.MD ───────────────────── -->
+<div id="arch" class="page">
+  <div class="page-header">
+    <div class="page-title">architecture.md</div>
+    <div class="page-sub">system layers · data flow · integration points</div>
+  </div>
+
+  <div class="callout callout-teal">
+    Load this when adding new features, refactoring layers, or debugging cross-service issues. It prevents the AI from creating shortcuts that bypass your architecture.
+  </div>
+
+  <div class="tabs" id="arch-tabs">
+    <div class="tab active" onclick="showTab('arch-tabs','arch-what')">What to include</div>
+    <div class="tab" onclick="showTab('arch-tabs','arch-template')">Template</div>
+    <div class="tab" onclick="showTab('arch-tabs','arch-lg')">LangGraph section</div>
+  </div>
+
+  <div id="arch-what" class="tab-content active">
+    <div class="section-label">Include these</div>
+    <ul class="checklist">
+      <li>Layer diagram as ASCII — request flow from HTTP → router → service → repo → DB</li>
+      <li>External services and how they're integrated (OpenAI, Redis, S3, etc.)</li>
+      <li>Authentication flow — where JWT is validated, who creates sessions</li>
+      <li>Background task approach — Celery, ARQ, FastAPI BackgroundTasks?</li>
+      <li>LangGraph: graph names, node names, what state flows between them</li>
+      <li>Frontend: how API calls are made — fetch wrapper, axios, generated client?</li>
+    </ul>
+    <div class="section-label">Never include</div>
+    <ul class="checklist">
+      <li class="no">Full code implementations — reference file paths instead</li>
+      <li class="no">Deployment infra details — separate devops.md if needed</li>
+      <li class="no">Historical decisions — forward-looking only</li>
+    </ul>
+  </div>
+
+  <div id="arch-template" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Request flow</span>
+
+HTTP Request
+  → FastAPI router (api/routes/)         <span class="c-gray"># validate input, auth check</span>
+  → Service layer (services/)            <span class="c-gray"># business logic, orchestration</span>
+  → Repository layer (repositories/)     <span class="c-gray"># ALL database access</span>
+  → PostgreSQL (async SQLAlchemy)
+
+<span class="c-teal">## Auth</span>
+- JWT Bearer in Authorization header
+- Validated in `app/core/security.py` → `get_current_user` dependency
+- No auth logic in route handlers — always use Depends(get_current_user)
+
+<span class="c-teal">## Background tasks</span>
+- ARQ with Redis — `app/workers/`
+- Enqueue in service layer, never in routes
+- Long AI tasks (>10s) always go to background worker
+
+<span class="c-teal">## Frontend data layer</span>
+- Generated OpenAPI client at `frontend/src/lib/api-client/`
+- TanStack Query for all server state — no useState for fetched data
+- Optimistic updates pattern in `frontend/src/lib/mutations.ts`
+
+<span class="c-teal">## AI agent layer</span>
+- See @docs/langgraph.md for graph topology
+- All agents called from `services/agent_service.py`
+- Agents NEVER call repositories directly — go through services</div>
+    </div>
+  </div>
+
+  <div id="arch-lg" class="tab-content">
+    <div class="callout callout-purple">
+      LangGraph-specific architecture context. The AI needs to know graph structure before touching any agent code, otherwise it will break state contracts.
+    </div>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## LangGraph architecture</span>
+
+Graphs live in: `backend/app/agents/graphs/`
+Nodes live in: `backend/app/agents/nodes/`
+State schemas in: `backend/app/agents/state.py`
+
+<span class="c-teal">### Active graphs</span>
+- `task_planner_graph`  — breaks user request → subtasks
+- `research_graph`      — web search + summarization
+- `code_review_graph`   — static analysis + suggestions
+
+<span class="c-teal">### State contract rule</span>
+- State is a TypedDict defined in state.py
+- Nodes ONLY receive and return state slices — no side effects
+- Side effects (DB writes, API calls) happen in services called FROM nodes
+- Checkpointing: PostgreSQL checkpointer, configured in graph builder
+
+<span class="c-teal">### Node naming convention</span>
+- Nodes named as verbs: `plan_tasks`, `fetch_context`, `generate_response`
+- Conditional edges as: `route_by_intent`, `check_completion`</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── API-SCHEMA.MD ──────────────────────── -->
+<div id="api" class="page">
+  <div class="page-header">
+    <div class="page-title">api-schema.md</div>
+    <div class="page-sub">endpoints · request shapes · response shapes · error codes</div>
+  </div>
+
+  <div class="callout callout-blue">
+    Load this when building frontend features, writing tests, or adding new endpoints. Without it the AI will invent field names and miss validation rules.
+  </div>
+
+  <div class="section-label">What to document</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="color:var(--teal)">Include</div>
+      <div class="card-body">
+        Route paths and HTTP methods<br>
+        Auth requirements per endpoint<br>
+        Request body schema (field names + types)<br>
+        Response shape with example<br>
+        Non-obvious error codes (422 shape)<br>
+        Pagination pattern if used
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--coral)">Skip</div>
+      <div class="card-body">
+        Full OpenAPI JSON — link to <span class="inline-code">/docs</span> instead<br>
+        Implementation details<br>
+        DB queries behind the endpoint<br>
+        Every possible HTTP error code
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Template</div>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Base URL</span>
+/api/v1   — all endpoints prefixed here
+
+<span class="c-teal">## Auth</span>
+Authorization: Bearer &lt;jwt&gt;
+Public endpoints: POST /auth/login, POST /auth/register
+
+<span class="c-teal">## Endpoints</span>
+
+<span class="c-purple">### Tasks</span>
+
+GET /tasks
+  Auth: required
+  Query: ?status=open|closed &amp;page=1 &amp;per_page=20
+  Response: { items: Task[], total: int, page: int }
+
+POST /tasks
+  Auth: required
+  Body: { title: str, description: str?, priority: 1-5, assignee_id: uuid? }
+  Response: Task
+
+PATCH /tasks/{id}
+  Auth: required · owner or admin only
+  Body: Partial&lt;Task&gt; — only send changed fields
+  Response: Task
+
+<span class="c-purple">### Task shape</span>
+{
+  id: uuid,
+  title: str,
+  status: "open" | "in_progress" | "closed",
+  priority: 1 | 2 | 3 | 4 | 5,
+  assignee_id: uuid | null,
+  created_at: ISO8601,
+  updated_at: ISO8601
+}
+
+<span class="c-purple">### Error shape</span>
+{ detail: str | { field: str, msg: str }[] }
+<span class="c-gray"># 422 returns list of field errors from Pydantic</span></div>
+  </div>
+</div>
+
+<!-- ── TASKS.MD ───────────────────────────── -->
+<div id="tasks" class="page">
+  <div class="page-header">
+    <div class="page-title">tasks.md</div>
+    <div class="page-sub">current sprint · active work · what's in progress</div>
+  </div>
+
+  <div class="callout callout-coral">
+    This is your most-updated file. It sets the AI's frame of reference for what you're building RIGHT NOW. Without it, the AI assumes all code is greenfield.
+  </div>
+
+  <div class="section-label">Purpose</div>
+  <div class="card">
+    <div class="card-body">
+      Tasks.md tells the AI what problem you're currently solving, what exists vs what needs to be built, and what to avoid touching. This prevents scope creep — the AI won't refactor unrelated code while helping you add a feature.
+    </div>
+  </div>
+
+  <div class="section-label">What to include</div>
+  <ul class="checklist">
+    <li>Current sprint goal (1 sentence)</li>
+    <li>Active task with acceptance criteria</li>
+    <li>What's already done (so AI doesn't re-implement)</li>
+    <li>Blockers and known constraints</li>
+    <li>Files being touched this sprint</li>
+  </ul>
+
+  <div class="section-label">Template</div>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Current sprint: AI task planner</span>
+Goal: user submits a goal → agent breaks it into subtasks → saves to DB
+
+<span class="c-teal">## Active task</span>
+Building: task_planner_graph in agents/graphs/task_planner.py
+
+Acceptance criteria:
+- Graph accepts: { user_id: str, goal: str }
+- Returns: { tasks: list[TaskCreate] }
+- Tasks saved via task_service.create_batch()
+- Streaming response to frontend via SSE
+
+<span class="c-teal">## Already built</span>
+- TaskCreate Pydantic schema ✓
+- task_service.create_batch() ✓
+- SSE endpoint skeleton at POST /tasks/plan ✓
+- Frontend SSE hook at frontend/src/hooks/useTaskPlan.ts ✓
+
+<span class="c-teal">## In progress</span>
+- [ ] LangGraph graph definition
+- [ ] plan_tasks node — calls GPT-4o with structured output
+- [ ] route_by_complexity conditional edge
+- [ ] Integration test
+
+<span class="c-teal">## Do NOT touch</span>
+- research_graph — stable, has tests, unrelated
+- Any Alembic migration files
+- frontend/src/features/auth — separate PR</div>
+  </div>
+
+  <div class="callout callout-teal">
+    <strong>Maintenance tip:</strong> update tasks.md at the start of each session. Takes 2 minutes, saves 20 minutes of AI context-setting back-and-forth.
+  </div>
+</div>
+
+<!-- ── CONVENTIONS.MD ────────────────────── -->
+<div id="rules" class="page">
+  <div class="page-header">
+    <div class="page-title">conventions.md</div>
+    <div class="page-sub">naming · patterns · error handling · style rules</div>
+  </div>
+
+  <div class="callout callout-amber">
+    This is where you encode your team's taste. Without it, every AI session may produce differently-styled code. With it, the AI writes code that looks like it was written by a single senior engineer.
+  </div>
+
+  <div class="tabs" id="conv-tabs">
+    <div class="tab active" onclick="showTab('conv-tabs','conv-python')">Python / FastAPI</div>
+    <div class="tab" onclick="showTab('conv-tabs','conv-react')">React / TS</div>
+    <div class="tab" onclick="showTab('conv-tabs','conv-lg')">LangGraph</div>
+  </div>
+
+  <div id="conv-python" class="tab-content active">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Python conventions</span>
+
+<span class="c-purple">### Naming</span>
+- Files: snake_case.py
+- Classes: PascalCase
+- Async functions: prefix with `a_` only for non-obvious async (optional)
+- Pydantic schemas: suffix with Schema or Request/Response
+  e.g. TaskCreateRequest, TaskResponse, TaskUpdateSchema
+
+<span class="c-purple">### FastAPI patterns</span>
+- Route handlers: thin — validate, call service, return
+- Dependencies injected via Depends() — no globals
+- All DB sessions: AsyncSession via get_async_session dependency
+- Response models always declared on routes
+
+<span class="c-purple">### Error handling</span>
+- Raise HTTPException in route layer only
+- Services raise domain exceptions (TaskNotFoundError, etc.)
+- Domain exceptions defined in app/core/exceptions.py
+- Global exception handler in app/core/exception_handlers.py
+
+<span class="c-purple">### Repository pattern</span>
+- One repo per model: TaskRepository, UserRepository
+- Repos accept AsyncSession as constructor arg
+- NO business logic in repos — queries only
+- Return domain models, not raw rows</div>
+    </div>
+  </div>
+
+  <div id="conv-react" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## React / TypeScript conventions</span>
+
+<span class="c-purple">### File naming</span>
+- Components: PascalCase.tsx
+- Hooks: useCamelCase.ts
+- Utilities: camelCase.ts
+- Feature folders: kebab-case/
+
+<span class="c-purple">### Component patterns</span>
+- Functional components only — no class components
+- Props always typed with interface, not type alias
+- Default exports for page components, named for shared components
+- No prop drilling beyond 2 levels — use context or query state
+
+<span class="c-purple">### State management</span>
+- Server state: TanStack Query only — no useState for fetched data
+- UI state: useState / useReducer — scoped to component
+- Global UI state: Zustand (store in frontend/src/stores/)
+- NO Redux, NO MobX
+
+<span class="c-purple">### API calls</span>
+- Always use generated client from lib/api-client/
+- Never use fetch() or axios directly in components
+- All mutations via useMutation hook with optimistic updates
+
+<span class="c-purple">### Styling</span>
+- Tailwind utility classes — no inline styles
+- Component variants via cva() from class-variance-authority
+- No CSS modules, no styled-components</div>
+    </div>
+  </div>
+
+  <div id="conv-lg" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## LangGraph conventions</span>
+
+<span class="c-purple">### Node contracts</span>
+- Each node is a pure function: (state: GraphState) -> dict
+- Return ONLY the keys you're updating
+- No side effects in nodes — call services for that
+- Type-annotate state input and return
+
+<span class="c-purple">### State design</span>
+- State defined as TypedDict in agents/state.py
+- Use Annotated[list, operator.add] for accumulating fields
+- Add_messages for conversation history — never replace
+- Scalar fields overwrite — be explicit in docs
+
+<span class="c-purple">### Error handling in graphs</span>
+- Use conditional edges to handle error states
+- Error key in state: errors: list[str]
+- Terminal error node: `handle_error` — logs, formats response
+- Never raise exceptions from nodes — catch and add to state.errors
+
+<span class="c-purple">### LLM calls</span>
+- Always use structured output (with_structured_output) when possible
+- Model configured in app/core/llm.py — never hardcode model strings
+- Temperature: 0 for classification/routing, 0.7 for generation</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ANTI-PATTERNS ──────────────────────── -->
+<div id="antipatterns" class="page">
+  <div class="page-header">
+    <div class="page-title">What NOT to put in MD files</div>
+    <div class="page-sub">the most common mistakes that bloat context and hurt AI accuracy</div>
+  </div>
+
+  <div class="callout callout-coral">
+    Bad context is worse than no context. It wastes tokens, confuses the AI, and causes it to reproduce stale patterns.
+  </div>
+
+  <div class="section-label">Content anti-patterns</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="color:var(--coral)">Never do this</div>
+      <div class="card-body">
+        <span class="tag tag-dont">✕</span> Full code examples in MD<br>
+        <span class="tag tag-dont">✕</span> Copy-pasted function signatures<br>
+        <span class="tag tag-dont">✕</span> Entire config file contents<br>
+        <span class="tag tag-dont">✕</span> Long prose explanations<br>
+        <span class="tag tag-dont">✕</span> "Here's how X works" tutorials<br>
+        <span class="tag tag-dont">✕</span> TODO lists mixed with docs<br>
+        <span class="tag tag-dont">✕</span> Version history / changelogs<br>
+        <span class="tag tag-dont">✕</span> Secrets or real env values
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--teal)">Do this instead</div>
+      <div class="card-body">
+        <span class="tag tag-do">✓</span> File path references<br>
+        <span class="tag tag-do">✓</span> Type signatures only (no body)<br>
+        <span class="tag tag-do">✓</span> Key config variable names<br>
+        <span class="tag tag-do">✓</span> Bullet rules, not essays<br>
+        <span class="tag tag-do">✓</span> Links to relevant docs files<br>
+        <span class="tag tag-do">✓</span> tasks.md for current work<br>
+        <span class="tag tag-do">✓</span> Current state only<br>
+        <span class="tag tag-do">✓</span> Env var names + types only
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">File-level anti-patterns</div>
+  <ul class="checklist">
+    <li class="no">One giant CLAUDE.md with everything — it loads every time, burns tokens</li>
+    <li class="no">Duplicating info across files — creates contradiction when one gets stale</li>
+    <li class="no">Outdated architecture docs left in place — AI will follow old patterns</li>
+    <li class="no">Nested docs deeper than docs/feature/ — too hard to @mention selectively</li>
+    <li class="no">Auto-generated docs checked into /docs — noise, not signal</li>
+  </ul>
+
+  <div class="section-label">The staleness trap</div>
+  <div class="callout callout-coral">
+    <strong>Worst anti-pattern:</strong> writing great docs and never updating them. An MD file from 3 months ago with old model names, removed endpoints, or changed patterns will cause the AI to confidently produce broken code. Schedule a docs review every 2 weeks or after every major refactor.
+  </div>
+
+  <div class="section-label">Size limits (enforce these)</div>
+  <div class="grid-3">
+    <div class="card" style="text-align:center">
+      <div style="font-family:var(--font-mono);font-size:22px;color:var(--amber);font-weight:500">150</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">max lines<br>CLAUDE.md</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-family:var(--font-mono);font-size:22px;color:var(--teal);font-weight:500">200</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">max lines<br>per docs/*.md</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-family:var(--font-mono);font-size:22px;color:var(--purple);font-weight:500">7</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">max docs files<br>in /docs</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── WORKFLOW ───────────────────────────── -->
+<div id="workflow" class="page">
+  <div class="page-header">
+    <div class="page-title">AI session workflow</div>
+    <div class="page-sub">how to start sessions · what to load · how to prevent context explosion</div>
+  </div>
+
+  <div class="section-label">Session start ritual (30 seconds)</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="flow-step">1. Update tasks.md with today's goal</div>
+        <div class="flow-step">2. Open Cursor / Claude with CLAUDE.md auto-loaded</div>
+        <div class="flow-step">3. @mention only the docs relevant to today's task</div>
+        <div class="flow-step">4. Start with: "I'm working on [task from tasks.md]"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Context loading by task type</div>
+  <div class="card">
+    <div class="card-title">New API endpoint</div>
+    <div class="card-body">Load: <span class="inline-code">@docs/api-schema.md</span> + <span class="inline-code">@docs/conventions.md</span> + <span class="inline-code">@docs/db-schema.md</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New React feature</div>
+    <div class="card-body">Load: <span class="inline-code">@docs/api-schema.md</span> + <span class="inline-code">@docs/conventions.md</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New LangGraph agent</div>
+    <div class="card-body">Load: <span class="inline-code">@docs/langgraph.md</span> + <span class="inline-code">@docs/architecture.md</span> + <span class="inline-code">@docs/conventions.md</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Bug fix</div>
+    <div class="card-body">Load: the specific file with the bug + <span class="inline-code">@docs/conventions.md</span> — avoid loading broad context for targeted fixes</div>
+  </div>
+
+  <div class="section-label">Preventing context explosion</div>
+  <ul class="checklist">
+    <li>Start a new chat session for each distinct task — don't let threads grow past ~20 messages</li>
+    <li>If the AI starts forgetting earlier instructions, re-anchor: paste the relevant section of CLAUDE.md again</li>
+    <li>For long coding tasks, break into steps: design → implement → test — separate sessions</li>
+    <li>Never paste entire files into chat — reference paths, let the AI read the file</li>
+    <li>Use Cursor's @ system to load context selectively, not the entire codebase index</li>
+  </ul>
+
+  <div class="section-label">Prompt patterns that work</div>
+  <div class="code-wrap">
+    <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-gray"># Good: anchored, scoped, outcome-clear</span>
+<span class="c-teal">"Following the conventions in @docs/conventions.md,
+add a DELETE /tasks/{id} endpoint. It should:
+- Use the existing TaskRepository.delete() method
+- Return 404 if task not found (TaskNotFoundError pattern)
+- Only allow owner or admin (see get_current_user pattern)
+Do not modify any other files."</span>
+
+<span class="c-gray"># Good: referencing existing pattern</span>
+<span class="c-teal">"Add a useDeleteTask hook following the same pattern as
+useCreateTask in frontend/src/features/tasks/hooks/useCreateTask.ts"</span>
+
+<span class="c-gray"># Bad: vague, no constraints</span>
+<span class="c-coral">"Add task deletion functionality"</span>
+
+<span class="c-gray"># Bad: too broad, context explosion risk</span>
+<span class="c-coral">"Refactor the entire tasks feature to be better"</span></div>
+  </div>
+</div>
+
+<!-- ── TEMPLATES ─────────────────────────── -->
+<div id="template" class="page">
+  <div class="page-header">
+    <div class="page-title">Copy-paste templates</div>
+    <div class="page-sub">ready-to-use starter files — fill in the blanks</div>
+  </div>
+
+  <div class="tabs" id="tpl-tabs">
+    <div class="tab active" onclick="showTab('tpl-tabs','tpl-claude')">CLAUDE.md</div>
+    <div class="tab" onclick="showTab('tpl-tabs','tpl-arch')">architecture.md</div>
+    <div class="tab" onclick="showTab('tpl-tabs','tpl-lg')">langgraph.md</div>
+    <div class="tab" onclick="showTab('tpl-tabs','tpl-tasks')">tasks.md</div>
+    <div class="tab" onclick="showTab('tpl-tabs','tpl-conv')">conventions.md</div>
+  </div>
+
+  <div id="tpl-claude" class="tab-content active">
+    <div class="callout callout-amber" style="margin-top:14px">Fill in ALL_CAPS placeholders. Delete sections that don't apply. Target: under 100 lines.</div>
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-gray"># Project: PROJECT_NAME</span>
+
+<span class="c-teal">## What this is</span>
+ONE_LINE_DESCRIPTION
+NOT: WHAT_IT_IS_NOT (prevents AI scope confusion)
+
+<span class="c-teal">## Stack</span>
+- Python VERSION / FastAPI VERSION / SQLAlchemy VERSION (async)
+- DB_TYPE VERSION (MIGRATION_TOOL)
+- React VERSION / TypeScript VERSION / BUILD_TOOL / STATE_LIB
+- LangGraph VERSION / LangChain VERSION / LLM_PROVIDER
+
+<span class="c-teal">## Key directories</span>
+backend/app/
+  api/          <span class="c-gray"># route handlers — no business logic here</span>
+  services/     <span class="c-gray"># business logic</span>
+  repositories/ <span class="c-gray"># all DB queries</span>
+  agents/       <span class="c-gray"># LangGraph graphs and nodes</span>
+frontend/src/
+  features/     <span class="c-gray"># feature-sliced structure</span>
+  lib/          <span class="c-gray"># shared utilities</span>
+
+<span class="c-teal">## Hard rules</span>
+- RULE_1 (e.g. never write raw SQL)
+- RULE_2 (e.g. always use Depends() for DB sessions)
+- RULE_3 (e.g. never add logic to LangGraph nodes)
+- RULE_4
+- RULE_5
+
+<span class="c-teal">## Docs</span>
+- @docs/architecture.md  — system layers, data flow
+- @docs/api-schema.md    — endpoints, request/response shapes
+- @docs/db-schema.md     — models, relationships
+- @docs/conventions.md   — naming rules, patterns
+- @docs/langgraph.md     — graph topology, node contracts
+- @docs/tasks.md         — current work</div>
+    </div>
+  </div>
+
+  <div id="tpl-arch" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Request flow</span>
+HTTP → FastAPI router → Service → Repository → DATABASE
+
+<span class="c-teal">## Auth</span>
+- METHOD: JWT / Session / API Key
+- Validated in: FILE_PATH
+- Dependency: DEPENDENCY_NAME
+
+<span class="c-teal">## Background tasks</span>
+- Tool: TOOL_NAME (ARQ / Celery / FastAPI BackgroundTasks)
+- Task queue: QUEUE_LOCATION
+- Enqueue from: SERVICE_LAYER (not routes)
+
+<span class="c-teal">## Frontend data fetching</span>
+- API client: APPROACH (generated / axios instance / fetch wrapper)
+- Client location: FRONTEND_PATH
+- Server state: TanStack Query / SWR / Zustand
+
+<span class="c-teal">## External services</span>
+- SERVICE_NAME: HOW_INTEGRATED, client in FILE_PATH
+- ANOTHER_SERVICE: details
+
+<span class="c-teal">## AI agent layer</span>
+- Entry point: FILE_PATH
+- Called from: SERVICE_LAYER
+- Graphs: @docs/langgraph.md
+- Agents do NOT access repositories directly</div>
+    </div>
+  </div>
+
+  <div id="tpl-lg" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Graphs</span>
+
+graphs/ — compiled StateGraph objects
+nodes/  — individual node functions
+state.py — all TypedDict state definitions
+tools/  — LangChain tools used by nodes
+
+<span class="c-teal">## Active graphs</span>
+
+GRAPH_NAME (graphs/GRAPH_FILE.py)
+  Purpose: WHAT_IT_DOES
+  Input:  { field: type, field: type }
+  Output: { field: type }
+  Nodes:  NODE_1 → NODE_2 → conditional(ROUTER) → NODE_3 | NODE_4
+  Called from: services/SERVICE_FILE.py
+
+<span class="c-teal">## State fields</span>
+(from state.py — list non-obvious fields)
+- messages: Annotated[list, add_messages]  — conversation history
+- FIELD_NAME: TYPE  — WHAT_IT_HOLDS
+
+<span class="c-teal">## Node contract</span>
+- Signature: def node_name(state: GraphState) -> dict
+- Return only keys being updated
+- Side effects via services, not directly
+- Errors: catch all, append to state["errors"]
+
+<span class="c-teal">## LLM config</span>
+- Model: configured in app/core/llm.py
+- Structured output: always use .with_structured_output(Schema)
+- Streaming: STREAMING_APPROACH
+
+<span class="c-teal">## Checkpointing</span>
+- Backend: CHECKPOINTER (postgres / memory / redis)
+- Config: LOCATION</div>
+    </div>
+  </div>
+
+  <div id="tpl-tasks" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Sprint: SPRINT_NAME</span>
+Goal: ONE_SENTENCE_GOAL
+
+<span class="c-teal">## Active task: TASK_NAME</span>
+Building: WHAT_AND_WHERE
+
+Acceptance criteria:
+- CRITERION_1
+- CRITERION_2
+- CRITERION_3
+
+<span class="c-teal">## Already done</span>
+- THING_1 ✓
+- THING_2 ✓
+
+<span class="c-teal">## In progress</span>
+- [ ] ITEM_1
+- [ ] ITEM_2
+- [ ] ITEM_3
+
+<span class="c-teal">## Files being changed this sprint</span>
+- backend/app/RELEVANT_FILE.py
+- frontend/src/features/FEATURE/COMPONENT.tsx
+
+<span class="c-teal">## Do NOT touch</span>
+- STABLE_FILE — reason
+- ANOTHER_FILE — reason</div>
+    </div>
+  </div>
+
+  <div id="tpl-conv" class="tab-content">
+    <div class="code-wrap">
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
+<div class="code"><span class="c-teal">## Python / FastAPI</span>
+
+Naming:
+- Files: snake_case | Classes: PascalCase | Schemas: suffix Request/Response
+- Async deps: always via Depends(), never global session
+
+Route handlers: thin — validate, call service, return only
+Services: business logic, no HTTP awareness
+Repositories: DB queries only, no logic
+
+Errors:
+- HTTPException raised in routes only
+- Domain errors in app/core/exceptions.py
+- Global handler in app/core/exception_handlers.py
+
+<span class="c-teal">## React / TypeScript</span>
+
+Files: Components PascalCase.tsx | Hooks useName.ts | Utils camelCase.ts
+Components: functional only | props typed with interface
+Server state: TanStack Query only — no useState for API data
+Styling: APPROACH (Tailwind / CSS Modules / styled-components)
+API calls: via lib/api-client/ — never raw fetch in components
+
+<span class="c-teal">## Testing</span>
+Backend: pytest + pytest-asyncio | fixtures in conftest.py
+Frontend: Vitest + Testing Library | no Enzyme
+Test files: co-located with source, suffix .test.ts
+
+<span class="c-teal">## Git</span>
+Branch: feat/ fix/ chore/ refactor/
+Commits: conventional commits (feat: fix: chore:)
+PR: must pass CI, one reviewer minimum</div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+function showTab(groupId, tabContentId) {
+  const group = document.getElementById(groupId);
+  const allTabs = group.querySelectorAll('.tab');
+  const container = group.parentElement;
+  container.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  allTabs.forEach(t => t.classList.remove('active'));
+  document.getElementById(tabContentId).classList.add('active');
+  const idx = tabContentId;
+  allTabs.forEach(t => {
+    if (t.getAttribute('onclick').includes(idx)) t.classList.add('active');
+  });
+}
+
+function copyCode(btn) {
+  const codeEl = btn.nextElementSibling;
+  const text = codeEl.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1800);
+  });
+}
+</script>
+</body>
+</html>
