@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Tenant SaaS — DB Schema</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --border-bright: #2e2e4e;
+    --text: #e2e2f0;
+    --muted: #6b6b8a;
+    --pk: #f97316;
+    --fk: #38bdf8;
+    --uk: #a78bfa;
+    --idx: #34d399;
+    --tenant: #f97316;
+    --auth: #ec4899;
+    --oauth: #38bdf8;
+    --rbac: #a78bfa;
+    --audit: #34d399;
+    --app: #fbbf24;
+    --line: rgba(56,189,248,0.25);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(56,189,248,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none; z-index:0;
+  }
+
+  header {
+    position:relative; z-index:10;
+    padding: 40px 48px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    background: linear-gradient(180deg, rgba(249,115,22,.06) 0%, transparent 100%);
+  }
+  header .eyebrow {
+    font-size:10px; letter-spacing:.2em; color:var(--muted);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 3vw, 42px);
+    font-weight:800; line-height:1;
+    background: linear-gradient(90deg, #f97316, #fb923c, #fbbf24);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  header .sub {
+    font-size:12px; color:var(--muted); margin-top:8px;
+  }
+  .legend {
+    display:flex; flex-wrap:wrap; gap:16px;
+    margin-top:16px;
+  }
+  .legend-item {
+    display:flex; align-items:center; gap:6px;
+    font-size:10px; color:var(--muted); letter-spacing:.05em;
+  }
+  .legend-dot {
+    width:8px; height:8px; border-radius:50%;
+  }
+  .badge-row {
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;
+  }
+  .badge {
+    font-size:9px; letter-spacing:.12em; text-transform:uppercase;
+    padding:3px 10px; border-radius:2px; border:1px solid;
+    font-weight:600;
+  }
+  .badge.tenant  { color:var(--tenant); border-color:var(--tenant); background:rgba(249,115,22,.08); }
+  .badge.auth    { color:var(--auth);   border-color:var(--auth);   background:rgba(236,72,153,.08); }
+  .badge.oauth   { color:var(--oauth);  border-color:var(--oauth);  background:rgba(56,189,248,.08); }
+  .badge.rbac    { color:var(--rbac);   border-color:var(--rbac);   background:rgba(167,139,250,.08); }
+  .badge.audit   { color:var(--audit);  border-color:var(--audit);  background:rgba(52,211,153,.08); }
+  .badge.app     { color:var(--app);    border-color:var(--app);    background:rgba(251,191,36,.08); }
+
+  /* ── TABS ── */
+  .tabs {
+    display:flex; gap:0;
+    padding: 0 48px;
+    border-bottom: 1px solid var(--border);
+    position:sticky; top:0; z-index:20;
+    background:var(--bg);
+  }
+  .tab {
+    padding:14px 20px; font-size:11px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); cursor:pointer;
+    border-bottom:2px solid transparent; transition:.2s;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--text); border-bottom-color:var(--fk); }
+
+  /* ── PANELS ── */
+  .panel { display:none; padding:40px 48px; position:relative; z-index:1; }
+  .panel.active { display:block; }
+
+  /* ── SCHEMA GRID ── */
+  .schema-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap:20px;
+  }
+
+  /* ── TABLE CARD ── */
+  .tbl {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:4px;
+    overflow:hidden;
+    transition: border-color .2s, box-shadow .2s;
+    position:relative;
+  }
+  .tbl:hover {
+    border-color: var(--border-bright);
+    box-shadow: 0 0 0 1px var(--border-bright), 0 8px 40px rgba(0,0,0,.4);
+  }
+  .tbl-header {
+    padding:12px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  .tbl-name {
+    font-family:'Syne',sans-serif; font-weight:700; font-size:13px;
+    letter-spacing:.02em;
+  }
+  .tbl-tag {
+    font-size:8px; letter-spacing:.12em; text-transform:uppercase;
+    padding:2px 7px; border-radius:2px; border:1px solid;
+  }
+  .tag-tenant { color:var(--tenant); border-color:var(--tenant); background:rgba(249,115,22,.1); }
+  .tag-auth   { color:var(--auth);   border-color:var(--auth);   background:rgba(236,72,153,.1); }
+  .tag-oauth  { color:var(--oauth);  border-color:var(--oauth);  background:rgba(56,189,248,.1); }
+  .tag-rbac   { color:var(--rbac);   border-color:var(--rbac);   background:rgba(167,139,250,.1); }
+  .tag-audit  { color:var(--audit);  border-color:var(--audit);  background:rgba(52,211,153,.1); }
+  .tag-app    { color:var(--app);    border-color:var(--app);    background:rgba(251,191,36,.1); }
+
+  .tbl-cols { padding:8px 0; }
+  .col {
+    display:grid;
+    grid-template-columns: 28px 1fr 90px 60px;
+    gap:6px; align-items:center;
+    padding:5px 16px;
+    font-size:11px; line-height:1.3;
+    transition: background .15s;
+  }
+  .col:hover { background:rgba(255,255,255,.03); }
+  .col-icon { font-size:9px; text-align:center; }
+  .pk-icon  { color:var(--pk); }
+  .fk-icon  { color:var(--fk); }
+  .uk-icon  { color:var(--uk); }
+  .idx-icon { color:var(--idx); }
+  .col-name { color:var(--text); font-weight:500; }
+  .col-name.pk-col { color:var(--pk); }
+  .col-name.fk-col { color:var(--fk); }
+  .col-type { color:var(--muted); font-size:10px; text-align:right; }
+  .col-constraint {
+    font-size:9px; text-align:right; letter-spacing:.04em; color:var(--muted);
+  }
+  .nn { color: #6b6b8a; }
+  .nullable { color:#2e2e4e; }
+  .col-divider {
+    height:1px; background:var(--border); margin:4px 16px;
+  }
+  .tbl-footer {
+    padding:8px 16px;
+    border-top:1px solid var(--border);
+    font-size:10px; color:var(--muted);
+    background:rgba(255,255,255,.01);
+  }
+  .tbl-footer .hint { display:inline-flex; gap:6px; align-items:center; }
+  .tbl-footer .hint span { color:var(--text); }
+
+  /* ── STRIPE ── */
+  .tbl::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  }
+  .tbl.tenant::before { background:var(--tenant); }
+  .tbl.auth::before   { background:var(--auth); }
+  .tbl.oauth::before  { background:var(--oauth); }
+  .tbl.rbac::before   { background:var(--rbac); }
+  .tbl.audit::before  { background:var(--audit); }
+  .tbl.app::before    { background:var(--app); }
+
+  /* ── ARCHITECTURE VIEW ── */
+  .arch-wrap {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:24px;
+  }
+  @media(max-width:900px) { .arch-wrap { grid-template-columns:1fr; } }
+
+  .arch-section {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:4px; padding:24px;
+  }
+  .arch-section h3 {
+    font-family:'Syne',sans-serif; font-weight:700; font-size:14px;
+    margin-bottom:16px; padding-bottom:10px;
+    border-bottom:1px solid var(--border);
+  }
+  .arch-section p {
+    font-size:11px; color:var(--muted); line-height:1.8; margin-bottom:12px;
+  }
+  .code-block {
+    background:#060609; border:1px solid var(--border);
+    border-radius:3px; padding:16px;
+    font-size:11px; line-height:1.9;
+    overflow-x:auto;
+    margin-top:10px;
+  }
+  .kw  { color:#ec4899; }
+  .ty  { color:#38bdf8; }
+  .cm  { color:#3a3a5c; font-style:italic; }
+  .fn  { color:#a78bfa; }
+  .st  { color:#34d399; }
+  .nm  { color:#f97316; }
+
+  /* ── FLOWS ── */
+  .flow-wrap { display:flex; flex-direction:column; gap:16px; }
+  .flow-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px; padding:24px;
+  }
+  .flow-card h3 {
+    font-family:'Syne',sans-serif; font-size:14px; font-weight:700;
+    margin-bottom:16px;
+  }
+  .flow-steps {
+    display:flex; flex-wrap:wrap; gap:0; align-items:stretch;
+  }
+  .step {
+    flex:1; min-width:120px;
+    background:#0d0d18; border:1px solid var(--border);
+    padding:14px 12px;
+    position:relative;
+    font-size:10px;
+  }
+  .step:not(:last-child)::after {
+    content:'→';
+    position:absolute; right:-12px; top:50%; transform:translateY(-50%);
+    color:var(--fk); font-size:12px; z-index:1;
+  }
+  .step-num {
+    font-size:9px; color:var(--muted); margin-bottom:4px; letter-spacing:.1em;
+  }
+  .step-title {
+    font-family:'Syne',sans-serif; font-size:12px; font-weight:700;
+    margin-bottom:4px; color:var(--text);
+  }
+  .step-desc { color:var(--muted); line-height:1.6; }
+
+  /* ── POLICY ── */
+  .policy-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:16px;
+  }
+  .policy-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:4px; padding:20px;
+  }
+  .policy-card h4 {
+    font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+    margin-bottom:8px;
+  }
+  .policy-card p { font-size:11px; color:var(--muted); line-height:1.7; }
+  .policy-card .code-block { margin-top:12px; font-size:10px; }
+
+  /* ── RELATION LINES SVG ── */
+  .rel-label {
+    font-size:10px; color:var(--fk); padding:2px 6px;
+    background:rgba(56,189,248,.08); border:1px solid rgba(56,189,248,.2);
+    border-radius:2px; display:inline-block; margin:2px 0;
+  }
+  .rel-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border-bright); border-radius:3px; }
+
+  @media(max-width:600px) {
+    .panel { padding:24px 16px; }
+    header { padding:24px 16px; }
+    .tabs { padding:0 16px; overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Database Architecture</div>
+  <h1>Multi-Tenant SaaS Schema</h1>
+  <div class="sub">JWT Authentication · OAuth2 / OIDC · RBAC · Row-Level Security · Audit Logs</div>
+  <div class="badge-row">
+    <span class="badge tenant">Tenant Isolation</span>
+    <span class="badge auth">JWT Auth</span>
+    <span class="badge oauth">OAuth2 / OIDC</span>
+    <span class="badge rbac">RBAC</span>
+    <span class="badge audit">Audit Trail</span>
+    <span class="badge app">App Data</span>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--pk)"></div>PRIMARY KEY</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fk)"></div>FOREIGN KEY</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--uk)"></div>UNIQUE</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--idx)"></div>INDEXED</div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('schema')">Schema Tables</div>
+  <div class="tab" onclick="switchTab('sql')">DDL / SQL</div>
+  <div class="tab" onclick="switchTab('flows')">Auth Flows</div>
+  <div class="tab" onclick="switchTab('rls')">RLS Policies</div>
+  <div class="tab" onclick="switchTab('arch')">Architecture</div>
+</nav>
+
+<!-- ══════════════════ SCHEMA TAB ══════════════════ -->
+<div id="tab-schema" class="panel active">
+  <div class="schema-grid">
+
+    <!-- tenants -->
+    <div class="tbl tenant">
+      <div class="tbl-header">
+        <span class="tbl-name">tenants</span>
+        <span class="tbl-tag tag-tenant">TENANT</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">slug</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">name</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">plan</span><span class="col-type">ENUM</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">status</span><span class="col-type">ENUM</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon idx-icon">◉</span><span class="col-name">domain</span><span class="col-type">TEXT</span><span class="col-constraint nullable">IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">settings</span><span class="col-type">JSONB</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">max_seats</span><span class="col-type">INT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col-divider"></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">updated_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">deleted_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">SOFT</span></div>
+      </div>
+      <div class="tbl-footer">plan: free | pro | enterprise &nbsp;·&nbsp; status: active | suspended | trial</div>
+    </div>
+
+    <!-- users -->
+    <div class="tbl auth">
+      <div class="tbl-header">
+        <span class="tbl-name">users</span>
+        <span class="tbl-tag tag-auth">AUTH</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">email</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ(t) NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">password_hash</span><span class="col-type">TEXT</span><span class="col-constraint nullable">nullable</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">display_name</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">avatar_url</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">email_verified</span><span class="col-type">BOOL</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">mfa_enabled</span><span class="col-type">BOOL</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">mfa_secret</span><span class="col-type">TEXT</span><span class="col-constraint nullable">ENC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">last_login_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+        <div class="col-divider"></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">status</span><span class="col-type">ENUM</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">deleted_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">SOFT</span></div>
+      </div>
+      <div class="tbl-footer">UQ(t) = unique within tenant &nbsp;·&nbsp; ENC = encrypted at rest</div>
+    </div>
+
+    <!-- oauth_providers -->
+    <div class="tbl oauth">
+      <div class="tbl-header">
+        <span class="tbl-name">oauth_providers</span>
+        <span class="tbl-tag tag-oauth">OAUTH2</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">provider</span><span class="col-type">ENUM</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">client_id</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">client_secret</span><span class="col-type">TEXT</span><span class="col-constraint nn">ENC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">scopes</span><span class="col-type">TEXT[]</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">redirect_uri</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">discovery_url</span><span class="col-type">TEXT</span><span class="col-constraint nullable">OIDC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">enabled</span><span class="col-type">BOOL</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">extra_config</span><span class="col-type">JSONB</span><span class="col-constraint nullable">—</span></div>
+      </div>
+      <div class="tbl-footer">provider: google | github | microsoft | okta | custom_oidc</div>
+    </div>
+
+    <!-- oauth_connections -->
+    <div class="tbl oauth">
+      <div class="tbl-header">
+        <span class="tbl-name">oauth_connections</span>
+        <span class="tbl-tag tag-oauth">OAUTH2</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">user_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">provider_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">provider_user_id</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">access_token</span><span class="col-type">TEXT</span><span class="col-constraint nn">ENC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">refresh_token</span><span class="col-type">TEXT</span><span class="col-constraint nullable">ENC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">token_expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">id_token_claims</span><span class="col-type">JSONB</span><span class="col-constraint nullable">OIDC</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">connected_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+      </div>
+      <div class="tbl-footer">UQ on (user_id, provider_id) — one conn per provider/user</div>
+    </div>
+
+    <!-- sessions -->
+    <div class="tbl auth">
+      <div class="tbl-header">
+        <span class="tbl-name">sessions</span>
+        <span class="tbl-tag tag-auth">JWT</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">user_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">refresh_token_hash</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">jwt_jti</span><span class="col-type">UUID</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">ip_address</span><span class="col-type">INET</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">user_agent</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">device_fingerprint</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">revoked_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+      </div>
+      <div class="tbl-footer">jti stored in blocklist on revoke &nbsp;·&nbsp; TTL index on expires_at</div>
+    </div>
+
+    <!-- token_blocklist -->
+    <div class="tbl auth">
+      <div class="tbl-header">
+        <span class="tbl-name">token_blocklist</span>
+        <span class="tbl-tag tag-auth">JWT</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">jti</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">user_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">revoked_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">reason</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+      </div>
+      <div class="tbl-footer">Auto-purge rows where expires_at &lt; NOW() via cron</div>
+    </div>
+
+    <!-- roles -->
+    <div class="tbl rbac">
+      <div class="tbl-header">
+        <span class="tbl-name">roles</span>
+        <span class="tbl-tag tag-rbac">RBAC</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nullable">FK · IDX</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">name</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ(t)</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">description</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">is_system</span><span class="col-type">BOOL</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+      </div>
+      <div class="tbl-footer">tenant_id NULL = system-wide role (super_admin, support)</div>
+    </div>
+
+    <!-- permissions -->
+    <div class="tbl rbac">
+      <div class="tbl-header">
+        <span class="tbl-name">permissions</span>
+        <span class="tbl-tag tag-rbac">RBAC</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">action</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">resource</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">description</span><span class="col-type">TEXT</span><span class="col-constraint nullable">—</span></div>
+      </div>
+      <div class="tbl-footer">action: create | read | update | delete | admin &nbsp;·&nbsp; UQ(action, resource)</div>
+    </div>
+
+    <!-- role_permissions -->
+    <div class="tbl rbac">
+      <div class="tbl-header">
+        <span class="tbl-name">role_permissions</span>
+        <span class="tbl-tag tag-rbac">RBAC</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">role_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · PK</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">permission_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · PK</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">granted_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">granted_by</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+      </div>
+      <div class="tbl-footer">PK = (role_id, permission_id) composite</div>
+    </div>
+
+    <!-- user_roles (memberships) -->
+    <div class="tbl rbac">
+      <div class="tbl-header">
+        <span class="tbl-name">user_roles</span>
+        <span class="tbl-tag tag-rbac">RBAC</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">user_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · PK</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">role_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · PK</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">assigned_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">assigned_by</span><span class="col-type">UUID</span><span class="col-constraint nullable">FK</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+      </div>
+      <div class="tbl-footer">PK = (user_id, role_id, tenant_id)</div>
+    </div>
+
+    <!-- invitations -->
+    <div class="tbl tenant">
+      <div class="tbl-header">
+        <span class="tbl-name">invitations</span>
+        <span class="tbl-tag tag-tenant">TENANT</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">token_hash</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">email</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">role_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">invited_by</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">status</span><span class="col-type">ENUM</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">NN</span></div>
+      </div>
+      <div class="tbl-footer">status: pending | accepted | expired | revoked</div>
+    </div>
+
+    <!-- audit_logs -->
+    <div class="tbl audit">
+      <div class="tbl-header">
+        <span class="tbl-name">audit_logs</span>
+        <span class="tbl-tag tag-audit">AUDIT</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">BIGSERIAL</span><span class="col-constraint nn">PK</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">actor_id</span><span class="col-type">UUID</span><span class="col-constraint nullable">FK · IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">action</span><span class="col-type">TEXT</span><span class="col-constraint nn">IDX · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">resource_type</span><span class="col-type">TEXT</span><span class="col-constraint nn">IDX</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">resource_id</span><span class="col-type">UUID</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">changes</span><span class="col-type">JSONB</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">ip_address</span><span class="col-type">INET</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">metadata</span><span class="col-type">JSONB</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon idx-icon">◉</span><span class="col-name">created_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nn">PART</span></div>
+      </div>
+      <div class="tbl-footer">Partitioned by created_at (monthly) &nbsp;·&nbsp; append-only, no updates</div>
+    </div>
+
+    <!-- api_keys -->
+    <div class="tbl app">
+      <div class="tbl-header">
+        <span class="tbl-name">api_keys</span>
+        <span class="tbl-tag tag-app">APP</span>
+      </div>
+      <div class="tbl-cols">
+        <div class="col"><span class="col-icon pk-icon">🔑</span><span class="col-name pk-col">id</span><span class="col-type">UUID</span><span class="col-constraint nn">PK · NN</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">tenant_id</span><span class="col-type">UUID</span><span class="col-constraint nn">FK · IDX</span></div>
+        <div class="col"><span class="col-icon fk-icon">⟶</span><span class="col-name fk-col">created_by</span><span class="col-type">UUID</span><span class="col-constraint nn">FK</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">key_prefix</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon uk-icon">◆</span><span class="col-name">key_hash</span><span class="col-type">TEXT</span><span class="col-constraint nn">UQ · NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">name</span><span class="col-type">TEXT</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">scopes</span><span class="col-type">TEXT[]</span><span class="col-constraint nn">NN</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">last_used_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">expires_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+        <div class="col"><span class="col-icon"></span><span class="col-name">revoked_at</span><span class="col-type">TIMESTAMPTZ</span><span class="col-constraint nullable">—</span></div>
+      </div>
+      <div class="tbl-footer">key_prefix shown to user; key_hash (SHA-256) never exposed</div>
+    </div>
+
+  </div><!-- /schema-grid -->
+
+  <div style="margin-top:32px; background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px;">
+    <h3 style="font-family:'Syne',sans-serif; font-size:13px; font-weight:700; margin-bottom:12px; color:var(--fk);">Key Relationships</h3>
+    <div class="rel-list">
+      <span class="rel-label">tenants 1 → N users</span>
+      <span class="rel-label">users 1 → N oauth_connections</span>
+      <span class="rel-label">users 1 → N sessions</span>
+      <span class="rel-label">tenants 1 → N oauth_providers</span>
+      <span class="rel-label">oauth_providers 1 → N oauth_connections</span>
+      <span class="rel-label">users N → M roles (via user_roles)</span>
+      <span class="rel-label">roles N → M permissions (via role_permissions)</span>
+      <span class="rel-label">tenants 1 → N invitations</span>
+      <span class="rel-label">tenants 1 → N api_keys</span>
+      <span class="rel-label">tenants 1 → N audit_logs</span>
+      <span class="rel-label">sessions 1 → 1 token_blocklist (on revoke)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ SQL TAB ══════════════════ -->
+<div id="tab-sql" class="panel">
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="arch-section">
+      <h3 style="color:var(--tenant)">Tenants + Users</h3>
+      <div class="code-block"><pre><span class="cm">-- Enable UUID + RLS</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> <span class="st">"pgcrypto"</span>;
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> <span class="st">"pg_trgm"</span>;
+
+<span class="kw">CREATE TYPE</span> tenant_plan   <span class="kw">AS ENUM</span> (<span class="st">'free'</span>, <span class="st">'pro'</span>, <span class="st">'enterprise'</span>);
+<span class="kw">CREATE TYPE</span> tenant_status <span class="kw">AS ENUM</span> (<span class="st">'trial'</span>, <span class="st">'active'</span>, <span class="st">'suspended'</span>);
+<span class="kw">CREATE TYPE</span> user_status   <span class="kw">AS ENUM</span> (<span class="st">'active'</span>, <span class="st">'inactive'</span>, <span class="st">'banned'</span>);
+
+<span class="kw">CREATE TABLE</span> <span class="nm">tenants</span> (
+  id          <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  slug        <span class="ty">TEXT</span>            <span class="kw">UNIQUE NOT NULL</span>,
+  name        <span class="ty">TEXT</span>            <span class="kw">NOT NULL</span>,
+  plan        tenant_plan     <span class="kw">NOT NULL DEFAULT</span> <span class="st">'free'</span>,
+  status      tenant_status   <span class="kw">NOT NULL DEFAULT</span> <span class="st">'trial'</span>,
+  domain      <span class="ty">TEXT</span>,
+  settings    <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>,
+  max_seats   <span class="ty">INT</span>             <span class="kw">NOT NULL DEFAULT</span> 5,
+  created_at  <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  updated_at  <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  deleted_at  <span class="ty">TIMESTAMPTZ</span>
+);
+<span class="kw">CREATE INDEX</span> idx_tenants_domain <span class="kw">ON</span> <span class="nm">tenants</span>(domain)
+  <span class="kw">WHERE</span> domain <span class="kw">IS NOT NULL</span>;
+
+<span class="kw">CREATE TABLE</span> <span class="nm">users</span> (
+  id               <span class="ty">UUID</span>         <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  tenant_id        <span class="ty">UUID</span>         <span class="kw">NOT NULL REFERENCES</span> <span class="nm">tenants</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  email            <span class="ty">TEXT</span>         <span class="kw">NOT NULL</span>,
+  password_hash    <span class="ty">TEXT</span>,        <span class="cm">-- NULL for pure-OAuth users</span>
+  display_name     <span class="ty">TEXT</span>,
+  avatar_url       <span class="ty">TEXT</span>,
+  email_verified   <span class="ty">BOOL</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="kw">FALSE</span>,
+  mfa_enabled      <span class="ty">BOOL</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="kw">FALSE</span>,
+  mfa_secret       <span class="ty">TEXT</span>,        <span class="cm">-- encrypted TOTP secret</span>
+  last_login_at    <span class="ty">TIMESTAMPTZ</span>,
+  status           user_status  <span class="kw">NOT NULL DEFAULT</span> <span class="st">'active'</span>,
+  created_at       <span class="ty">TIMESTAMPTZ</span>  <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  deleted_at       <span class="ty">TIMESTAMPTZ</span>,
+  <span class="kw">UNIQUE</span>(tenant_id, email)    <span class="cm">-- email unique per tenant</span>
+);
+<span class="kw">CREATE INDEX</span> idx_users_tenant <span class="kw">ON</span> <span class="nm">users</span>(tenant_id);</pre></div>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--oauth)">OAuth2 Tables</h3>
+      <div class="code-block"><pre><span class="kw">CREATE TYPE</span> oauth_provider_type <span class="kw">AS ENUM</span> (
+  <span class="st">'google'</span>, <span class="st">'github'</span>, <span class="st">'microsoft'</span>, <span class="st">'okta'</span>, <span class="st">'custom_oidc'</span>
+);
+
+<span class="kw">CREATE TABLE</span> <span class="nm">oauth_providers</span> (
+  id             <span class="ty">UUID</span>               <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  tenant_id      <span class="ty">UUID</span>               <span class="kw">NOT NULL REFERENCES</span> <span class="nm">tenants</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  provider       oauth_provider_type <span class="kw">NOT NULL</span>,
+  client_id      <span class="ty">TEXT</span>               <span class="kw">NOT NULL</span>,
+  client_secret  <span class="ty">TEXT</span>               <span class="kw">NOT NULL</span>, <span class="cm">-- encrypted</span>
+  scopes         <span class="ty">TEXT[]</span>             <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{openid,email,profile}'</span>,
+  redirect_uri   <span class="ty">TEXT</span>               <span class="kw">NOT NULL</span>,
+  discovery_url  <span class="ty">TEXT</span>,              <span class="cm">-- OIDC /.well-known/openid-configuration</span>
+  enabled        <span class="ty">BOOL</span>               <span class="kw">NOT NULL DEFAULT TRUE</span>,
+  extra_config   <span class="ty">JSONB</span>,
+  <span class="kw">UNIQUE</span>(tenant_id, provider)
+);
+
+<span class="kw">CREATE TABLE</span> <span class="nm">oauth_connections</span> (
+  id                <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  user_id           <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">users</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  provider_id       <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">oauth_providers</span>(id),
+  provider_user_id  <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>,
+  access_token      <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>, <span class="cm">-- encrypted</span>
+  refresh_token     <span class="ty">TEXT</span>,                  <span class="cm">-- encrypted</span>
+  token_expires_at  <span class="ty">TIMESTAMPTZ</span>,
+  id_token_claims   <span class="ty">JSONB</span>,
+  connected_at      <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  <span class="kw">UNIQUE</span>(user_id, provider_id),
+  <span class="kw">UNIQUE</span>(provider_id, provider_user_id)
+);</pre></div>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--auth)">Sessions + JWT Blocklist</h3>
+      <div class="code-block"><pre><span class="kw">CREATE TABLE</span> <span class="nm">sessions</span> (
+  id                   <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  user_id              <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">users</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  tenant_id            <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">tenants</span>(id),
+  refresh_token_hash   <span class="ty">TEXT</span>        <span class="kw">UNIQUE NOT NULL</span>,
+  jwt_jti              <span class="ty">UUID</span>        <span class="kw">UNIQUE NOT NULL</span>,
+  ip_address           <span class="ty">INET</span>,
+  user_agent           <span class="ty">TEXT</span>,
+  device_fingerprint   <span class="ty">TEXT</span>,
+  expires_at           <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>,
+  revoked_at           <span class="ty">TIMESTAMPTZ</span>,
+  created_at           <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_sessions_user     <span class="kw">ON</span> <span class="nm">sessions</span>(user_id);
+<span class="kw">CREATE INDEX</span> idx_sessions_expires  <span class="kw">ON</span> <span class="nm">sessions</span>(expires_at)
+  <span class="kw">WHERE</span> revoked_at <span class="kw">IS NULL</span>;
+
+<span class="kw">CREATE TABLE</span> <span class="nm">token_blocklist</span> (
+  jti         <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY</span>,
+  user_id     <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">users</span>(id),
+  revoked_at  <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  expires_at  <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>,
+  reason      <span class="ty">TEXT</span>
+);
+<span class="cm">-- Auto-purge expired blocklist entries</span>
+<span class="kw">CREATE INDEX</span> idx_blocklist_expires <span class="kw">ON</span> <span class="nm">token_blocklist</span>(expires_at);</pre></div>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--rbac)">RBAC Tables</h3>
+      <div class="code-block"><pre><span class="kw">CREATE TABLE</span> <span class="nm">roles</span> (
+  id          <span class="ty">UUID</span>        <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  tenant_id   <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> <span class="nm">tenants</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  name        <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>,
+  description <span class="ty">TEXT</span>,
+  is_system   <span class="ty">BOOL</span>        <span class="kw">NOT NULL DEFAULT FALSE</span>,
+  created_at  <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  <span class="kw">UNIQUE</span>(tenant_id, name)
+); <span class="cm">-- tenant_id NULL = global system role</span>
+
+<span class="kw">CREATE TABLE</span> <span class="nm">permissions</span> (
+  id          <span class="ty">UUID</span> <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  action      <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,  <span class="cm">-- create|read|update|delete|admin</span>
+  resource    <span class="ty">TEXT</span> <span class="kw">NOT NULL</span>,  <span class="cm">-- users|projects|billing|settings …</span>
+  description <span class="ty">TEXT</span>,
+  <span class="kw">UNIQUE</span>(action, resource)
+);
+
+<span class="kw">CREATE TABLE</span> <span class="nm">role_permissions</span> (
+  role_id       <span class="ty">UUID</span> <span class="kw">NOT NULL REFERENCES</span> <span class="nm">roles</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  permission_id <span class="ty">UUID</span> <span class="kw">NOT NULL REFERENCES</span> <span class="nm">permissions</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  granted_at    <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  granted_by    <span class="ty">UUID</span> <span class="kw">REFERENCES</span> <span class="nm">users</span>(id),
+  <span class="kw">PRIMARY KEY</span>(role_id, permission_id)
+);
+
+<span class="kw">CREATE TABLE</span> <span class="nm">user_roles</span> (
+  user_id      <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">users</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  role_id      <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">roles</span>(id) <span class="kw">ON DELETE CASCADE</span>,
+  tenant_id    <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">tenants</span>(id),
+  assigned_at  <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  assigned_by  <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> <span class="nm">users</span>(id),
+  expires_at   <span class="ty">TIMESTAMPTZ</span>,
+  <span class="kw">PRIMARY KEY</span>(user_id, role_id, tenant_id)
+);</pre></div>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--audit)">Audit Log (Partitioned)</h3>
+      <div class="code-block"><pre><span class="kw">CREATE TABLE</span> <span class="nm">audit_logs</span> (
+  id            <span class="ty">BIGSERIAL</span>,
+  tenant_id     <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> <span class="nm">tenants</span>(id),
+  actor_id      <span class="ty">UUID</span>        <span class="kw">REFERENCES</span> <span class="nm">users</span>(id),
+  action        <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>,
+  resource_type <span class="ty">TEXT</span>        <span class="kw">NOT NULL</span>,
+  resource_id   <span class="ty">UUID</span>,
+  changes       <span class="ty">JSONB</span>,      <span class="cm">-- {before: {}, after: {}}</span>
+  ip_address    <span class="ty">INET</span>,
+  metadata      <span class="ty">JSONB</span>,
+  created_at    <span class="ty">TIMESTAMPTZ</span> <span class="kw">NOT NULL DEFAULT</span> <span class="fn">now</span>(),
+  <span class="kw">PRIMARY KEY</span>(id, created_at)
+) <span class="kw">PARTITION BY RANGE</span> (created_at);
+
+<span class="cm">-- Create monthly partitions (automate with pg_partman)</span>
+<span class="kw">CREATE TABLE</span> audit_logs_2025_01
+  <span class="kw">PARTITION OF</span> <span class="nm">audit_logs</span>
+  <span class="kw">FOR VALUES FROM</span> (<span class="st">'2025-01-01'</span>) <span class="kw">TO</span> (<span class="st">'2025-02-01'</span>);
+
+<span class="kw">CREATE INDEX</span> idx_audit_tenant    <span class="kw">ON</span> <span class="nm">audit_logs</span>(tenant_id, created_at <span class="kw">DESC</span>);
+<span class="kw">CREATE INDEX</span> idx_audit_actor     <span class="kw">ON</span> <span class="nm">audit_logs</span>(actor_id, created_at <span class="kw">DESC</span>);
+<span class="kw">CREATE INDEX</span> idx_audit_resource  <span class="kw">ON</span> <span class="nm">audit_logs</span>(resource_type, resource_id);</pre></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ FLOWS TAB ══════════════════ -->
+<div id="tab-flows" class="panel">
+  <div class="flow-wrap">
+
+    <div class="flow-card">
+      <h3 style="color:var(--auth)">① Password + JWT Login</h3>
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">POST /auth/login</div>
+          <div class="step-desc">Receive email + password. Resolve tenant from subdomain or body.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Verify Credentials</div>
+          <div class="step-desc">SELECT user WHERE tenant_id + email. Compare bcrypt hash.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">MFA Check</div>
+          <div class="step-desc">If mfa_enabled, verify TOTP code against mfa_secret.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Issue Tokens</div>
+          <div class="step-desc">Sign short-lived access JWT (15m) + long-lived refresh token. Store session row.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div class="step-title">Return</div>
+          <div class="step-desc">access_token in body; refresh_token in HttpOnly Secure cookie.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3 style="color:var(--oauth)">② OAuth2 / OIDC Login (e.g. Google)</h3>
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">GET /auth/oauth/{provider}</div>
+          <div class="step-desc">Load oauth_providers row for tenant. Build authorization URL with PKCE + state param.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Redirect to IdP</div>
+          <div class="step-desc">User authenticates at Google/GitHub. state stored in session cookie.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Callback /auth/oauth/cb</div>
+          <div class="step-desc">Verify state. Exchange code → access_token + id_token via PKCE verifier.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Upsert User</div>
+          <div class="step-desc">Find or create user by email+tenant. Upsert oauth_connections with encrypted tokens.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div class="step-title">Issue JWT</div>
+          <div class="step-desc">Same session/JWT flow as password login. Redirect to dashboard.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3 style="color:var(--fk)">③ Token Refresh Flow</h3>
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">POST /auth/refresh</div>
+          <div class="step-desc">Read refresh_token from HttpOnly cookie.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Validate Session</div>
+          <div class="step-desc">Hash token → lookup sessions.refresh_token_hash. Check not revoked, not expired.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Rotate Refresh</div>
+          <div class="step-desc">Invalidate old refresh token. Issue new refresh token (rotation). Update session row.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">New Access JWT</div>
+          <div class="step-desc">Issue new access token with fresh jti. Return in body.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3 style="color:var(--rbac)">④ Request Authorization (Middleware)</h3>
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Extract JWT</div>
+          <div class="step-desc">Parse Bearer token from Authorization header.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Verify Signature</div>
+          <div class="step-desc">Verify RS256/ES256 signature. Check exp, iss, aud claims.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Blocklist Check</div>
+          <div class="step-desc">Query token_blocklist WHERE jti = claims.jti (Redis cache first).</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Set RLS Context</div>
+          <div class="step-desc">SET LOCAL app.tenant_id = '…'; SET LOCAL app.user_id = '…' for row-level security.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div class="step-title">RBAC Check</div>
+          <div class="step-desc">Query user_roles → role_permissions. Verify action+resource against required permission.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RLS TAB ══════════════════ -->
+<div id="tab-rls" class="panel">
+  <div class="policy-grid">
+
+    <div class="policy-card" style="border-color:rgba(249,115,22,.3)">
+      <h4 style="color:var(--tenant)">Tenant Isolation Policy</h4>
+      <p>Every tenant-scoped table uses RLS to ensure rows are only visible to users in the correct tenant. Set via transaction-level config.</p>
+      <div class="code-block"><pre><span class="kw">ALTER TABLE</span> <span class="nm">users</span>
+  <span class="kw">ENABLE ROW LEVEL SECURITY</span>;
+
+<span class="kw">CREATE POLICY</span> tenant_isolation
+  <span class="kw">ON</span> <span class="nm">users</span>
+  <span class="kw">USING</span> (
+    tenant_id = <span class="fn">current_setting</span>(
+      <span class="st">'app.tenant_id'</span>
+    )::<span class="ty">uuid</span>
+  );</pre></div>
+    </div>
+
+    <div class="policy-card" style="border-color:rgba(56,189,248,.3)">
+      <h4 style="color:var(--oauth)">Setting RLS Context in App</h4>
+      <p>The app server sets tenant and user context at the start of every transaction after JWT validation.</p>
+      <div class="code-block"><pre><span class="cm">-- In your DB transaction:</span>
+<span class="kw">SET LOCAL</span> app.tenant_id
+  = <span class="st">'ten_abc123'</span>;
+
+<span class="kw">SET LOCAL</span> app.user_id
+  = <span class="st">'usr_xyz789'</span>;
+
+<span class="kw">SET LOCAL</span> app.user_role
+  = <span class="st">'admin'</span>;</pre></div>
+    </div>
+
+    <div class="policy-card" style="border-color:rgba(167,139,250,.3)">
+      <h4 style="color:var(--rbac)">Audit Log Write Policy</h4>
+      <p>Audit logs can only be inserted by the app role. No user can update or delete audit records, ensuring tamper-proof trail.</p>
+      <div class="code-block"><pre><span class="kw">CREATE POLICY</span> audit_insert
+  <span class="kw">ON</span> <span class="nm">audit_logs</span>
+  <span class="kw">AS PERMISSIVE</span>
+  <span class="kw">FOR INSERT</span>
+  <span class="kw">TO</span> app_role
+  <span class="kw">WITH CHECK</span> (<span class="kw">TRUE</span>);
+
+<span class="cm">-- No UPDATE or DELETE policy</span>
+<span class="cm">-- = nobody can modify logs</span></pre></div>
+    </div>
+
+    <div class="policy-card" style="border-color:rgba(52,211,153,.3)">
+      <h4 style="color:var(--audit)">Soft Delete Filter</h4>
+      <p>Global filter policy hides soft-deleted users and tenants from all queries automatically.</p>
+      <div class="code-block"><pre><span class="kw">CREATE POLICY</span> hide_deleted
+  <span class="kw">ON</span> <span class="nm">users</span>
+  <span class="kw">USING</span> (
+    deleted_at <span class="kw">IS NULL</span>
+  );
+
+<span class="cm">-- Same for tenants:</span>
+<span class="kw">CREATE POLICY</span> hide_deleted
+  <span class="kw">ON</span> <span class="nm">tenants</span>
+  <span class="kw">USING</span> (deleted_at <span class="kw">IS NULL</span>);</pre></div>
+    </div>
+
+    <div class="policy-card" style="border-color:rgba(251,191,36,.3)">
+      <h4 style="color:var(--app)">Self-Only User Update</h4>
+      <p>Users can only update their own profile row. Admins bypass this via a separate policy or the service role.</p>
+      <div class="code-block"><pre><span class="kw">CREATE POLICY</span> self_update
+  <span class="kw">ON</span> <span class="nm">users</span>
+  <span class="kw">FOR UPDATE</span>
+  <span class="kw">USING</span> (
+    id = <span class="fn">current_setting</span>(
+      <span class="st">'app.user_id'</span>
+    )::<span class="ty">uuid</span>
+  );</pre></div>
+    </div>
+
+    <div class="policy-card" style="border-color:rgba(236,72,153,.3)">
+      <h4 style="color:var(--auth)">Admin Bypass via Role</h4>
+      <p>Tenant admins and system roles bypass tenant isolation. Use a separate DB role or a permissive policy combined with role check.</p>
+      <div class="code-block"><pre><span class="kw">CREATE POLICY</span> admin_bypass
+  <span class="kw">ON</span> <span class="nm">users</span>
+  <span class="kw">AS PERMISSIVE</span>
+  <span class="kw">USING</span> (
+    <span class="fn">current_setting</span>(<span class="st">'app.user_role'</span>)
+      = <span class="st">'admin'</span>
+    <span class="kw">AND</span> tenant_id = <span class="fn">current_setting</span>(
+      <span class="st">'app.tenant_id'</span>)::<span class="ty">uuid</span>
+  );</pre></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ ARCH TAB ══════════════════ -->
+<div id="tab-arch" class="panel">
+  <div class="arch-wrap">
+
+    <div class="arch-section">
+      <h3 style="color:var(--fk)">Tenant Isolation Strategy</h3>
+      <p>This schema uses <strong style="color:var(--text)">shared database, shared schema</strong> with Row-Level Security — the most cost-effective model for SaaS. Every tenant-scoped table carries a <code style="color:var(--fk)">tenant_id</code> FK and a corresponding RLS policy.</p>
+      <p>The alternative is schema-per-tenant (PostgreSQL schemas) which gives stronger isolation but complicates migrations. For most SaaS products, RLS + application-level enforcement is sufficient.</p>
+      <p><strong style="color:var(--tenant)">Key rules:</strong> Never query without setting <code>app.tenant_id</code>. All API endpoints resolve tenant from JWT claim, subdomain, or custom header before touching the DB.</p>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--auth)">JWT Design</h3>
+      <p>Access tokens are <strong style="color:var(--text)">short-lived (15 min)</strong> signed with RS256 (asymmetric). They carry: <code>sub</code> (user_id), <code>tid</code> (tenant_id), <code>roles</code> array, <code>jti</code> (unique ID for revocation), <code>exp</code>.</p>
+      <p>Refresh tokens are <strong style="color:var(--text)">opaque random strings</strong> stored as SHA-256 hashes. They live in HttpOnly Secure cookies, rotate on every use, and are invalidated server-side.</p>
+      <p>The <code>token_blocklist</code> table handles forced logout. For scale, mirror it to Redis with a TTL matching <code>exp</code>.</p>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--oauth)">OAuth2 / OIDC Architecture</h3>
+      <p>Each tenant can configure their own IdP (Google Workspace SSO, GitHub org, Okta, etc.) via <code>oauth_providers</code>. This enables enterprise tenants to enforce their own identity policies.</p>
+      <p>The authorization code flow uses <strong style="color:var(--text)">PKCE</strong> (Proof Key for Code Exchange) to prevent interception attacks. The <code>state</code> parameter is a signed JWT containing the tenant context, preventing CSRF.</p>
+      <p>Tokens from the IdP are <strong style="color:var(--text)">AES-256 encrypted at rest</strong> in <code>oauth_connections</code>. Decryption happens only when the app needs to call the IdP's API on behalf of the user.</p>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--rbac)">RBAC Model</h3>
+      <p>Classic <strong style="color:var(--text)">Role → Permissions</strong> model. Roles can be system-wide (e.g. <code>super_admin</code>) or tenant-scoped (e.g. <code>billing_admin</code>). Permissions are <code>action:resource</code> pairs like <code>read:invoices</code> or <code>delete:users</code>.</p>
+      <p>Roles are embedded in the JWT as an array for fast in-process checks, but <strong style="color:var(--text)">always re-verified from DB</strong> for sensitive operations. The DB is the source of truth.</p>
+      <p>Role assignments support <code>expires_at</code> for temporary privilege escalation (on-call access, contractor access).</p>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--audit)">Audit Log Design</h3>
+      <p>Append-only, range-partitioned by month. No UPDATE or DELETE is possible via RLS policy. Use <code>pg_partman</code> to auto-create future partitions.</p>
+      <p>The <code>changes</code> JSONB column stores <code>{before: {...}, after: {...}}</code> diffs. Sensitive fields (passwords, tokens) are never stored.</p>
+      <p>For high write volume: route audit inserts through a message queue (Kafka / SQS) and write asynchronously to avoid adding latency to user requests.</p>
+    </div>
+
+    <div class="arch-section">
+      <h3 style="color:var(--app)">Security Checklist</h3>
+      <p style="margin-bottom:6px; color:var(--text); font-size:11px;">
+        ✅ &nbsp;bcrypt/argon2 for passwords<br>
+        ✅ &nbsp;AES-256 for stored OAuth tokens<br>
+        ✅ &nbsp;PKCE on all OAuth flows<br>
+        ✅ &nbsp;Refresh token rotation (detect reuse)<br>
+        ✅ &nbsp;HttpOnly + Secure + SameSite cookies<br>
+        ✅ &nbsp;RLS enforced at DB layer<br>
+        ✅ &nbsp;TOTP MFA stored encrypted<br>
+        ✅ &nbsp;Soft deletes (GDPR erasure via column clear)<br>
+        ✅ &nbsp;Audit log tamper-proof via RLS<br>
+        ✅ &nbsp;API keys: prefix shown, hash stored<br>
+        ✅ &nbsp;Rate limiting on auth endpoints<br>
+        ✅ &nbsp;Token blocklist auto-purge<br>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', t.textContent.toLowerCase().includes(name) ||
+      (name==='schema' && t.textContent.includes('Schema')) ||
+      (name==='sql' && t.textContent.includes('DDL')) ||
+      (name==='flows' && t.textContent.includes('Auth')) ||
+      (name==='rls' && t.textContent.includes('RLS')) ||
+      (name==='arch' && t.textContent.includes('Arch'))
+    );
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+}
+// fix tab switching
+document.querySelectorAll('.tab').forEach((tab, i) => {
+  const names = ['schema','sql','flows','rls','arch'];
+  tab.onclick = () => switchTab(names[i]);
+});
+</script>
+</body>
+</html>
