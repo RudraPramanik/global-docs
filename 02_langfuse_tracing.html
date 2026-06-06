@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 2 — Langfuse & Tracing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2234;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #6b7a99;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 3rem; padding-bottom: 1.5rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .nav-badge { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); background: var(--surface); border: 0.5px solid var(--border2); padding: 4px 12px; border-radius: 20px; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-link { font-size: 11px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; border: 0.5px solid var(--border); transition: all 0.15s; }
+  .nav-link:hover { color: var(--text); border-color: var(--border2); }
+  .nav-link.active { color: var(--text); background: var(--surface); border-color: var(--border2); }
+
+  .eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent2); margin-bottom: 8px; }
+  h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.8px; margin-bottom: 8px; line-height: 1.2; }
+  h2 { font-size: 17px; font-weight: 500; }
+  h3 { font-size: 10px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .lead { color: var(--muted); font-size: 14px; line-height: 1.75; margin-bottom: 2.5rem; max-width: 580px; }
+
+  .section { margin-bottom: 3rem; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 2.5rem 0; }
+
+  .code-block {
+    background: #060a12; border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 1.1rem 1.25rem;
+    font-family: var(--mono); font-size: 12px; line-height: 2;
+    overflow-x: auto; margin-bottom: 1.25rem; white-space: pre;
+  }
+  .k { color: #818cf8; }
+  .s { color: #f59e0b; }
+  .c { color: #3d4f6e; font-style: italic; }
+  .v { color: #10b981; }
+  .n { color: #e8eaf0; }
+  .dim { color: var(--muted); }
+  .red { color: var(--red); }
+
+  .callout { background: var(--surface2); border-left: 2px solid var(--accent); border-radius: 0 8px 8px 0; padding: 1rem 1.25rem; font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.75; }
+  .callout strong { color: var(--text); }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.good { border-left-color: var(--green); }
+
+  /* Trace visualizer */
+  .trace-visualizer {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .trace-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.25rem; padding-bottom: 1rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .trace-id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .trace-total { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+
+  .span-row { margin-bottom: 8px; }
+  .span-label-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .span-name { font-size: 12px; font-weight: 500; font-family: var(--mono); }
+  .span-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .span-bar-bg { background: var(--surface2); border-radius: 4px; height: 10px; position: relative; }
+  .span-bar {
+    position: absolute; top: 0; height: 100%; border-radius: 4px;
+    transition: width 0.5s ease, left 0.5s ease;
+  }
+  .span-meta { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+
+  .span-row.retrieval .span-name { color: var(--amber); }
+  .span-row.context .span-name { color: var(--green); }
+  .span-row.llm .span-name { color: var(--accent2); }
+  .span-row.retrieval .span-bar { background: rgba(245,158,11,0.45); }
+  .span-row.context .span-bar   { background: rgba(16,185,129,0.45); }
+  .span-row.llm .span-bar       { background: rgba(99,102,241,0.55); }
+
+  .trace-controls {
+    display: flex; gap: 8px; margin-top: 1.25rem; padding-top: 1rem;
+    border-top: 0.5px solid var(--border); flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    border: 0.5px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-family: var(--sans); transition: all 0.15s;
+  }
+  .ctrl-btn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent2); }
+  .ctrl-label { font-size: 11px; color: var(--muted); display: flex; align-items: center; }
+
+  /* Architecture: client / observability / langfuse */
+  .arch-grid { display: grid; grid-template-columns: 1fr 2px 1fr 2px 1fr; gap: 0; align-items: stretch; margin-bottom: 1.5rem; }
+  .arch-col { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .arch-divider { background: var(--border2); margin: 16px 0; }
+  .arch-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; margin-bottom: 10px; }
+  .arch-item { font-size: 12px; color: var(--muted); padding: 5px 0; border-bottom: 0.5px solid var(--border); line-height: 1.5; }
+  .arch-item:last-child { border-bottom: none; }
+  .arch-item strong { color: var(--text); font-weight: 500; display: block; }
+
+  /* Lazy init diagram */
+  .flow-diagram { display: flex; align-items: center; gap: 0; font-size: 12px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .flow-node { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 120px; }
+  .flow-node .fn { font-family: var(--mono); font-size: 11px; color: var(--accent2); }
+  .flow-node .fd { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .flow-arrow { text-align: center; color: var(--muted); padding: 0 8px; font-size: 16px; flex-shrink: 0; }
+  .flow-node.good { border-color: var(--green); }
+  .flow-node.warn { border-color: var(--amber); }
+  .flow-node .fn.good { color: var(--green); }
+  .flow-node .fn.warn { color: var(--amber); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 0.5px solid var(--border); background: transparent; color: var(--muted); font-family: var(--sans); transition: all 0.15s; }
+  .tab.active { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Key concepts cards */
+  .concepts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .concept-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 1.1rem; }
+  .concept-title { font-size: 13px; font-weight: 600; color: var(--accent2); margin-bottom: 6px; font-family: var(--mono); }
+  .concept-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .concept-desc strong { color: var(--text); font-weight: 500; }
+
+  /* Validation checklist */
+  .checklist { }
+  .check-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 0; border-bottom: 0.5px solid var(--border);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 0.5px solid var(--border2); background: var(--surface2);
+    flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; margin-top: 2px; transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--green); border-color: var(--green); }
+  .check-text { flex: 1; }
+  .check-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .check-desc { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: var(--mono); }
+  .tag-trace { background: rgba(99,102,241,0.12); color: var(--accent2); }
+  .tag-warn  { background: rgba(245,158,11,0.12);  color: var(--amber); }
+  .tag-good  { background: rgba(16,185,129,0.12);  color: var(--green); }
+
+  .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 0.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .footer-note { font-size: 11px; color: var(--muted); }
+  .btn { background: var(--surface); border: 0.5px solid var(--border2); color: var(--text); font-family: var(--sans); font-size: 12px; font-weight: 500; padding: 8px 18px; border-radius: 8px; cursor: pointer; text-decoration: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--surface2); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-badge">Senior Engineer Series</span>
+  <div class="nav-links">
+    <a class="nav-link" href="01_observability_fundamentals.html">1. Fundamentals</a>
+    <a class="nav-link active" href="02_langfuse_tracing.html">2. Langfuse</a>
+    <a class="nav-link" href="03_prometheus_grafana.html">3. Prometheus + Grafana</a>
+  </div>
+</div>
+
+<div class="eyebrow">Module 2 of 3</div>
+<h1>Langfuse &amp; AI tracing</h1>
+<p class="lead">Langfuse is purpose-built for AI applications. It does for LLM calls what Datadog APM does for microservices — shows you exactly where time and money go inside each AI request. This module covers how it works, why lazy initialization matters, and how to build the tracing abstraction correctly.</p>
+
+<!-- WHAT IS LANGFUSE -->
+<div class="section">
+  <h3>What Langfuse actually gives you</h3>
+  <div class="concepts">
+    <div class="concept-card">
+      <div class="concept-title">trace</div>
+      <div class="concept-desc">One trace = one user request end-to-end. Created once per <code>rag.answer()</code> call. Contains all child spans. Has metadata: <strong>user_id, workspace_id, total latency</strong>.</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-title">span</div>
+      <div class="concept-desc">A step inside a trace. <strong>retrieval, context_building, llm_generation</strong> are each spans. Spans record: start time, end time, input data, output data, errors.</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-title">generation</div>
+      <div class="concept-desc">A special span for LLM calls. Automatically tracks <strong>model, prompt tokens, completion tokens, cost</strong>. Langfuse calculates cost from its model price list.</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-title">observation</div>
+      <div class="concept-desc">The parent class of span and generation. Any timed unit of work inside a trace. You usually use spans for your code and let Langfuse auto-detect generations.</div>
+    </div>
+  </div>
+</div>
+
+<!-- INTERACTIVE TRACE VISUALIZER -->
+<div class="section">
+  <h3>Interactive trace — simulate what you see in Langfuse</h3>
+  <div class="trace-visualizer">
+    <div class="trace-header">
+      <div>
+        <div style="font-size:13px; font-weight:500; margin-bottom:2px;">rag.answer</div>
+        <div class="trace-id">trace_id: a1b2c3d4e5f6</div>
+      </div>
+      <div class="trace-total" id="total-time">total: 2100ms</div>
+    </div>
+
+    <div class="span-row retrieval">
+      <div class="span-label-row">
+        <span class="span-name">retrieval</span>
+        <span class="span-time" id="ret-time">0ms → 210ms</span>
+      </div>
+      <div class="span-bar-bg">
+        <div class="span-bar" id="ret-bar" style="left:0%; width:10%"></div>
+      </div>
+      <div class="span-meta" id="ret-meta">chunks_retrieved=8, score_max=0.92</div>
+    </div>
+
+    <div class="span-row context" style="margin-top:10px;">
+      <div class="span-label-row">
+        <span class="span-name">context_building</span>
+        <span class="span-time" id="ctx-time">210ms → 245ms</span>
+      </div>
+      <div class="span-bar-bg">
+        <div class="span-bar" id="ctx-bar" style="left:10%; width:1.7%"></div>
+      </div>
+      <div class="span-meta" id="ctx-meta">chunks_used=5, char_budget=8192</div>
+    </div>
+
+    <div class="span-row llm" style="margin-top:10px;">
+      <div class="span-label-row">
+        <span class="span-name">llm_generation</span>
+        <span class="span-time" id="llm-time">245ms → 2100ms</span>
+      </div>
+      <div class="span-bar-bg">
+        <div class="span-bar" id="llm-bar" style="left:11.7%; width:88.3%"></div>
+      </div>
+      <div class="span-meta" id="llm-meta">model=gpt-4o, tokens=842, cost=$0.0042</div>
+    </div>
+
+    <div class="trace-controls">
+      <span class="ctrl-label">Simulate scenario:</span>
+      <button class="ctrl-btn" onclick="setScenario('normal')">Normal request</button>
+      <button class="ctrl-btn" onclick="setScenario('slow-retrieval')">Slow retrieval</button>
+      <button class="ctrl-btn" onclick="setScenario('slow-llm')">LLM timeout</button>
+      <button class="ctrl-btn" onclick="setScenario('cheap')">Small context</button>
+    </div>
+  </div>
+
+  <p style="color:var(--muted); font-size:12px; line-height:1.7;">
+    Notice how the bar widths change between scenarios. This is exactly what Langfuse shows you — the <strong style="color:var(--text)">relative time spent</strong> in each step. When retrieval is slow, look at your vector DB or query. When LLM is slow, look at context size or model choice.
+  </p>
+</div>
+
+<hr class="divider">
+
+<!-- LAZY INITIALIZATION -->
+<div class="section">
+  <h3>Why lazy initialization — the most important design decision</h3>
+
+  <div class="callout warn">
+    <strong>Never initialize Langfuse at startup.</strong> If Langfuse Cloud has a DNS issue, network timeout, or outage, your API startup fails. Your users can't chat. Observability should <em>never</em> block serving traffic.
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('init','wrong',this)">Wrong — startup init</button>
+    <button class="tab" onclick="switchTab('init','right',this)">Right — lazy init</button>
+  </div>
+  <div id="init-wrong" class="tab-content active">
+    <div class="code-block"><span class="c"># ❌ BAD: Langfuse initializes at API startup</span>
+<span class="c"># If cloud.langfuse.com is unreachable → API won't start</span>
+
+<span class="k">async def</span><span class="n"> lifespan(app):</span>
+    <span class="n">setup_logging()</span>
+    <span class="red">client = Langfuse(                  </span><span class="c"> ← network call at startup</span>
+        <span class="red">public_key=settings.LANGFUSE_PUBLIC_KEY,</span>
+        <span class="red">secret_key=settings.LANGFUSE_SECRET_KEY,</span>
+    <span class="red">)</span>
+    <span class="red">app.state.langfuse = client         </span><span class="c"> ← now every request depends on this</span>
+    <span class="n">yield</span></div>
+  </div>
+  <div id="init-right" class="tab-content">
+    <div class="code-block"><span class="c"># ✅ GOOD: Langfuse initializes lazily on first use</span>
+<span class="c"># API starts instantly regardless of Langfuse status</span>
+
+<span class="c"># observability/langfuse_client.py</span>
+<span class="n">_client = </span><span class="k">None</span>
+<span class="n">_initialized = </span><span class="k">False</span>
+
+<span class="k">def</span><span class="n"> get_langfuse_client():</span>
+    <span class="k">global</span><span class="n"> _client, _initialized</span>
+    <span class="k">if</span><span class="n"> _initialized:</span>
+        <span class="k">return</span><span class="n"> _client          </span><span class="c"> ← instant return after first call</span>
+    <span class="k">if not</span><span class="n"> settings.langfuse_enabled:</span>
+        <span class="n">logger.warning(</span><span class="s">"Langfuse disabled: keys not set"</span><span class="n">)</span>
+        <span class="n">_initialized = </span><span class="k">True</span>
+        <span class="k">return None</span>
+    <span class="k">try</span><span class="n">:</span>
+        <span class="n">_client = Langfuse(</span>
+            <span class="n">public_key=settings.LANGFUSE_PUBLIC_KEY,</span>
+            <span class="n">secret_key=settings.LANGFUSE_SECRET_KEY,</span>
+            <span class="n">host=settings.LANGFUSE_HOST,</span>
+        <span class="n">)</span>
+        <span class="n">_initialized = </span><span class="k">True</span>
+        <span class="k">return</span><span class="n"> _client</span>
+    <span class="k">except</span><span class="n"> Exception as e:</span>
+        <span class="n">logger.warning(</span><span class="s">f"Langfuse init failed: {e}"</span><span class="n">)</span>
+        <span class="n">_initialized = </span><span class="k">True        </span><span class="c"> ← mark done so we don't retry forever</span>
+        <span class="k">return None</span>                <span class="c"> ← app continues normally</span></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- TRACING ABSTRACTION -->
+<div class="section">
+  <h3>The tracing abstraction — why it matters</h3>
+
+  <div class="callout">
+    <strong>Never import Langfuse directly in your services.</strong> If you do, every service that needs tracing becomes tightly coupled to Langfuse. When you add agent_service, memory_service, etc., you'll copy-paste Langfuse code everywhere. Instead, build one abstraction in <code>observability/tracing.py</code> that all services consume.
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('abs','bad',this)">Tightly coupled (bad)</button>
+    <button class="tab" onclick="switchTab('abs','good',this)">Abstraction layer (good)</button>
+    <button class="tab" onclick="switchTab('abs','noop',this)">No-op pattern</button>
+  </div>
+
+  <div id="abs-bad" class="tab-content active">
+    <div class="code-block"><span class="c"># ❌ BAD: Langfuse imported directly in rag_service.py</span>
+<span class="c"># Future: you'll copy this into agent_service.py, memory_service.py...</span>
+
+<span class="k">from</span><span class="n"> langfuse </span><span class="k">import</span><span class="n"> Langfuse      </span><span class="c">← tight coupling</span>
+
+<span class="k">class</span><span class="n"> RagService:</span>
+    <span class="k">async def</span><span class="n"> answer(self, ...):</span>
+        <span class="n">lf = Langfuse(public_key=..., secret_key=...)</span>
+        <span class="n">trace = lf.trace(name=</span><span class="s">"rag.answer"</span><span class="n">)</span>
+        <span class="c"># what if lf is None? what if init fails?</span>
+        <span class="c"># no consistent error handling</span></div>
+  </div>
+
+  <div id="abs-good" class="tab-content">
+    <div class="code-block"><span class="c"># ✅ GOOD: observability/tracing.py provides context managers</span>
+<span class="c"># rag_service.py, agent_service.py all use the same interface</span>
+
+<span class="c"># observability/tracing.py</span>
+<span class="k">from</span><span class="n"> contextlib </span><span class="k">import</span><span class="n"> asynccontextmanager</span>
+<span class="k">from</span><span class="n"> .langfuse_client </span><span class="k">import</span><span class="n"> get_langfuse_client</span>
+
+<span class="k">@asynccontextmanager</span>
+<span class="k">async def</span><span class="n"> rag_trace(name: str, metadata: dict):</span>
+    <span class="n">client = get_langfuse_client()</span>
+    <span class="k">if</span><span class="n"> client </span><span class="k">is None</span><span class="n">:</span>
+        <span class="k">yield</span><span class="n"> NoOpTrace()          </span><span class="c">← same interface, does nothing</span>
+        <span class="k">return</span>
+    <span class="n">trace = client.trace(name=name, metadata=metadata)</span>
+    <span class="k">try</span><span class="n">:</span>
+        <span class="k">yield</span><span class="n"> trace</span>
+    <span class="k">finally</span><span class="n">:</span>
+        <span class="n">client.flush()             </span><span class="c">← always flush, even on exception</span>
+
+<span class="c"># Usage in rag_service.py — clean and decoupled:</span>
+<span class="k">async with</span><span class="n"> rag_trace(</span><span class="s">"rag.answer"</span><span class="n">, {</span><span class="s">"user_id"</span><span class="n">: uid}) </span><span class="k">as</span><span class="n"> trace:</span>
+    <span class="k">async with</span><span class="n"> rag_span(trace, </span><span class="s">"retrieval"</span><span class="n">, {...}) </span><span class="k">as</span><span class="n"> span:</span>
+        <span class="n">chunks = </span><span class="k">await</span><span class="n"> self._retrieve(...)</span>
+        <span class="n">span.update(output={</span><span class="s">"chunks_retrieved"</span><span class="n">: len(chunks)})</span></div>
+  </div>
+
+  <div id="abs-noop" class="tab-content">
+    <div class="code-block"><span class="c"># The NoOp pattern — makes Langfuse truly optional</span>
+<span class="c"># Your code never needs to check "if trace is not None"</span>
+
+<span class="k">class</span><span class="n"> NoOpTrace:</span>
+    <span class="s">"""Same interface as Langfuse trace. Does nothing."""</span>
+    <span class="k">def</span><span class="n"> update(self, **kwargs):   </span><span class="k">pass</span>
+    <span class="k">def</span><span class="n"> flush(self):             </span><span class="k">pass</span>
+
+<span class="k">class</span><span class="n"> NoOpSpan:</span>
+    <span class="s">"""Same interface as Langfuse span. Does nothing."""</span>
+    <span class="k">def</span><span class="n"> update(self, **kwargs):   </span><span class="k">pass</span>
+    <span class="k">def</span><span class="n"> end(self, **kwargs):      </span><span class="k">pass</span>
+
+<span class="c"># With NoOp, your service code is identical regardless:</span>
+<span class="c"># Langfuse enabled:  trace.update({"user_id": uid}) → sends data</span>
+<span class="c"># Langfuse disabled: trace.update({"user_id": uid}) → silently no-ops</span></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- FULL IMPLEMENTATION -->
+<div class="section">
+  <h3>Full implementation — what to put in rag_service.py</h3>
+
+  <div class="code-block"><span class="c"># ai/services/rag_service.py — tracing wired in</span>
+<span class="k">from</span><span class="n"> observability.tracing </span><span class="k">import</span><span class="n"> rag_trace, rag_span   </span><span class="c">← only this import</span>
+<span class="k">import</span><span class="n"> time</span>
+
+<span class="k">class</span><span class="n"> RagService:</span>
+    <span class="k">async def</span><span class="n"> answer(self, question, workspace_id, user_id, role, ...):</span>
+        <span class="k">async with</span><span class="n"> rag_trace(</span><span class="s">"rag.answer"</span><span class="n">, {</span>
+            <span class="s">"workspace_id"</span><span class="n">: workspace_id,</span>
+            <span class="s">"user_id"</span><span class="n">:     user_id,</span>
+            <span class="s">"role"</span><span class="n">:        role,</span>
+        <span class="n">}) </span><span class="k">as</span><span class="n"> trace:</span>
+
+            <span class="c"># span 1: retrieval</span>
+            <span class="k">async with</span><span class="n"> rag_span(trace, </span><span class="s">"retrieval"</span><span class="n">, {</span><span class="s">"question"</span><span class="n">: question}) </span><span class="k">as</span><span class="n"> s:</span>
+                <span class="n">t0 = time.monotonic()</span>
+                <span class="n">chunks = </span><span class="k">await</span><span class="n"> self._search.search(question, workspace_id, user_id, role)</span>
+                <span class="n">s.update(output={</span><span class="s">"chunks_retrieved"</span><span class="n">: len(chunks),</span>
+                                  <span class="s">"latency_ms"</span><span class="n">: int((time.monotonic()-t0)*1000)})</span>
+
+            <span class="c"># span 2: context building</span>
+            <span class="k">async with</span><span class="n"> rag_span(trace, </span><span class="s">"context_building"</span><span class="n">, {}) </span><span class="k">as</span><span class="n"> s:</span>
+                <span class="n">used, context = self._build_context(chunks)</span>
+                <span class="n">s.update(output={</span><span class="s">"chunks_used"</span><span class="n">: len(used),</span>
+                                  <span class="s">"char_budget"</span><span class="n">: </span><span class="v">TOKEN_BUDGET_PER_REQUEST</span><span class="n">})</span>
+
+            <span class="c"># span 3: LLM generation</span>
+            <span class="k">async with</span><span class="n"> rag_span(trace, </span><span class="s">"llm_generation"</span><span class="n">, {</span><span class="s">"model"</span><span class="n">: LLM_MODEL}) </span><span class="k">as</span><span class="n"> s:</span>
+                <span class="n">t0 = time.monotonic()</span>
+                <span class="n">response = </span><span class="k">await</span><span class="n"> litellm.acompletion(model=LLM_MODEL, ...)</span>
+                <span class="k">if</span><span class="n"> hasattr(response, </span><span class="s">'usage'</span><span class="n">):           </span><span class="c">← capture if available</span>
+                    <span class="n">s.update(output={</span>
+                        <span class="s">"tokens"</span><span class="n">:     response.usage.total_tokens,</span>
+                        <span class="s">"latency_ms"</span><span class="n">: int((time.monotonic()-t0)*1000),</span>
+                    <span class="n">})</span></div>
+</div>
+
+<hr class="divider">
+
+<!-- WHAT FLUSH MEANS -->
+<div class="section">
+  <h3>Why flush() matters — the async batch problem</h3>
+
+  <div class="callout">
+    <strong>Langfuse batches trace data before sending it.</strong> If your process exits before the batch is flushed, you lose the trace data. In short-lived requests, you must call <code>client.flush()</code> at the end of each trace. This is why the <code>finally</code> block in <code>rag_trace()</code> is non-negotiable.
+  </div>
+
+  <div class="code-block"><span class="c"># Without flush — trace might not appear in Langfuse UI</span>
+<span class="n">trace = client.trace(name=</span><span class="s">"rag.answer"</span><span class="n">)</span>
+<span class="n">span  = trace.span(name=</span><span class="s">"retrieval"</span><span class="n">)</span>
+<span class="n">span.end()</span>
+<span class="c"># request ends here — data may be lost in Langfuse's in-memory buffer</span>
+
+<span class="c"># With flush — trace always arrives</span>
+<span class="k">try</span><span class="n">:</span>
+    <span class="n">trace = client.trace(...)</span>
+    <span class="c"># ... do work ...</span>
+<span class="k">finally</span><span class="n">:</span>
+    <span class="n">client.flush()   </span><span class="c">← sends the buffer immediately, blocks until done</span></div>
+</div>
+
+<hr class="divider">
+
+<!-- VALIDATION CHECKLIST -->
+<div class="section">
+  <h3>Validation checklist — what to verify in Langfuse UI</h3>
+  <p style="color:var(--muted); font-size:13px; margin-bottom:1rem;">After implementing Step 3, check each of these. Click to mark as done.</p>
+
+  <div class="checklist">
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">Trace appears with correct name</div>
+        <div class="check-desc">Traces list shows "rag.answer" after hitting POST /ai/chat</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">All 3 child spans visible</div>
+        <div class="check-desc">retrieval · context_building · llm_generation — each as a child span</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">Latency recorded on each span</div>
+        <div class="check-desc">latency_ms field populated in span output — not 0 or null</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">chunks_retrieved and chunks_used recorded</div>
+        <div class="check-desc">Visible in retrieval and context_building span outputs</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">LLM token count visible</div>
+        <div class="check-desc">tokens field in llm_generation span — this confirms usage data captured</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">Trace appears for streaming too</div>
+        <div class="check-desc">Hit POST /ai/chat/stream — same trace structure should appear</div>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="check-box" onclick="toggleCheck(this)"></div>
+      <div class="check-text">
+        <div class="check-title">App still works with LANGFUSE keys removed</div>
+        <div class="check-desc">Remove keys from .env, restart — API must start and respond normally</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- SETTINGS WIRING -->
+<div class="section">
+  <h3>Config wiring — what goes in settings</h3>
+  <div class="code-block"><span class="c"># config.py — Settings class additions</span>
+<span class="k">class</span><span class="n"> Settings(BaseSettings):</span>
+    <span class="c"># ... existing fields ...</span>
+
+    <span class="c"># Langfuse — all optional, empty string = disabled</span>
+    <span class="n">LANGFUSE_PUBLIC_KEY: str = </span><span class="s">""</span>
+    <span class="n">LANGFUSE_SECRET_KEY: str = </span><span class="s">""</span>
+    <span class="n">LANGFUSE_HOST: str       = </span><span class="s">"https://cloud.langfuse.com"</span>
+
+    <span class="k">@property</span>
+    <span class="k">def</span><span class="n"> langfuse_enabled(self) -> bool:</span>
+        <span class="k">return</span><span class="n"> bool(self.LANGFUSE_PUBLIC_KEY </span><span class="k">and</span><span class="n"> self.LANGFUSE_SECRET_KEY)</span>
+
+<span class="c"># .env.example additions:</span>
+<span class="c"># LANGFUSE_PUBLIC_KEY=pk-lf-...</span>
+<span class="c"># LANGFUSE_SECRET_KEY=sk-lf-...</span>
+<span class="c"># LANGFUSE_HOST=https://cloud.langfuse.com</span></div>
+</div>
+
+<div class="footer">
+  <a class="btn" href="01_observability_fundamentals.html">← Fundamentals</a>
+  <span class="footer-note">Module 2 of 3 — Langfuse &amp; Tracing</span>
+  <a class="btn" href="03_prometheus_grafana.html">Next: Prometheus + Grafana →</a>
+</div>
+
+<script>
+const scenarios = {
+  'normal':        { ret:[0,10], ctx:[10,11.7], llm:[11.7,100], retT:'0ms → 210ms',  ctxT:'210ms → 245ms', llmT:'245ms → 2100ms', retM:'chunks_retrieved=8, score_max=0.92',    ctxM:'chunks_used=5, char_budget=8192',   llmM:'model=gpt-4o, tokens=842, cost=$0.0042', total:'total: 2100ms' },
+  'slow-retrieval':{ ret:[0,45], ctx:[45,47],   llm:[47,100],   retT:'0ms → 960ms',   ctxT:'960ms → 1000ms',llmT:'1000ms → 2100ms',retM:'chunks_retrieved=8, score_max=0.61 ⚠', ctxM:'chunks_used=5, char_budget=8192',   llmM:'model=gpt-4o, tokens=842, cost=$0.0042', total:'total: 2100ms' },
+  'slow-llm':      { ret:[0,8],  ctx:[8,9.5],   llm:[9.5,100],  retT:'0ms → 380ms',   ctxT:'380ms → 450ms', llmT:'450ms → 4800ms', retM:'chunks_retrieved=8, score_max=0.92',    ctxM:'chunks_used=5, char_budget=8192',   llmM:'model=gpt-4o, tokens=3821, cost=$0.019 ⚠',total:'total: 4800ms ⚠' },
+  'cheap':         { ret:[0,12], ctx:[12,13],    llm:[13,100],   retT:'0ms → 180ms',   ctxT:'180ms → 195ms', llmT:'195ms → 1500ms', retM:'chunks_retrieved=3, score_max=0.88',    ctxM:'chunks_used=2, char_budget=8192',   llmM:'model=gpt-4o, tokens=312, cost=$0.0015', total:'total: 1500ms' },
+};
+function setScenario(key) {
+  const s = scenarios[key];
+  const setBar = (id, l, w) => {
+    const el = document.getElementById(id);
+    el.style.left = l + '%'; el.style.width = (w-l) + '%';
+  };
+  setBar('ret-bar', s.ret[0], s.ret[1]);
+  setBar('ctx-bar', s.ctx[0], s.ctx[1]);
+  setBar('llm-bar', s.llm[0], s.llm[1]);
+  document.getElementById('ret-time').textContent = s.retT;
+  document.getElementById('ctx-time').textContent = s.ctxT;
+  document.getElementById('llm-time').textContent = s.llmT;
+  document.getElementById('ret-meta').textContent = s.retM;
+  document.getElementById('ctx-meta').textContent = s.ctxM;
+  document.getElementById('llm-meta').textContent = s.llmM;
+  document.getElementById('total-time').textContent = s.total;
+}
+function switchTab(group, tab, btn) {
+  const panel = btn.closest('.section, .detail-panel, body');
+  const container = btn.closest('.section') || btn.closest('div');
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[id^="' + group + '-"]').forEach(t => t.classList.remove('active'));
+  document.getElementById(group + '-' + tab).classList.add('active');
+}
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  el.textContent = el.classList.contains('checked') ? '✓' : '';
+}
+</script>
+</body>
+</html>

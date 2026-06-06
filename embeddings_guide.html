@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embeddings — Complete Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e29;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #7a7f94;
+    --accent: #6ee7b7;
+    --accent2: #818cf8;
+    --accent3: #f472b6;
+    --accent4: #fbbf24;
+    --code-bg: #0a0c10;
+    --tag-green: rgba(110,231,183,0.12);
+    --tag-purple: rgba(129,140,248,0.12);
+    --tag-pink: rgba(244,114,182,0.12);
+    --tag-amber: rgba(251,191,36,0.12);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell { display: flex; min-height: 100vh; }
+
+  nav {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 2rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+
+  .nav-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+
+  .nav-section {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.75rem 1.5rem 0.25rem;
+    margin-top: 0.5rem;
+  }
+
+  nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.42rem 1.5rem;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    border-left: 2px solid transparent;
+    position: relative;
+  }
+  nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(110,231,183,0.05); }
+
+  .nav-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  main {
+    flex: 1;
+    padding: 3rem 4rem 6rem;
+    max-width: 860px;
+    overflow-x: hidden;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    margin-bottom: 4rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 3.2rem;
+    font-weight: 300;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  .topic-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 1.5rem;
+  }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+    cursor: default;
+  }
+  .pill-green { color: var(--accent); border-color: rgba(110,231,183,0.3); background: var(--tag-green); }
+  .pill-purple { color: var(--accent2); border-color: rgba(129,140,248,0.3); background: var(--tag-purple); }
+  .pill-pink { color: var(--accent3); border-color: rgba(244,114,182,0.3); background: var(--tag-pink); }
+  .pill-amber { color: var(--accent4); border-color: rgba(251,191,36,0.3); background: var(--tag-amber); }
+
+  /* ── Sections ── */
+  .section {
+    margin-bottom: 4rem;
+    scroll-margin-top: 2rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .section h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Question cards ── */
+  .q-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .q-card:hover { border-color: var(--border2); }
+  .q-card.open { border-color: var(--border2); }
+
+  .q-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    gap: 1rem;
+  }
+
+  .q-header-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+
+  .q-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 20px;
+  }
+
+  .q-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .q-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .q-chevron {
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    color: var(--muted);
+    transition: transform 0.25s ease, color 0.2s;
+  }
+  .q-card.open .q-chevron { transform: rotate(180deg); color: var(--accent); }
+
+  .q-body {
+    display: none;
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .q-card.open .q-body { display: block; }
+
+  .q-body-inner { padding-top: 1rem; }
+
+  .answer-text {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+  }
+
+  .answer-text + .answer-text { margin-top: -0.25rem; }
+
+  strong { color: #fff; font-weight: 500; }
+
+  /* ── Concept boxes ── */
+  .concept-box {
+    background: var(--bg3);
+    border-left: 3px solid;
+    border-radius: 0 8px 8px 0;
+    padding: 0.875rem 1rem;
+    margin: 1rem 0;
+    font-size: 13px;
+  }
+  .concept-box.green { border-color: var(--accent); }
+  .concept-box.purple { border-color: var(--accent2); }
+  .concept-box.pink { border-color: var(--accent3); }
+  .concept-box.amber { border-color: var(--accent4); }
+
+  .concept-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+  }
+  .concept-box.green .concept-label { color: var(--accent); }
+  .concept-box.purple .concept-label { color: var(--accent2); }
+  .concept-box.pink .concept-label { color: var(--accent3); }
+  .concept-box.amber .concept-label { color: var(--accent4); }
+
+  /* ── Code ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 0.6rem;
+  }
+
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #c9d1d9;
+    white-space: pre;
+  }
+
+  .hl-kw { color: #ff7b72; }
+  .hl-fn { color: #d2a8ff; }
+  .hl-str { color: #a5d6ff; }
+  .hl-num { color: #79c0ff; }
+  .hl-cm { color: #6e7681; font-style: italic; }
+  .hl-var { color: #ffa657; }
+
+  /* ── Interactive: vector demo ── */
+  .vector-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .vector-demo h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .vec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .vec-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+  }
+
+  .vec-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .vec-bars { display: flex; flex-direction: column; gap: 4px; }
+
+  .vec-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .vec-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .vec-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .similarity-display {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .sim-label { font-size: 13px; color: var(--muted); }
+
+  .sim-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    transition: color 0.4s;
+  }
+
+  .sim-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .sim-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.5s ease;
+  }
+
+  .vec-inputs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+
+  .vec-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .vec-input-row label {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 120px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+
+  .vec-input-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+
+  .vec-input-row .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 1rem 0;
+  }
+
+  .pipe-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .pipe-step-main {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    padding: 0.875rem 1.25rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pipe-step:first-child .pipe-step-main { border-radius: 8px 8px 0 0; }
+  .pipe-step:last-child .pipe-step-main { border-radius: 0 0 8px 8px; }
+
+  .pipe-step-main:hover { background: var(--bg3); border-color: var(--border2); }
+  .pipe-step-main.active { background: var(--bg3); border-color: var(--border2); }
+
+  .pipe-step-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pipe-step-left { display: flex; align-items: center; gap: 12px; }
+
+  .pipe-step-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .pipe-step-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .pipe-step-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .pipe-arrow {
+    font-size: 10px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .pipe-step-main.active .pipe-arrow { color: var(--accent); }
+
+  .pipe-detail {
+    display: none;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .pipe-step-main.active .pipe-detail { display: block; }
+
+  /* ── Hash demo ── */
+  .hash-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .hash-demo h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .hash-textarea {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+  }
+  .hash-textarea:focus { border-color: var(--border2); }
+
+  .hash-output {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+
+  .hash-label { color: var(--muted); font-size: 11px; }
+  .hash-value { color: var(--accent4); word-break: break-all; font-size: 11px; }
+  .hash-changed { color: var(--accent3); }
+  .hash-same { color: var(--accent); }
+
+  /* ── Retry visualizer ── */
+  .retry-viz {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .retry-viz h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .retry-timeline {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 80px;
+    margin-bottom: 1rem;
+  }
+
+  .retry-attempt {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .retry-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.4s ease, background 0.3s;
+    min-height: 4px;
+  }
+
+  .retry-attempt-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .retry-controls { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: var(--bg2); border-color: var(--accent); color: var(--accent); }
+
+  .retry-status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── JSON schema demo ── */
+  .schema-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .schema-demo h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .schema-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 0.75rem;
+    background: var(--bg2);
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .schema-tab {
+    flex: 1;
+    padding: 6px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .schema-tab.active { background: var(--bg3); color: var(--accent3); }
+
+  .schema-panel { display: none; }
+  .schema-panel.active { display: block; }
+
+  /* ── Batch demo ── */
+  .batch-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .batch-demo h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .batch-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .batch-slider-label { font-size: 13px; color: var(--muted); min-width: 100px; }
+  .batch-slider-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .batch-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .batch-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem;
+  }
+
+  .batch-card-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; }
+  .batch-card-value { font-size: 20px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+  /* ── Offline vs online ── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 1rem 0;
+  }
+
+  .compare-col {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .compare-col-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compare-col.bad .compare-col-label { color: var(--accent3); }
+  .compare-col.good .compare-col-label { color: var(--accent); }
+
+  .compare-col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .compare-col ul li {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+  }
+
+  .compare-col ul li::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+  .compare-col.bad ul li::before { background: var(--accent3); }
+  .compare-col.good ul li::before { background: var(--accent); }
+
+  /* ── Rate limit timeline ── */
+  .rate-viz {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .rate-viz h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .rate-tracks { display: flex; flex-direction: column; gap: 8px; }
+
+  .rate-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rate-row-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 70px;
+    text-align: right;
+  }
+
+  .rate-track {
+    flex: 1;
+    height: 24px;
+    background: var(--bg2);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .rate-block {
+    position: absolute;
+    top: 2px; bottom: 2px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0 4px;
+  }
+
+  /* ── Progress / scroll indicator ── */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--border);
+    z-index: 100;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    width: 0%;
+    transition: width 0.1s;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    nav { display: none; }
+    main { padding: 2rem 1.5rem 4rem; }
+    .hero h1 { font-size: 2.2rem; }
+    .vec-grid, .compare-grid, .batch-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Misc ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  .inline-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--accent2);
+  }
+
+  .footnote {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 0.75rem;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="shell">
+
+<nav id="sideNav">
+  <div class="nav-logo">Embeddings Guide</div>
+
+  <div class="nav-section">Fundamentals</div>
+  <a href="#embeddings" class="active"><span class="nav-dot"></span>What are embeddings</a>
+  <a href="#similarity"><span class="nav-dot"></span>Semantic similarity</a>
+  <a href="#offline"><span class="nav-dot"></span>Offline generation</a>
+
+  <div class="nav-section">Pipeline</div>
+  <a href="#pipeline"><span class="nav-dot"></span>Full pipeline</a>
+  <a href="#chunking"><span class="nav-dot"></span>Chunking strategy</a>
+  <a href="#embedding-step"><span class="nav-dot"></span>Embedding step</a>
+
+  <div class="nav-section">Data Updates</div>
+  <a href="#doc-change"><span class="nav-dot"></span>Document changes</a>
+  <a href="#content-hash"><span class="nav-dot"></span>Content hashes</a>
+
+  <div class="nav-section">Structured Output</div>
+  <a href="#structured"><span class="nav-dot"></span>Why structured</a>
+  <a href="#json-schema"><span class="nav-dot"></span>JSON schemas</a>
+
+  <div class="nav-section">Reliability</div>
+  <a href="#retries"><span class="nav-dot"></span>Retries</a>
+  <a href="#rate-limits"><span class="nav-dot"></span>Rate limits</a>
+  <a href="#batching"><span class="nav-dot"></span>Batching</a>
+</nav>
+
+<main>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-label">OpenAI Cookbook · Complete Guide</div>
+  <h1>Embeddings &amp;<br><em>Vector Search</em></h1>
+  <p class="hero-sub">Everything from what an embedding is, to building production pipelines — with interactive demos for every concept.</p>
+  <div class="topic-pills">
+    <span class="pill pill-green">Vectors</span>
+    <span class="pill pill-purple">Pipelines</span>
+    <span class="pill pill-pink">Structured Output</span>
+    <span class="pill pill-amber">Reliability</span>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 1: Embeddings ══════════ -->
+<div class="section" id="embeddings">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <h2>Embeddings</h2>
+  </div>
+
+  <!-- Q1 -->
+  <div class="q-card open" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q1</span>
+        <span class="q-title">What is an embedding?</span>
+      </div>
+      <span class="q-tag pill-green pill">concept</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">An <strong>embedding</strong> is a fixed-length list of numbers (a <em>vector</em>) that represents the meaning of a piece of text in a high-dimensional space. Think of it as a coordinate: instead of "latitude, longitude" in 2D space, you get 1536 numbers in 1536-dimensional semantic space.</p>
+
+        <div class="concept-box green">
+          <div class="concept-label">Core idea</div>
+          A model trained on billions of text samples learns that certain words/phrases "live near" each other. "Dog" and "puppy" end up close. "Dog" and "quantum physics" end up far apart.
+        </div>
+
+        <p class="answer-text">The model outputs these coordinates by passing your text through its neural network and reading the final hidden layer's activation values. OpenAI's <span class="inline-code">text-embedding-3-small</span> outputs 1536 floats; <span class="inline-code">text-embedding-3-large</span> outputs 3072.</p>
+
+        <div class="code-block">
+          <div class="code-label">Python · OpenAI SDK</div>
+<pre><span class="hl-kw">from</span> openai <span class="hl-kw">import</span> OpenAI
+
+client = OpenAI()
+
+response = client.embeddings.create(
+    <span class="hl-var">input</span>=<span class="hl-str">"The dog sat on the mat"</span>,
+    <span class="hl-var">model</span>=<span class="hl-str">"text-embedding-3-small"</span>
+)
+
+vector = response.data[<span class="hl-num">0</span>].embedding
+<span class="hl-cm"># → [0.021, -0.045, 0.108, ...]  (1536 floats)</span></pre>
+        </div>
+
+        <p class="answer-text">Vectors are normalized to length 1 (unit sphere), which makes cosine similarity equivalent to a simple dot product — very fast to compute.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="q-card" id="similarity" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q2</span>
+        <span class="q-title">Why do semantically similar texts produce similar vectors?</span>
+      </div>
+      <span class="q-tag pill-purple pill">theory</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">The embedding model is trained using <strong>contrastive learning</strong>: pairs of sentences that mean the same thing are pulled together in vector space, while unrelated sentences are pushed apart. The model learns this from massive corpora with natural paraphrase pairs.</p>
+
+        <div class="concept-box purple">
+          <div class="concept-label">Distributional hypothesis</div>
+          Words that appear in similar contexts carry similar meaning. "I ate a banana" and "I ate a mango" share identical context structure — the model learns both fruits belong in the same region of space.
+        </div>
+
+        <p class="answer-text">The result: <strong>cosine similarity</strong> between two vectors tells you how semantically close they are. 1.0 = identical meaning, 0.0 = unrelated, −1.0 = opposite.</p>
+
+        <!-- Interactive similarity demo -->
+        <div class="vector-demo" onclick="event.stopPropagation()">
+          <h4>▸ Interactive — cosine similarity explorer</h4>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Adjust the semantic dimensions of two sentences to see how similarity changes. (Simplified 4D representation.)</p>
+
+          <div class="vec-inputs" id="vecInputs">
+            <div class="vec-input-row">
+              <label>Doc A · food</label>
+              <input type="range" min="0" max="1" step="0.01" value="0.8" oninput="updateSim()" id="a0">
+              <span class="val" id="av0">0.80</span>
+            </div>
+            <div class="vec-input-row">
+              <label>Doc A · animal</label>
+              <input type="range" min="0" max="1" step="0.01" value="0.1" oninput="updateSim()" id="a1">
+              <span class="val" id="av1">0.10</span>
+            </div>
+            <div class="vec-input-row">
+              <label>Doc B · food</label>
+              <input type="range" min="0" max="1" step="0.01" value="0.75" oninput="updateSim()" id="b0">
+              <span class="val" id="av2">0.75</span>
+            </div>
+            <div class="vec-input-row">
+              <label>Doc B · animal</label>
+              <input type="range" min="0" max="1" step="0.01" value="0.05" oninput="updateSim()" id="b1">
+              <span class="val" id="av3">0.05</span>
+            </div>
+          </div>
+
+          <div class="vec-grid">
+            <div class="vec-item">
+              <div class="vec-label">Vector A</div>
+              <div class="vec-bars" id="vecBarsA"></div>
+            </div>
+            <div class="vec-item">
+              <div class="vec-label">Vector B</div>
+              <div class="vec-bars" id="vecBarsB"></div>
+            </div>
+          </div>
+
+          <div class="similarity-display">
+            <span class="sim-label">Cosine similarity</span>
+            <div class="sim-bar-wrap"><div class="sim-bar" id="simBar" style="width:90%"></div></div>
+            <span class="sim-value" id="simValue" style="color:var(--accent)">0.99</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="q-card" id="offline" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q3</span>
+        <span class="q-title">Why are embeddings generated offline instead of per request?</span>
+      </div>
+      <span class="q-tag pill-amber pill">architecture</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Embedding a large corpus at query time would be catastrophically slow and expensive. If you have 100,000 documents and a user sends a query, you cannot embed all 100k docs + 1 query simultaneously — that's 100,001 API calls per search.</p>
+
+        <div class="compare-grid" onclick="event.stopPropagation()">
+          <div class="compare-col bad">
+            <div class="compare-col-label">❌ Per-request (naive)</div>
+            <ul>
+              <li>Embed all docs every query</li>
+              <li>Latency = N × embed_time</li>
+              <li>Cost scales with traffic</li>
+              <li>Redundant work for unchanged docs</li>
+            </ul>
+          </div>
+          <div class="compare-col good">
+            <div class="compare-col-label">✓ Offline (correct)</div>
+            <ul>
+              <li>Embed docs once at ingest time</li>
+              <li>Store vectors in vector DB</li>
+              <li>Query-time: embed query only (1 call)</li>
+              <li>Search is a fast ANN lookup</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="answer-text">The <strong>ANN (Approximate Nearest Neighbor)</strong> search in a vector DB like Pinecone, Weaviate, or pgvector is sub-millisecond even for millions of vectors — far faster than re-embedding. The query embedding is the <em>only</em> API call needed at runtime.</p>
+
+        <div class="concept-box amber">
+          <div class="concept-label">Rule of thumb</div>
+          Embed documents when they're ingested/updated. At query time, embed only the query (~1 token/ms) and ANN-search the pre-built index.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 2: Pipeline ══════════ -->
+<div class="section" id="pipeline">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <h2>Embedding Pipeline</h2>
+  </div>
+
+  <div class="q-card open" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q4</span>
+        <span class="q-title">What happens from raw document → vector DB?</span>
+      </div>
+      <span class="q-tag pill-green pill">pipeline</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">The ingestion pipeline transforms raw text into searchable vectors in 6 discrete steps. Click each step to see details.</p>
+
+        <div class="pipeline" onclick="event.stopPropagation()">
+          <div class="pipe-step">
+            <div class="pipe-step-main active" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-green);color:var(--accent)">1</div>
+                  <div>
+                    <div class="pipe-step-name">Load &amp; Extract</div>
+                    <div class="pipe-step-sub">PDF, HTML, DOCX → plain text</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                Use a loader (LangChain, LlamaIndex, or custom) to extract clean text from source files. Strip boilerplate — headers, footers, nav menus. Preserve document metadata: <span class="inline-code">source_url</span>, <span class="inline-code">title</span>, <span class="inline-code">last_modified</span>. This metadata is stored alongside vectors and returned with search results.
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-main" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-purple);color:var(--accent2)">2</div>
+                  <div>
+                    <div class="pipe-step-name">Chunk</div>
+                    <div class="pipe-step-sub">Split into overlapping segments</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                Split text into ~512 token chunks with 10–20% overlap. Each chunk becomes one vector. Overlap ensures no semantic context is lost at boundaries. Store <span class="inline-code">chunk_index</span> and <span class="inline-code">parent_doc_id</span> so you can reconstruct full docs from chunks.
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-main" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-amber);color:var(--accent4)">3</div>
+                  <div>
+                    <div class="pipe-step-name">Hash</div>
+                    <div class="pipe-step-sub">SHA-256 content fingerprint</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                Compute <span class="inline-code">SHA-256(chunk_text)</span>. Store alongside the vector. On subsequent runs, skip re-embedding if the hash matches — this makes incremental updates cheap and idempotent. Only re-embed chunks whose content actually changed.
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-main" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-pink);color:var(--accent3)">4</div>
+                  <div>
+                    <div class="pipe-step-name">Embed</div>
+                    <div class="pipe-step-sub">Batch API call → float vectors</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                Call the embedding API with batches of chunks (up to 2048 tokens per item, 2048 items per request). Collect the 1536-dim float vectors. Handle rate limits with exponential backoff. This is the most expensive step — only run it for new or changed chunks.
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-main" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-green);color:var(--accent)">5</div>
+                  <div>
+                    <div class="pipe-step-name">Upsert</div>
+                    <div class="pipe-step-sub">Write to vector DB</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                Write (vector, metadata) pairs to the vector DB. Use <em>upsert</em> semantics: insert if new, replace if exists (by chunk ID). The chunk ID is typically <span class="inline-code">f"{doc_id}_{chunk_index}"</span>. For deleted documents, explicitly delete their chunk IDs from the index.
+              </div>
+            </div>
+          </div>
+
+          <div class="pipe-step">
+            <div class="pipe-step-main" onclick="togglePipe(this)">
+              <div class="pipe-step-top">
+                <div class="pipe-step-left">
+                  <div class="pipe-step-icon" style="background:var(--tag-purple);color:var(--accent2)">6</div>
+                  <div>
+                    <div class="pipe-step-name">Query</div>
+                    <div class="pipe-step-sub">Embed query → ANN search</div>
+                  </div>
+                </div>
+                <span class="pipe-arrow">▾</span>
+              </div>
+              <div class="pipe-detail">
+                At query time: embed the user's question (1 API call), then run ANN search against the index to return the top-k most similar chunks. Pass those chunks as context to the LLM. This is the only pipeline step that runs at request time.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Q5 chunking -->
+  <div class="q-card" id="chunking" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q5</span>
+        <span class="q-title">Where should chunking happen?</span>
+      </div>
+      <span class="q-tag pill-purple pill">design</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Chunking happens <strong>after extraction, before embedding</strong>. It's a pure text operation — no model calls needed. It should run in your ingestion worker, not at query time.</p>
+
+        <div class="concept-box purple">
+          <div class="concept-label">Why chunk at all?</div>
+          Embedding models have a token limit (8191 for text-embedding-3). Long documents must be split. More importantly, smaller chunks produce more precise search results — a whole 50-page PDF vs a targeted 3-paragraph answer.
+        </div>
+
+        <p class="answer-text"><strong>Chunking strategies, ranked by quality:</strong></p>
+
+        <div class="code-block">
+          <div class="code-label">Strategy comparison</div>
+<pre><span class="hl-cm"># 1. Recursive character splitter (best general purpose)</span>
+<span class="hl-fn">RecursiveCharacterTextSplitter</span>(
+    chunk_size=<span class="hl-num">512</span>,         <span class="hl-cm"># tokens</span>
+    chunk_overlap=<span class="hl-num">64</span>,       <span class="hl-cm"># 12% overlap</span>
+    separators=[<span class="hl-str">"\n\n"</span>, <span class="hl-str">"\n"</span>, <span class="hl-str">"."</span>, <span class="hl-str">" "</span>]
+)
+
+<span class="hl-cm"># 2. Semantic chunking (best quality, slower)</span>
+<span class="hl-cm">#    Split when embedding similarity drops below threshold</span>
+
+<span class="hl-cm"># 3. Fixed token chunks (fastest, worst quality)</span>
+<span class="hl-cm">#    Blindly splits — ignores sentence boundaries</span></pre>
+        </div>
+
+        <p class="answer-text">Always store the <strong>original text</strong> alongside the vector — you need it to return readable results. The vector is only for search; the text is what gets passed to the LLM.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q6 embedding step -->
+  <div class="q-card" id="embedding-step" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q6</span>
+        <span class="q-title">Where should embedding happen?</span>
+      </div>
+      <span class="q-tag pill-amber pill">infra</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Embedding lives in your <strong>async ingestion worker</strong> — never in the web request handler. Reasons:</p>
+
+        <div class="concept-box amber">
+          <div class="concept-label">Ingestion worker responsibilities</div>
+          Load documents → chunk → check content hash → skip unchanged → batch new chunks → call embedding API → upsert to vector DB → write hash cache
+        </div>
+
+        <p class="answer-text">At <strong>query time</strong>, embedding happens once — for the user's question only. This single call must be fast; use async client and keep query text concise.</p>
+
+        <div class="code-block">
+          <div class="code-label">Async query embedding</div>
+<pre><span class="hl-kw">async</span> <span class="hl-kw">def</span> <span class="hl-fn">embed_query</span>(query: str) -> list[float]:
+    resp = <span class="hl-kw">await</span> async_client.embeddings.create(
+        <span class="hl-var">input</span>=query,
+        <span class="hl-var">model</span>=<span class="hl-str">"text-embedding-3-small"</span>
+    )
+    <span class="hl-kw">return</span> resp.data[<span class="hl-num">0</span>].embedding
+
+<span class="hl-cm"># Then ANN search — sub-millisecond</span>
+results = vector_db.<span class="hl-fn">query</span>(vector=<span class="hl-kw">await</span> <span class="hl-fn">embed_query</span>(q), top_k=<span class="hl-num">5</span>)</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 3: Updating Data ══════════ -->
+<div class="section" id="doc-change">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <h2>Updating Data</h2>
+  </div>
+
+  <div class="q-card open" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q7</span>
+        <span class="q-title">What happens when a document changes?</span>
+      </div>
+      <span class="q-tag pill-pink pill">updates</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">When a document is updated, you cannot simply add new vectors — the old vectors for that document still exist in the index and will pollute search results with stale content. The correct update flow:</p>
+
+        <div class="concept-box pink">
+          <div class="concept-label">Update flow</div>
+          1. Detect change (file watcher / webhook / scheduled scan)<br>
+          2. Delete all existing chunk vectors for that doc_id<br>
+          3. Re-extract and re-chunk the new version<br>
+          4. Re-embed only changed chunks (via content hash)<br>
+          5. Upsert new vectors
+        </div>
+
+        <div class="code-block">
+          <div class="code-label">Incremental update logic</div>
+<pre><span class="hl-kw">def</span> <span class="hl-fn">update_document</span>(doc_id, new_text):
+    chunks = <span class="hl-fn">chunk_text</span>(new_text)
+    
+    <span class="hl-cm"># Find which chunks actually changed</span>
+    changed = []
+    <span class="hl-kw">for</span> i, chunk <span class="hl-kw">in</span> <span class="hl-fn">enumerate</span>(chunks):
+        new_hash = <span class="hl-fn">sha256</span>(chunk)
+        old_hash = hash_cache.<span class="hl-fn">get</span>(<span class="hl-str">f"</span>{doc_id}<span class="hl-str">_</span>{i}<span class="hl-str">"</span>)
+        <span class="hl-kw">if</span> new_hash != old_hash:
+            changed.<span class="hl-fn">append</span>((i, chunk, new_hash))
+    
+    <span class="hl-cm"># Remove obsolete chunk vectors (count may differ)</span>
+    vector_db.<span class="hl-fn">delete</span>(<span class="hl-var">filter</span>={<span class="hl-str">"doc_id"</span>: doc_id})
+    
+    <span class="hl-cm"># Embed only changed chunks, upsert all</span>
+    vectors = <span class="hl-fn">embed_batch</span>([c[<span class="hl-num">1</span>] <span class="hl-kw">for</span> c <span class="hl-kw">in</span> changed])
+    vector_db.<span class="hl-fn">upsert</span>(vectors)</pre>
+        </div>
+
+        <p class="answer-text">For deleted documents, call <span class="inline-code">vector_db.delete(filter={"doc_id": doc_id})</span> and remove the hash cache entries. Leaving stale vectors is a common bug that causes ghost results in search.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q8 content hashes -->
+  <div class="q-card" id="content-hash" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q8</span>
+        <span class="q-title">Why use content hashes?</span>
+      </div>
+      <span class="q-tag pill-amber pill">efficiency</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Content hashing is the cheapest way to decide whether a chunk needs re-embedding. Instead of comparing full text strings or relying on <span class="inline-code">last_modified</span> timestamps (which can lie after a copy/restore), you hash the actual text bytes.</p>
+
+        <div class="concept-box amber">
+          <div class="concept-label">Why SHA-256 over timestamps</div>
+          <span class="inline-code">last_modified</span> can change without content changing (file copy, metadata edit, git checkout). A content hash only changes when the bytes change. This makes the pipeline idempotent — safe to rerun anytime.
+        </div>
+
+        <!-- Live hash demo -->
+        <div class="hash-demo" onclick="event.stopPropagation()">
+          <h4>▸ Live — content hash demo</h4>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:0.75rem">Edit the text below. The hash changes only when content changes.</p>
+          <textarea class="hash-textarea" id="hashInput" oninput="updateHash()">The embedding model converts text into a fixed-length vector.</textarea>
+          <div class="hash-output">
+            <div>
+              <div class="hash-label">SHA-256 (truncated)</div>
+              <div class="hash-value" id="hashVal">computing...</div>
+            </div>
+            <div>
+              <div class="hash-label">Status</div>
+              <div id="hashStatus" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent)">initial</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label">Python hash utility</div>
+<pre><span class="hl-kw">import</span> hashlib
+
+<span class="hl-kw">def</span> <span class="hl-fn">content_hash</span>(text: str) -> str:
+    <span class="hl-kw">return</span> hashlib.<span class="hl-fn">sha256</span>(
+        text.<span class="hl-fn">encode</span>(<span class="hl-str">"utf-8"</span>)
+    ).<span class="hl-fn">hexdigest</span>()
+
+<span class="hl-cm"># Store in a simple KV cache</span>
+<span class="hl-cm"># hash_cache: {chunk_id: hash_string}</span>
+<span class="hl-cm"># Skip embedding if hash_cache[id] == content_hash(text)</span></pre>
+        </div>
+
+        <p class="footnote">In practice: store hashes in a Redis hash or a SQL table. You can also embed the hash as metadata in the vector DB entry itself to avoid a separate lookup.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 4: Structured Outputs ══════════ -->
+<div class="section" id="structured">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <h2>Structured Outputs</h2>
+  </div>
+
+  <div class="q-card open" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q9</span>
+        <span class="q-title">Why are structured outputs better than free-form text?</span>
+      </div>
+      <span class="q-tag pill-pink pill">reliability</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Free-form text from an LLM is unpredictable — the model may change wording, formatting, or structure between runs. Any downstream code that parses it is fragile. <strong>Structured outputs enforce a contract</strong>: the model must return data that exactly matches your schema.</p>
+
+        <div class="compare-grid" onclick="event.stopPropagation()">
+          <div class="compare-col bad">
+            <div class="compare-col-label">❌ Free-form text</div>
+            <ul>
+              <li>Format varies between calls</li>
+              <li>Regex parsing breaks on edge cases</li>
+              <li>Hard to type-check downstream</li>
+              <li>LLM may add preamble text</li>
+              <li>Fields may be missing silently</li>
+            </ul>
+          </div>
+          <div class="compare-col good">
+            <div class="compare-col-label">✓ Structured output</div>
+            <ul>
+              <li>Guaranteed JSON structure</li>
+              <li>Required fields always present</li>
+              <li>Types validated at model level</li>
+              <li>No parsing regex needed</li>
+              <li>Direct <span class="inline-code">response.parsed</span> access</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="answer-text">OpenAI's structured outputs use a <strong>constrained decoding</strong> technique: the model's token logits are masked so only tokens that advance a valid JSON parse are allowed. This is stronger than simply asking the model to "respond in JSON" — it's enforced at the sampling level.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q10 JSON schema -->
+  <div class="q-card" id="json-schema" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q10</span>
+        <span class="q-title">What problems do JSON schemas solve?</span>
+      </div>
+      <span class="q-tag pill-purple pill">tooling</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">JSON Schema solves three problems: <strong>type safety</strong> (is this field a string or number?), <strong>completeness</strong> (required fields are never omitted), and <strong>validation</strong> (enum values, min/max, patterns). The schema is the contract between your code and the model.</p>
+
+        <!-- Tab demo -->
+        <div class="schema-demo" onclick="event.stopPropagation()">
+          <h4>▸ Example — semantic search result schema</h4>
+          <div class="schema-tabs">
+            <div class="schema-tab active" onclick="switchTab(this,'schema-json')">Schema (JSON)</div>
+            <div class="schema-tab" onclick="switchTab(this,'schema-pydantic')">Pydantic model</div>
+            <div class="schema-tab" onclick="switchTab(this,'schema-call')">API call</div>
+          </div>
+
+          <div class="schema-panel active" id="schema-json">
+            <div class="code-block" style="margin:0">
+<pre>{
+  <span class="hl-str">"type"</span>: <span class="hl-str">"object"</span>,
+  <span class="hl-str">"required"</span>: [<span class="hl-str">"answer"</span>, <span class="hl-str">"confidence"</span>, <span class="hl-str">"sources"</span>],
+  <span class="hl-str">"properties"</span>: {
+    <span class="hl-str">"answer"</span>: {
+      <span class="hl-str">"type"</span>: <span class="hl-str">"string"</span>,
+      <span class="hl-str">"description"</span>: <span class="hl-str">"Direct answer to the user's question"</span>
+    },
+    <span class="hl-str">"confidence"</span>: {
+      <span class="hl-str">"type"</span>: <span class="hl-str">"number"</span>,
+      <span class="hl-str">"minimum"</span>: <span class="hl-num">0</span>, <span class="hl-str">"maximum"</span>: <span class="hl-num">1</span>
+    },
+    <span class="hl-str">"sources"</span>: {
+      <span class="hl-str">"type"</span>: <span class="hl-str">"array"</span>,
+      <span class="hl-str">"items"</span>: { <span class="hl-str">"type"</span>: <span class="hl-str">"string"</span> }
+    }
+  },
+  <span class="hl-str">"additionalProperties"</span>: <span class="hl-kw">false</span>
+}</pre>
+            </div>
+          </div>
+
+          <div class="schema-panel" id="schema-pydantic">
+            <div class="code-block" style="margin:0">
+<pre><span class="hl-kw">from</span> pydantic <span class="hl-kw">import</span> BaseModel, Field
+
+<span class="hl-kw">class</span> <span class="hl-fn">SearchResult</span>(BaseModel):
+    answer: str = <span class="hl-fn">Field</span>(
+        description=<span class="hl-str">"Direct answer to question"</span>
+    )
+    confidence: float = <span class="hl-fn">Field</span>(
+        ge=<span class="hl-num">0.0</span>, le=<span class="hl-num">1.0</span>
+    )
+    sources: list[str]
+
+<span class="hl-cm"># OpenAI auto-generates JSON Schema from this</span></pre>
+            </div>
+          </div>
+
+          <div class="schema-panel" id="schema-call">
+            <div class="code-block" style="margin:0">
+<pre>response = client.beta.chat.completions.<span class="hl-fn">parse</span>(
+    <span class="hl-var">model</span>=<span class="hl-str">"gpt-4o-2024-08-06"</span>,
+    <span class="hl-var">messages</span>=[
+        {<span class="hl-str">"role"</span>: <span class="hl-str">"system"</span>, <span class="hl-str">"content"</span>: system_prompt},
+        {<span class="hl-str">"role"</span>: <span class="hl-str">"user"</span>, <span class="hl-str">"content"</span>: user_query}
+    ],
+    <span class="hl-var">response_format</span>=SearchResult,  <span class="hl-cm"># ← Pydantic class</span>
+)
+
+result = response.choices[<span class="hl-num">0</span>].message.parsed
+<span class="hl-cm"># result.answer, result.confidence, result.sources</span>
+<span class="hl-cm"># → fully typed, no JSON.parse() needed</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <p class="answer-text">Key schema tips: always set <span class="inline-code">"additionalProperties": false</span> to prevent extra fields, use <span class="inline-code">description</span> fields to guide the model, and keep schemas flat — deeply nested schemas produce more errors.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SECTION 5: Reliability ══════════ -->
+<div class="section" id="retries">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <h2>Reliability</h2>
+  </div>
+
+  <div class="q-card open" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q11</span>
+        <span class="q-title">How would you handle retries?</span>
+      </div>
+      <span class="q-tag pill-green pill">resilience</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Use <strong>exponential backoff with jitter</strong>. Each retry waits longer than the last (2¹, 2², 2³... seconds) plus a random jitter to avoid thundering herd when many clients retry simultaneously.</p>
+
+        <!-- Retry visualizer -->
+        <div class="retry-viz" onclick="event.stopPropagation()">
+          <h4>▸ Interactive — exponential backoff simulator</h4>
+          <div class="retry-timeline" id="retryTimeline"></div>
+          <div class="retry-controls">
+            <button class="btn" onclick="simulateRetry()">Simulate retry sequence</button>
+            <span class="retry-status" id="retryStatus">click to simulate</span>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-label">Python · tenacity library (recommended)</div>
+<pre><span class="hl-kw">from</span> tenacity <span class="hl-kw">import</span> (
+    retry, stop_after_attempt,
+    wait_exponential, retry_if_exception_type
+)
+<span class="hl-kw">from</span> openai <span class="hl-kw">import</span> RateLimitError, APIError
+
+@<span class="hl-fn">retry</span>(
+    wait=<span class="hl-fn">wait_exponential</span>(multiplier=<span class="hl-num">1</span>, min=<span class="hl-num">4</span>, max=<span class="hl-num">60</span>),
+    stop=<span class="hl-fn">stop_after_attempt</span>(<span class="hl-num">5</span>),
+    retry=<span class="hl-fn">retry_if_exception_type</span>((RateLimitError, APIError))
+)
+<span class="hl-kw">async</span> <span class="hl-kw">def</span> <span class="hl-fn">embed_with_retry</span>(texts: list[str]):
+    <span class="hl-kw">return</span> <span class="hl-kw">await</span> client.embeddings.<span class="hl-fn">create</span>(
+        <span class="hl-var">input</span>=texts,
+        <span class="hl-var">model</span>=<span class="hl-str">"text-embedding-3-small"</span>
+    )</pre>
+        </div>
+
+        <div class="concept-box green">
+          <div class="concept-label">What to retry vs not</div>
+          Retry: 429 (rate limit), 500/503 (server errors), network timeouts.<br>
+          Do NOT retry: 400 (bad request — fix the input), 401 (auth — fix the key), 404 (wrong endpoint).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q12 rate limits -->
+  <div class="q-card" id="rate-limits" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q12</span>
+        <span class="q-title">How would you handle rate limits?</span>
+      </div>
+      <span class="q-tag pill-amber pill">throttling</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">OpenAI enforces two rate limit dimensions: <strong>RPM</strong> (requests per minute) and <strong>TPM</strong> (tokens per minute). Both can be hit independently. Your strategy must respect both.</p>
+
+        <!-- Rate limit viz -->
+        <div class="rate-viz" onclick="event.stopPropagation()">
+          <h4>▸ Rate limit — request scheduling</h4>
+          <div class="rate-tracks">
+            <div class="rate-row">
+              <span class="rate-row-label">sequential</span>
+              <div class="rate-track">
+                <div class="rate-block" style="left:0%;width:12%;background:rgba(244,114,182,0.3);color:var(--accent3)">R1</div>
+                <div class="rate-block" style="left:13%;width:12%;background:rgba(244,114,182,0.3);color:var(--accent3)">R2</div>
+                <div class="rate-block" style="left:26%;width:12%;background:rgba(244,114,182,0.3);color:var(--accent3)">R3</div>
+                <div class="rate-block" style="left:39%;width:12%;background:rgba(244,114,182,0.3);color:var(--accent3)">R4</div>
+                <div class="rate-block" style="left:52%;width:8%;background:rgba(251,191,36,0.3);color:var(--accent4)">wait</div>
+                <div class="rate-block" style="left:61%;width:8%;background:rgba(251,191,36,0.3);color:var(--accent4)">wait</div>
+                <div class="rate-block" style="left:70%;width:12%;background:rgba(244,114,182,0.3);color:var(--accent3)">R5</div>
+              </div>
+            </div>
+            <div class="rate-row">
+              <span class="rate-row-label">batched</span>
+              <div class="rate-track">
+                <div class="rate-block" style="left:0%;width:25%;background:rgba(110,231,183,0.2);color:var(--accent)">batch 1 (R1+R2+R3)</div>
+                <div class="rate-block" style="left:26%;width:25%;background:rgba(110,231,183,0.2);color:var(--accent)">batch 2 (R4+R5)</div>
+                <div class="rate-block" style="left:52%;width:48%;background:rgba(255,255,255,0.03);color:var(--muted);border:1px dashed var(--border2)">idle — quota resets</div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:0.75rem;font-family:'IBM Plex Mono',monospace">Batching uses fewer requests (fewer RPM hits) and idle time allows token quota to refill</p>
+        </div>
+
+        <p class="answer-text">Strategies in order of effectiveness:</p>
+
+        <div class="concept-box amber">
+          <div class="concept-label">Rate limit playbook</div>
+          1. <strong>Batch requests</strong> — pack as many texts per request as allowed (reduces RPM)<br>
+          2. <strong>Asyncio semaphore</strong> — cap concurrent requests (e.g. max 10 in-flight)<br>
+          3. <strong>Token counting pre-flight</strong> — track estimated TPM usage, sleep when near limit<br>
+          4. <strong>Respect Retry-After header</strong> — on 429, wait exactly as long as the API says<br>
+          5. <strong>Request higher limits</strong> — for production, contact OpenAI to raise your tier
+        </div>
+
+        <div class="code-block">
+          <div class="code-label">Async semaphore + rate limit respecting</div>
+<pre>sem = asyncio.<span class="hl-fn">Semaphore</span>(<span class="hl-num">10</span>)  <span class="hl-cm"># max 10 concurrent</span>
+
+<span class="hl-kw">async</span> <span class="hl-kw">def</span> <span class="hl-fn">embed_one_batch</span>(batch):
+    <span class="hl-kw">async with</span> sem:
+        <span class="hl-kw">try</span>:
+            <span class="hl-kw">return</span> <span class="hl-kw">await</span> <span class="hl-fn">embed_with_retry</span>(batch)
+        <span class="hl-kw">except</span> RateLimitError <span class="hl-kw">as</span> e:
+            wait = <span class="hl-fn">int</span>(e.response.headers.<span class="hl-fn">get</span>(
+                <span class="hl-str">"Retry-After"</span>, <span class="hl-num">60</span>
+            ))
+            <span class="hl-kw">await</span> asyncio.<span class="hl-fn">sleep</span>(wait)
+            <span class="hl-kw">return</span> <span class="hl-kw">await</span> <span class="hl-fn">embed_with_retry</span>(batch)</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q13 batching -->
+  <div class="q-card" id="batching" onclick="toggleCard(this)">
+    <div class="q-header">
+      <div class="q-header-left">
+        <span class="q-num">Q13</span>
+        <span class="q-title">Why should embedding requests be batched?</span>
+      </div>
+      <span class="q-tag pill-purple pill">performance</span>
+      <svg class="q-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="q-body">
+      <div class="q-body-inner">
+        <p class="answer-text">Each API call has fixed overhead: network round-trip (~50–200ms), TLS handshake amortization, server scheduling. Sending 100 texts in 1 request vs 100 individual requests saves ~99× the fixed overhead and reduces RPM consumption by 99×.</p>
+
+        <!-- Batch calculator -->
+        <div class="batch-demo" onclick="event.stopPropagation()">
+          <h4>▸ Calculator — batching impact</h4>
+          <div class="batch-slider-row">
+            <span class="batch-slider-label">Documents</span>
+            <input type="range" min="10" max="10000" step="10" value="1000" id="docCount" oninput="updateBatch()" style="flex:1;accent-color:var(--accent)">
+            <span class="batch-slider-val" id="docCountVal">1,000</span>
+          </div>
+          <div class="batch-slider-row">
+            <span class="batch-slider-label">Batch size</span>
+            <input type="range" min="1" max="2048" step="1" value="100" id="batchSize" oninput="updateBatch()" style="flex:1;accent-color:var(--accent2)">
+            <span class="batch-slider-val" id="batchSizeVal">100</span>
+          </div>
+          <div class="batch-grid">
+            <div class="batch-card">
+              <div class="batch-card-label">API requests</div>
+              <div class="batch-card-value" id="numRequests" style="color:var(--accent)">10</div>
+            </div>
+            <div class="batch-card">
+              <div class="batch-card-label">vs. unbatched</div>
+              <div class="batch-card-value" id="savingsX" style="color:var(--accent2)">100×</div>
+            </div>
+            <div class="batch-card">
+              <div class="batch-card-label">Est. time (batched)</div>
+              <div class="batch-card-value" id="timeBatched" style="color:var(--accent4)">2.0s</div>
+            </div>
+            <div class="batch-card">
+              <div class="batch-card-label">Est. time (unbatched)</div>
+              <div class="batch-card-value" id="timeUnbatched" style="color:var(--accent3)">200s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="concept-box purple">
+          <div class="concept-label">OpenAI batching limits</div>
+          <span class="inline-code">text-embedding-3-small/large</span>: up to 2048 inputs per request, each input up to 8191 tokens. In practice, batch by token count (aim for ~100k tokens/request) rather than item count to avoid hitting the token limit.
+        </div>
+
+        <div class="code-block">
+          <div class="code-label">Efficient batch embedding</div>
+<pre><span class="hl-kw">def</span> <span class="hl-fn">batch_embed</span>(texts: list[str], batch_size: int = <span class="hl-num">100</span>):
+    all_embeddings = []
+    <span class="hl-kw">for</span> i <span class="hl-kw">in</span> <span class="hl-fn">range</span>(<span class="hl-num">0</span>, <span class="hl-fn">len</span>(texts), batch_size):
+        batch = texts[i : i + batch_size]
+        resp = client.embeddings.<span class="hl-fn">create</span>(
+            <span class="hl-var">input</span>=batch,
+            <span class="hl-var">model</span>=<span class="hl-str">"text-embedding-3-small"</span>
+        )
+        <span class="hl-cm"># Results are in same order as input</span>
+        all_embeddings.<span class="hl-fn">extend</span>(
+            [d.embedding <span class="hl-kw">for</span> d <span class="hl-kw">in</span> resp.data]
+        )
+    <span class="hl-kw">return</span> all_embeddings</pre>
+        </div>
+
+        <p class="footnote">Note: response items are guaranteed to be in the same order as input items — no need to sort by index.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div style="padding-top:2rem;border-top:1px solid var(--border)">
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.08em">
+    EMBEDDINGS GUIDE · OpenAI Cookbook · All 13 questions covered
+  </p>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── Toggle accordion cards ──
+function toggleCard(card) {
+  card.classList.toggle('open');
+}
+
+// ── Toggle pipeline steps ──
+function togglePipe(el) {
+  el.classList.toggle('active');
+}
+
+// ── Schema tabs ──
+function switchTab(tab, panelId) {
+  const demo = tab.closest('.schema-demo');
+  demo.querySelectorAll('.schema-tab').forEach(t => t.classList.remove('active'));
+  demo.querySelectorAll('.schema-panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ── Cosine similarity demo ──
+function cosineSim(a, b) {
+  const dot = a.reduce((s,v,i) => s + v*b[i], 0);
+  const normA = Math.sqrt(a.reduce((s,v) => s + v*v, 0));
+  const normB = Math.sqrt(b.reduce((s,v) => s + v*v, 0));
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (normA * normB);
+}
+
+const DIMS = ['food','animal','tech','emotion'];
+const COLORS = ['#6ee7b7','#818cf8','#f472b6','#fbbf24'];
+
+function renderBars(containerId, values) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = values.map((v, i) => `
+    <div class="vec-bar-row">
+      <span style="min-width:50px">${DIMS[i]}</span>
+      <div class="vec-bar-track">
+        <div class="vec-bar-fill" style="width:${Math.round(v*100)}%;background:${COLORS[i]}"></div>
+      </div>
+      <span>${v.toFixed(2)}</span>
+    </div>
+  `).join('');
+}
+
+function updateSim() {
+  const ids = ['a0','a1','b0','b1'];
+  const vals = ids.map(id => parseFloat(document.getElementById(id).value));
+  document.getElementById('av0').textContent = vals[0].toFixed(2);
+  document.getElementById('av1').textContent = vals[1].toFixed(2);
+  document.getElementById('av2').textContent = vals[2].toFixed(2);
+  document.getElementById('av3').textContent = vals[3].toFixed(2);
+
+  const tech_a = 0.1, emo_a = 0.05;
+  const tech_b = 0.1, emo_b = 0.05;
+  const vecA = [vals[0], vals[1], tech_a, emo_a];
+  const vecB = [vals[2], vals[3], tech_b, emo_b];
+
+  renderBars('vecBarsA', vecA);
+  renderBars('vecBarsB', vecB);
+
+  const sim = cosineSim(vecA, vecB);
+  const pct = Math.max(0, Math.min(1, (sim + 1) / 2));
+  document.getElementById('simBar').style.width = Math.round(pct * 100) + '%';
+  document.getElementById('simValue').textContent = sim.toFixed(3);
+  const col = sim > 0.8 ? 'var(--accent)' : sim > 0.4 ? 'var(--accent4)' : 'var(--accent3)';
+  document.getElementById('simValue').style.color = col;
+}
+
+updateSim();
+
+// ── Hash demo ──
+async function hashText(text) {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 32);
+}
+
+let prevHash = '';
+async function updateHash() {
+  const text = document.getElementById('hashInput').value;
+  const h = await hashText(text);
+  document.getElementById('hashVal').textContent = h + '...';
+  const status = document.getElementById('hashStatus');
+  if (prevHash === '') {
+    status.textContent = 'initial';
+    status.className = 'hash-same';
+  } else if (h !== prevHash) {
+    status.textContent = '⚡ changed — re-embed';
+    status.className = 'hash-changed';
+  } else {
+    status.textContent = '✓ unchanged — skip';
+    status.className = 'hash-same';
+  }
+  prevHash = h;
+}
+updateHash();
+
+// ── Retry simulator ──
+function buildRetryTimeline() {
+  const tl = document.getElementById('retryTimeline');
+  const attempts = [
+    { label: 'Attempt 1', wait: 0, status: 'fail', color: 'var(--accent3)', bg: 'rgba(244,114,182,0.15)' },
+    { label: 'Wait 2s', wait: 2, status: 'wait', color: 'var(--muted)', bg: 'rgba(255,255,255,0.04)' },
+    { label: 'Attempt 2', wait: 0, status: 'fail', color: 'var(--accent3)', bg: 'rgba(244,114,182,0.15)' },
+    { label: 'Wait 4s', wait: 4, status: 'wait', color: 'var(--muted)', bg: 'rgba(255,255,255,0.04)' },
+    { label: 'Attempt 3', wait: 0, status: 'fail', color: 'var(--accent3)', bg: 'rgba(244,114,182,0.15)' },
+    { label: 'Wait 8s', wait: 8, status: 'wait', color: 'var(--muted)', bg: 'rgba(255,255,255,0.04)' },
+    { label: 'Attempt 4', wait: 0, status: 'success', color: 'var(--accent)', bg: 'rgba(110,231,183,0.15)' },
+  ];
+
+  const maxWait = 8;
+  tl.innerHTML = attempts.map((a, i) => {
+    const h = a.wait > 0 ? Math.round((a.wait / maxWait) * 60) + 4 : 50;
+    return `
+      <div class="retry-attempt" id="retryAttempt${i}" style="opacity:0;transition:opacity 0.3s">
+        <div class="retry-bar" style="height:${h}px;background:${a.bg};border:1px solid ${a.color};opacity:0.7"></div>
+        <div class="retry-attempt-label" style="color:${a.color}">${a.label}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function simulateRetry() {
+  buildRetryTimeline();
+  document.getElementById('retryStatus').textContent = 'running...';
+  for (let i = 0; i < 7; i++) {
+    await new Promise(r => setTimeout(r, 300 + i * 80));
+    const el = document.getElementById('retryAttempt' + i);
+    if (el) el.style.opacity = '1';
+  }
+  document.getElementById('retryStatus').textContent = 'success on attempt 4';
+}
+
+buildRetryTimeline();
+
+// ── Batch calculator ──
+function updateBatch() {
+  const docs = parseInt(document.getElementById('docCount').value);
+  const bsz = parseInt(document.getElementById('batchSize').value);
+  const reqs = Math.ceil(docs / bsz);
+  const latency = 0.2;
+  const timeBatched = (reqs * latency).toFixed(1);
+  const timeUnbatched = (docs * latency).toFixed(0);
+
+  document.getElementById('docCountVal').textContent = docs.toLocaleString();
+  document.getElementById('batchSizeVal').textContent = bsz.toLocaleString();
+  document.getElementById('numRequests').textContent = reqs.toLocaleString();
+  document.getElementById('savingsX').textContent = Math.round(docs / reqs) + '×';
+  document.getElementById('timeBatched').textContent = timeBatched + 's';
+  document.getElementById('timeUnbatched').textContent = timeUnbatched + 's';
+}
+updateBatch();
+
+// ── Nav active state + scroll progress ──
+const sections = document.querySelectorAll('.section, .q-card[id]');
+const navLinks = document.querySelectorAll('nav a');
+
+function onScroll() {
+  const scrollTop = window.scrollY;
+  const docH = document.documentElement.scrollHeight - window.innerHeight;
+  document.getElementById('progressFill').style.width = Math.round((scrollTop / docH) * 100) + '%';
+
+  let current = '';
+  document.querySelectorAll('[id]').forEach(el => {
+    if (el.getBoundingClientRect().top < 120) current = el.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+</script>
+</body>
+</html>

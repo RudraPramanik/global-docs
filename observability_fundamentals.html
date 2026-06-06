@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Observability Fundamentals</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2234;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #6b7a99;
+    --accent-log: #f59e0b;
+    --accent-trace: #6366f1;
+    --accent-metric: #10b981;
+    --accent-alert: #ef4444;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 500; }
+  h3 { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; }
+
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 2rem; }
+
+  .section { margin-bottom: 2.5rem; }
+
+  /* Pillars Grid */
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 2rem; }
+
+  .pillar {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pillar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .pillar.log::before { background: var(--accent-log); }
+  .pillar.trace::before { background: var(--accent-trace); }
+  .pillar.metric::before { background: var(--accent-metric); }
+
+  .pillar:hover { transform: translateY(-2px); border-color: var(--border2); }
+  .pillar.active { border-color: var(--border2); }
+
+  .pillar-icon { font-size: 20px; margin-bottom: 8px; }
+  .pillar-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .pillar-q { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  .pillar.log .pillar-name { color: var(--accent-log); }
+  .pillar.trace .pillar-name { color: var(--accent-trace); }
+  .pillar.metric .pillar-name { color: var(--accent-metric); }
+
+  /* Detail Panel */
+  .detail-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .detail-panel.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .detail-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .detail-desc { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 1.25rem; }
+
+  .code-block {
+    background: #060a12;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+  .k { color: #6366f1; }
+  .s { color: #f59e0b; }
+  .c { color: var(--muted); font-style: italic; }
+  .v { color: #10b981; }
+  .n { color: #e8eaf0; }
+
+  .when-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .when-card {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.875rem;
+    font-size: 12px;
+  }
+  .when-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-weight: 500; }
+  .when-card.use .when-label { color: var(--accent-metric); }
+  .when-card.avoid .when-label { color: var(--accent-alert); }
+  .when-item { color: var(--muted); margin-bottom: 3px; display: flex; gap: 6px; }
+  .when-item::before { content: '·'; }
+
+  /* Signal Flow */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    font-size: 12px;
+  }
+  .flow-box {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+    flex: 1;
+  }
+  .flow-box .label { font-size: 11px; font-weight: 500; }
+  .flow-box .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .flow-arrow { flex: 0 0 28px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* Comparison table */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .compare-table th {
+    text-align: left;
+    padding: 8px 10px;
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .compare-table td {
+    padding: 9px 10px;
+    border-bottom: 0.5px solid var(--border);
+    vertical-align: top;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    font-family: var(--mono);
+  }
+  .tag-log { background: rgba(245,158,11,0.12); color: var(--accent-log); }
+  .tag-trace { background: rgba(99,102,241,0.12); color: var(--accent-trace); }
+  .tag-metric { background: rgba(16,185,129,0.12); color: var(--accent-metric); }
+
+  /* Error debugging walkthrough */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .step-num {
+    counter-increment: step;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-num.log { background: rgba(245,158,11,0.15); color: var(--accent-log); }
+  .step-num.trace { background: rgba(99,102,241,0.15); color: var(--accent-trace); }
+  .step-num.metric { background: rgba(16,185,129,0.15); color: var(--accent-metric); }
+  .step-body { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .step-desc { font-size: 12px; color: var(--muted); }
+
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 2rem 0; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 1rem; }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 0.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border2);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<h2 style="color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;">Module 1</h2>
+<h1>Observability fundamentals</h1>
+<p class="subtitle">The three pillars — what they are, when to use each, and how they work together</p>
+
+<!-- THREE PILLARS -->
+<div class="section">
+  <h3>The three pillars</h3>
+  <p style="color: var(--muted); font-size: 13px; margin-bottom: 1rem;">Click any pillar to explore it in depth.</p>
+
+  <div class="pillars">
+    <div class="pillar log" onclick="showDetail('log')">
+      <div class="pillar-icon">📋</div>
+      <div class="pillar-name">Logs</div>
+      <div class="pillar-q">What happened?</div>
+    </div>
+    <div class="pillar trace" onclick="showDetail('trace')">
+      <div class="pillar-icon">🔗</div>
+      <div class="pillar-name">Traces</div>
+      <div class="pillar-q">Where did it happen?</div>
+    </div>
+    <div class="pillar metric" onclick="showDetail('metric')">
+      <div class="pillar-icon">📈</div>
+      <div class="pillar-name">Metrics</div>
+      <div class="pillar-q">How often / how much?</div>
+    </div>
+  </div>
+
+  <!-- Detail panels -->
+  <div id="detail-log" class="detail-panel">
+    <div class="detail-header">
+      <div class="detail-dot" style="background: var(--accent-log)"></div>
+      <h2 style="color: var(--accent-log)">Logs — the event record</h2>
+    </div>
+    <p class="detail-desc">A log is a timestamped record of something that happened. Think of it as the system's diary. Every error, every user action, every database call can produce a log entry. The key insight: logs are <em>discrete events</em> — they fire once, when something occurs.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('log','raw')">Raw log</button>
+      <button class="tab" onclick="switchTab('log','structured')">Structured (JSON)</button>
+    </div>
+
+    <div id="log-raw" class="tab-content active">
+      <div class="code-block">
+<span class="c"># Bad — plain text log (hard to query, hard to parse)</span>
+<span class="n">2024-01-15 14:32:01 ERROR Failed to process request for user 42</span>
+      </div>
+    </div>
+    <div id="log-structured" class="tab-content">
+      <div class="code-block">
+<span class="c"># Good — structured JSON log (queryable, filterable, parseable)</span>
+<span class="n">{</span>
+  <span class="k">"timestamp"</span><span class="n">:</span> <span class="s">"2024-01-15T14:32:01.234Z"</span><span class="n">,</span>
+  <span class="k">"level"</span><span class="n">:</span>     <span class="s">"ERROR"</span><span class="n">,</span>
+  <span class="k">"logger"</span><span class="n">:</span>    <span class="s">"rag_service"</span><span class="n">,</span>
+  <span class="k">"message"</span><span class="n">:</span>   <span class="s">"LLM call failed"</span><span class="n">,</span>
+  <span class="k">"user_id"</span><span class="n">:</span>   <span class="s">"u_abc123"</span><span class="n">,</span>
+  <span class="k">"workspace_id"</span><span class="n">:</span> <span class="s">"ws_xyz"</span><span class="n">,</span>
+  <span class="k">"latency_ms"</span><span class="n">:</span> <span class="v">4821</span><span class="n">,</span>
+  <span class="k">"error"</span><span class="n">:</span>     <span class="s">"timeout after 5000ms"</span>
+<span class="n">}</span>
+      </div>
+    </div>
+
+    <div class="when-grid">
+      <div class="when-card use">
+        <div class="when-label">Use when</div>
+        <div class="when-item">Debugging a specific error</div>
+        <div class="when-item">Auditing what a user did</div>
+        <div class="when-item">Recording rare/important events</div>
+        <div class="when-item">Capturing error messages + stack</div>
+      </div>
+      <div class="when-card avoid">
+        <div class="when-label">Avoid for</div>
+        <div class="when-item">High-frequency per-request stats</div>
+        <div class="when-item">Aggregated counts (use metrics)</div>
+        <div class="when-item">Request flow visibility (use traces)</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail-trace" class="detail-panel">
+    <div class="detail-header">
+      <div class="detail-dot" style="background: var(--accent-trace)"></div>
+      <h2 style="color: var(--accent-trace)">Traces — the request journey</h2>
+    </div>
+    <p class="detail-desc">A trace follows a single request as it travels through your system. Each step is a <strong>span</strong>. Spans have a parent-child relationship, forming a tree. This tells you exactly <em>where</em> time was spent inside a single request — retrieval took 200ms, LLM took 1800ms, etc.</p>
+
+    <div class="code-block">
+<span class="c"># A trace = one request. Spans = steps inside it.</span>
+<span class="n">Trace: rag.answer  (total: 2.1s)</span>
+<span class="n">  ├─ </span><span class="k">span:</span><span class="n"> retrieval        [0ms → 210ms]  </span><span class="v">chunks: 8</span>
+<span class="n">  ├─ </span><span class="k">span:</span><span class="n"> context_building [210ms → 240ms] </span><span class="v">used: 5</span>
+<span class="n">  └─ </span><span class="k">span:</span><span class="n"> llm_generation   [240ms → 2100ms]</span><span class="v">tokens: 842</span>
+    </div>
+
+    <div class="when-grid">
+      <div class="when-card use">
+        <div class="when-label">Use when</div>
+        <div class="when-item">Pinpointing slow steps in a request</div>
+        <div class="when-item">Seeing LLM token usage / cost</div>
+        <div class="when-item">Debugging AI pipeline quality</div>
+        <div class="when-item">Cross-service request flow</div>
+      </div>
+      <div class="when-card avoid">
+        <div class="when-label">Avoid for</div>
+        <div class="when-item">System-wide health at a glance</div>
+        <div class="when-item">Historical trend analysis</div>
+        <div class="when-item">Alerting (use metrics instead)</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail-metric" class="detail-panel">
+    <div class="detail-header">
+      <div class="detail-dot" style="background: var(--accent-metric)"></div>
+      <h2 style="color: var(--accent-metric)">Metrics — the aggregate numbers</h2>
+    </div>
+    <p class="detail-desc">Metrics are numeric measurements collected over time. Unlike logs (one event = one record), metrics are <strong>aggregated</strong> — they tell you "500 requests in the last minute" not "here's each request". They're cheap to store, fast to query, and ideal for dashboards and alerting.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('metric','types')">Metric types</button>
+      <button class="tab" onclick="switchTab('metric','example')">PromQL example</button>
+    </div>
+
+    <div id="metric-types" class="tab-content active">
+      <div class="code-block">
+<span class="c"># Counter — only goes up. Use for totals.</span>
+<span class="n">http_requests_total{status="200"} → 45821</span>
+
+<span class="c"># Gauge — goes up and down. Use for current state.</span>
+<span class="n">memory_usage_bytes → 142000000</span>
+
+<span class="c"># Histogram — measures distributions. Use for latency.</span>
+<span class="n">request_duration_seconds_bucket{le="0.5"} → 3821</span>
+<span class="n">request_duration_seconds_bucket{le="1.0"} → 4512</span>
+      </div>
+    </div>
+    <div id="metric-example" class="tab-content">
+      <div class="code-block">
+<span class="c"># PromQL: rate of requests per second (last 5 min)</span>
+<span class="k">rate</span><span class="n">(http_requests_total[5m])</span>
+
+<span class="c"># Error rate</span>
+<span class="k">rate</span><span class="n">(http_requests_total{status=~</span><span class="s">"5.."</span><span class="n">}[5m])</span>
+
+<span class="c"># P95 latency</span>
+<span class="k">histogram_quantile</span><span class="n">(0.95,</span>
+  <span class="k">rate</span><span class="n">(request_duration_seconds_bucket[5m])</span>
+<span class="n">)</span>
+      </div>
+    </div>
+
+    <div class="when-grid">
+      <div class="when-card use">
+        <div class="when-label">Use when</div>
+        <div class="when-item">Trending over time (hours, days)</div>
+        <div class="when-item">Alerting thresholds</div>
+        <div class="when-item">Capacity planning</div>
+        <div class="when-item">SLA / uptime dashboards</div>
+      </div>
+      <div class="when-card avoid">
+        <div class="when-label">Avoid for</div>
+        <div class="when-item">Debugging a specific request</div>
+        <div class="when-item">Seeing what a user did</div>
+        <div class="when-item">Understanding per-call breakdown</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- HOW THEY WORK TOGETHER -->
+<div class="section">
+  <h3>How they work together</h3>
+  <p style="color: var(--muted); font-size: 13px; margin-bottom: 1.25rem;">A real debugging scenario: users report the AI chat is slow. Here's how each pillar contributes.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num metric">1</div>
+      <div class="step-body">
+        <div class="step-title"><span class="tag tag-metric">Metric</span> &nbsp;Alert fires: P95 latency &gt; 3s</div>
+        <div class="step-desc">Grafana dashboard shows a spike at 14:30. You know <em>something</em> is wrong and roughly <em>when</em>. But not why or where.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num trace">2</div>
+      <div class="step-body">
+        <div class="step-title"><span class="tag tag-trace">Trace</span> &nbsp;Open Langfuse, filter by that time window</div>
+        <div class="step-desc">You see that the <code style="font-family:var(--mono);font-size:11px;color:var(--accent-trace)">llm_generation</code> span is taking 4.2s. The <code style="font-family:var(--mono);font-size:11px;color:var(--accent-trace)">retrieval</code> span is normal (180ms). Now you know <em>where</em>: the LLM call itself.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num log">3</div>
+      <div class="step-body">
+        <div class="step-title"><span class="tag tag-log">Log</span> &nbsp;Search logs for the affected requests</div>
+        <div class="step-desc">Filter by the trace's <code style="font-family:var(--mono);font-size:11px;color:var(--accent-log)">request_id</code>. You find a warning: <code style="font-family:var(--mono);font-size:11px;color:var(--accent-log)">"token budget exceeded, truncating context"</code>. The context was too large, causing the LLM to process more tokens than expected.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- COMPARISON TABLE -->
+<div class="section">
+  <h3>Quick reference</h3>
+  <table class="compare-table">
+    <tr>
+      <th>Property</th>
+      <th><span class="tag tag-log">Logs</span></th>
+      <th><span class="tag tag-trace">Traces</span></th>
+      <th><span class="tag tag-metric">Metrics</span></th>
+    </tr>
+    <tr>
+      <td>granularity</td>
+      <td>One record per event</td>
+      <td>One tree per request</td>
+      <td>Aggregated numbers</td>
+    </tr>
+    <tr>
+      <td>storage cost</td>
+      <td>High (verbose text)</td>
+      <td>Medium (structured)</td>
+      <td>Low (numbers only)</td>
+    </tr>
+    <tr>
+      <td>query speed</td>
+      <td>Slow at scale</td>
+      <td>Medium</td>
+      <td>Very fast</td>
+    </tr>
+    <tr>
+      <td>best for</td>
+      <td>Root cause analysis</td>
+      <td>Latency breakdown</td>
+      <td>Alerting, trends</td>
+    </tr>
+    <tr>
+      <td>your tool</td>
+      <td>stdout / JSON logs</td>
+      <td>Langfuse</td>
+      <td>Prometheus + Grafana</td>
+    </tr>
+  </table>
+</div>
+
+<script>
+function showDetail(type) {
+  document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.pillar').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('detail-' + type);
+  panel.classList.add('visible');
+  event.currentTarget.classList.add('active');
+}
+
+function switchTab(group, tab) {
+  const parent = event.currentTarget.closest('.detail-panel');
+  parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  parent.querySelector('#' + group + '-' + tab).classList.add('active');
+}
+
+showDetail('log');
+document.querySelector('.pillar.log').classList.add('active');
+</script>
+</body>
+</html>
